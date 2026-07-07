@@ -55,7 +55,7 @@ function scoreHackerNews(result: SourceResult): ScoreBreakdown {
   )
   const signal =
     launches.length > 0
-      ? `${launches.length} Show HN launch${launches.length === 1 ? '' : 'es'} detected — teams are already shipping in this lane. ${highSignal.length} stories with 50+ points.`
+      ? `${launches.length} Show HN launch${launches.length === 1 ? '' : 'es'} detected — teams are already shipping in this lane. ${highSignal.length} ${highSignal.length === 1 ? 'story' : 'stories'} with 50+ points.`
       : `${result.totalCount.toLocaleString()} related stories, ${highSignal.length} with strong engagement, no direct launches spotted in top results.`
   return { source: 'hackernews', label: result.label, subScore: Math.round(score), signal }
 }
