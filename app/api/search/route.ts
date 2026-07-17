@@ -1,11 +1,10 @@
+import { displayQuery } from '@/lib/core/normalize'
 import { computeCrowding } from '@/lib/scoring'
-import {
-  searchArxiv,
-  searchGitHub,
-  searchHackerNews,
-  searchNpm,
-} from '@/lib/sources'
-import type { SourceResult } from '@/lib/types'
+import { runAllSources } from '@/lib/sources'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 export async function POST(request: Request) {
   let body: { query?: unknown }
@@ -19,25 +18,19 @@ export async function POST(request: Request) {
   if (!raw) {
     return Response.json({ error: 'Query is required.' }, { status: 400 })
   }
-  const query = raw.slice(0, 120)
 
-  const settled = await Promise.allSettled([
-    searchGitHub(query),
-    searchHackerNews(query),
-    searchArxiv(query),
-    searchNpm(query),
-  ])
+  const query = displayQuery(raw)
+  const sources = await runAllSources(query, {
+    githubToken: process.env.GITHUB_TOKEN,
+    openAlexApiKey: process.env.OPENALEX_API_KEY,
+    openAlexMailto: process.env.OPENALEX_MAILTO,
+    timeoutMs: 8_000,
+  })
 
-  const fallbacks: SourceResult[] = [
-    { source: 'github', label: 'GitHub Repositories', status: 'error', totalCount: 0, items: [], errorMessage: 'Request failed.' },
-    { source: 'hackernews', label: 'Hacker News', status: 'error', totalCount: 0, items: [], errorMessage: 'Request failed.' },
-    { source: 'arxiv', label: 'arXiv Papers', status: 'error', totalCount: 0, items: [], errorMessage: 'Request failed.' },
-    { source: 'npm', label: 'npm Packages', status: 'error', totalCount: 0, items: [], errorMessage: 'Request failed.' },
-  ]
-
-  const sources = settled.map((result, i) =>
-    result.status === 'fulfilled' ? result.value : fallbacks[i],
-  )
-
-  return Response.json(computeCrowding(query, sources))
+  return Response.json(computeCrowding(query, sources), {
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex',
+    },
+  })
 }
