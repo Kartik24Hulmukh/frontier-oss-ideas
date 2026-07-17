@@ -11,11 +11,8 @@ function formatDate(iso: string | null): string {
 
 export function ScoreDisplay({ result }: { result: CrowdingResult }) {
   return (
-    <section
-      aria-label="Crowding score"
-      className="border border-border bg-card"
-    >
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+    <section aria-label="Crowding score" className="border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Crowding score
         </span>
@@ -39,6 +36,17 @@ export function ScoreDisplay({ result }: { result: CrowdingResult }) {
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">
               {result.verdictDetail}
             </p>
+          </div>
+
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-muted-foreground">
+            <span>
+              confidence:{' '}
+              <span className="text-foreground">{result.confidence}%</span>
+            </span>
+            <span>
+              coverage:{' '}
+              <span className="text-foreground">{result.coverage}%</span>
+            </span>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -80,9 +88,7 @@ export function ScoreDisplay({ result }: { result: CrowdingResult }) {
             </span>
             <span className="font-mono text-xs text-muted-foreground">
               {'latest artifact: '}
-              <span className="text-foreground">
-                {formatDate(result.timeline.latest)}
-              </span>
+              <span className="text-foreground">{formatDate(result.timeline.latest)}</span>
             </span>
           </div>
         </div>
@@ -94,14 +100,14 @@ export function ScoreDisplay({ result }: { result: CrowdingResult }) {
             key={b.source}
             className={`flex flex-col gap-2 p-4 ${
               i > 0 ? 'border-t border-border sm:border-t-0 sm:border-l' : ''
-            } ${i === 2 ? 'sm:border-t lg:border-t-0' : ''} ${i === 3 ? 'sm:border-t lg:border-t-0' : ''}`}
+            }`}
           >
             <div className="flex items-baseline justify-between">
               <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 {b.label}
               </span>
               <span className="font-mono text-lg font-bold text-foreground">
-                {b.subScore}
+                {b.included ? b.subScore : '—'}
               </span>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground text-pretty">

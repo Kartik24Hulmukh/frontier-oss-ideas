@@ -1,0 +1,46 @@
+import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+
+export async function searchHackerNews(
+  query: string,
+  ctx: AdapterContext = {},
+): Promise<SourceResult> {
+  const label = 'Hacker News'
+  try {
+    const q = encodeURIComponent(query)
+    const url = 'https://hn.algolia.com/api/v1/search?query=' + q + '&tags=story&hitsPerPage=10'
+    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs })
+    if (!res.ok) return errorResult('hackernews', label, 'Hacker News returned ' + res.status + '.')
+    const data = await res.json()
+    const items: EvidenceItem[] = (data.hits ?? []).map(
+      (hit: {
+        title: string | null
+        url: string | null
+        objectID: string
+        created_at: string
+        points: number
+        num_comments: number
+      }) => {
+        const title = hit.title ?? 'Untitled story'
+        return {
+          title,
+          description: null,
+          url: hit.url ?? ('https://news.ycombinator.com/item?id=' + hit.objectID),
+          date: hit.created_at,
+          meta: (hit.points ?? 0).toLocaleString() + ' points · ' + (hit.num_comments ?? 0).toLocaleString() + ' comments',
+          isLaunchSignal: /^show hn/i.test(title),
+          relevance: 1,
+        }
+      },
+    )
+    return {
+      source: 'hackernews',
+      label,
+      status: 'ok',
+      totalCount: data.nbHits ?? items.length,
+      items,
+    }
+  } catch {
+    return errorResult('hackernews', label, 'Hacker News request failed or timed out.')
+  }
+}

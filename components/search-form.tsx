@@ -6,7 +6,7 @@ const EXAMPLES = [
   'AI code review agent',
   'reasoning trace format',
   'acoustic predictive maintenance',
-  'protocol version control biology',
+  'local-first AI agent OS',
 ]
 
 export function SearchForm({
@@ -40,14 +40,6 @@ export function SearchForm({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (
-              e.key === 'Enter' &&
-              (e.nativeEvent.isComposing || e.keyCode === 229)
-            ) {
-              e.stopPropagation()
-            }
-          }}
           placeholder="Describe the idea, e.g. AI code review agent"
           maxLength={120}
           className="h-14 flex-1 border border-border bg-card px-4 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"

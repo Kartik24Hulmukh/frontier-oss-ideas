@@ -13,10 +13,7 @@ function formatDate(iso: string | null): string | null {
 
 export function SourceSection({ result }: { result: SourceResult }) {
   return (
-    <section
-      aria-label={result.label}
-      className="border border-border bg-card"
-    >
+    <section aria-label={result.label} className="border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <span className="font-mono text-xs uppercase tracking-widest text-foreground">
           {result.label}
@@ -35,9 +32,7 @@ export function SourceSection({ result }: { result: SourceResult }) {
           {result.errorMessage ?? 'This source could not be reached.'}
         </p>
       ) : result.items.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">
-          No matching artifacts found.
-        </p>
+        <p className="p-4 text-sm text-muted-foreground">No matching artifacts found.</p>
       ) : (
         <ul className="divide-y divide-border">
           {result.items.map((item) => {
