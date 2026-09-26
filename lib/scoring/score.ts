@@ -12,13 +12,31 @@ import { buildCapsule } from './capsule'
 const clamp = (n: number, min = 0, max = 100) => Math.min(max, Math.max(min, n))
 
 const WEIGHTS: Record<SourceId, number> = {
-  github: 0.28,
-  hackernews: 0.18,
-  arxiv: 0.1,
-  openalex: 0.1,
-  npm: 0.1,
-  pypi: 0.1,
-  huggingface: 0.14,
+  github: 0.25,
+  hackernews: 0.16,
+  arxiv: 0.09,
+  openalex: 0.09,
+  npm: 0.09,
+  pypi: 0.09,
+  huggingface: 0.13,
+  reddit: 0.1,
+}
+
+/**
+ * Supply = evidence someone is building it (code, packages, models, papers).
+ * Demand = evidence someone wants it (discussion, requests, launches people react to).
+ * HN Show-HN launches count toward demand (public reaction), everything else on HN
+ * toward supply (a shipped thing exists). Reddit is a pure demand-side channel.
+ */
+const SOURCE_CATEGORY: Record<SourceId, 'supply' | 'demand'> = {
+  github: 'supply',
+  hackernews: 'supply',
+  arxiv: 'supply',
+  openalex: 'supply',
+  npm: 'supply',
+  pypi: 'supply',
+  huggingface: 'supply',
+  reddit: 'demand',
 }
 
 function monthsAgo(iso: string | null): number | null {
@@ -207,6 +225,34 @@ function scoreHuggingFace(result: SourceResult): ScoreBreakdown {
   }
 }
 
+function scoreReddit(result: SourceResult): ScoreBreakdown {
+  const weight = WEIGHTS.reddit
+  if (result.status !== 'ok') {
+    return {
+      source: 'reddit',
+      label: result.label,
+      subScore: 0,
+      signal: 'Source unavailable — excluded from score.',
+      weight,
+      included: false,
+    }
+  }
+  const wants = result.items.filter((i) => i.isLaunchSignal)
+  const score = clamp(wants.length * 16 + Math.min(result.totalCount, 60) * 1.1)
+  const signal =
+    result.items.length > 0
+      ? wants.length + ' explicit want/ask post(s); ' + result.totalCount.toLocaleString() + ' related discussions — demand-side heat.'
+      : 'No Reddit discussion found for this phrasing yet.'
+  return {
+    source: 'reddit',
+    label: result.label,
+    subScore: Math.round(score),
+    signal,
+    weight,
+    included: true,
+  }
+}
+
 function scoreOne(result: SourceResult): ScoreBreakdown {
   switch (result.source) {
     case 'github':
@@ -223,6 +269,8 @@ function scoreOne(result: SourceResult): ScoreBreakdown {
       return scorePackage(result, 'pypi')
     case 'huggingface':
       return scoreHuggingFace(result)
+    case 'reddit':
+      return scoreReddit(result)
   }
 }
 
@@ -284,6 +332,39 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
 
   const { verdict, verdictDetail } = verdictFor(score)
   const wedges = computeWedges(query, score, verdict, sources, breakdown)
+
+  // 2D Supply x Demand battlefield geometry — the single most decision-changing
+  // output: a score alone cannot separate "nobody wants this" from "open lane".
+  const supplyBreakdown = available.filter((b) => SOURCE_CATEGORY[b.source] === 'supply')
+  const demandBreakdown = available.filter((b) => SOURCE_CATEGORY[b.source] === 'demand')
+  const weightedAvg = (rows: ScoreBreakdown[]): number => {
+    const w = rows.reduce((sum, b) => sum + b.weight, 0)
+    if (w === 0) return 0
+    return rows.reduce((sum, b) => sum + b.subScore * b.weight, 0) / w
+  }
+  const supplyScore = Math.round(clamp(weightedAvg(supplyBreakdown)))
+  const demandScore = Math.round(clamp(weightedAvg(demandBreakdown)))
+  const SUPPLY_SPLIT = 40
+  const DEMAND_SPLIT = 35
+  let quadrant: import('@/lib/types').Quadrant
+  let quadrantDetail: string
+  if (supplyScore < SUPPLY_SPLIT && demandScore >= DEMAND_SPLIT) {
+    quadrant = 'Blue Ocean'
+    quadrantDetail =
+      'Low supply, real demand signal. Few teams are shipping this and people are asking for it in public — the highest-leverage lane to enter now.'
+  } else if (supplyScore >= SUPPLY_SPLIT && demandScore >= DEMAND_SPLIT) {
+    quadrant = 'Gold Rush'
+    quadrantDetail =
+      'High supply, high demand. The market is real but so is the fight — win on distribution, data, or a non-copyable wedge, not on being first.'
+  } else if (supplyScore < SUPPLY_SPLIT && demandScore < DEMAND_SPLIT) {
+    quadrant = 'Ghost Town'
+    quadrantDetail =
+      'Low supply, low demand. Could be genuinely early — or nobody actually wants it. Go validate demand with real conversations before writing code.'
+  } else {
+    quadrant = 'Bloodbath'
+    quadrantDetail =
+      'High supply, weak or falling demand. Many teams chasing a shrinking or already-served audience — avoid a head-on entry.'
+  }
   const searchedAt = new Date().toISOString()
   const display = displayQuery(query)
   const normalizedQuery = normalizeQuery(query)
@@ -305,7 +386,11 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
     },
     searchedAt,
     methodology:
-      'Heuristic crowding score from live public sources (GitHub, HN, arXiv, OpenAlex, npm, PyPI, Hugging Face). Not investment advice; not a legal novelty opinion.',
+      'Heuristic crowding score from live public sources (GitHub, HN, arXiv, OpenAlex, npm, PyPI, Hugging Face, Reddit). Not investment advice; not a legal novelty opinion.',
+    supplyScore,
+    demandScore,
+    quadrant,
+    quadrantDetail,
   }
 
   return {

@@ -6,6 +6,10 @@ export type SourceId =
   | 'npm'
   | 'pypi'
   | 'huggingface'
+  | 'reddit'
+
+/** Supply = people building it. Demand = people wanting/discussing it. */
+export type SourceCategory = 'supply' | 'demand'
 
 export type SourceStatus = 'ok' | 'error' | 'rate_limited'
 
@@ -40,6 +44,8 @@ export interface ScoreBreakdown {
 
 export type Verdict = 'Open lane' | 'Early movers' | 'Crowded' | 'Saturated'
 
+export type Quadrant = 'Blue Ocean' | 'Gold Rush' | 'Ghost Town' | 'Bloodbath'
+
 export interface Wedge {
   title: string
   rationale: string
@@ -61,6 +67,11 @@ export interface CrowdingResult {
   searchedAt: string
   methodology: string
   capsule: EvidenceCapsule
+  /** Supply x Demand battlefield geometry (2D matrix) */
+  supplyScore: number
+  demandScore: number
+  quadrant: Quadrant
+  quadrantDetail: string
 }
 
 export interface EvidenceCapsule {
