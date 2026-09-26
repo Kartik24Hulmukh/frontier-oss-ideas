@@ -1,4 +1,5 @@
 import { errorResult as supplyError, fetchWithTimeout } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type {
   AdapterContext,
   DemandBreakdown,
@@ -19,6 +20,17 @@ const UA = 'SimultaneityIndex/1.1 (+https://github.com/Kartik24Hulmukh/frontier-
 function demandError(source: DemandSourceId, label: string, message: string, rateLimited = false): DemandSourceResult {
   const base = supplyError('github', label, message, rateLimited)
   return { ...base, source }
+}
+
+/**
+ * Demand adapters must never silently flatten into "no demand": a dead lane
+ * and an unmeasured lane are different products. These helpers classify an
+ * adapter outage so the UI can render partial-demand banners honestly.
+ */
+export function demandStatusLabel(r: DemandSourceResult): 'healthy' | 'degraded' | 'blocked' {
+  if (r.status === 'ok') return 'healthy'
+  if (r.status === 'rate_limited') return 'degraded'
+  return /blocks anonymous|credentials|OAuth/i.test(r.errorMessage ?? '') ? 'blocked' : 'degraded'
 }
 
 let cachedRedditToken: { token: string; expiresAt: number } | null = null
@@ -58,7 +70,7 @@ export async function searchReddit(query: string, ctx: AdapterContext = {}): Pro
     const url = host + '?q=' + encodeURIComponent(query) + '&sort=relevance&t=year&limit=25&type=link&raw_json=1'
     const headers: Record<string, string> = { 'User-Agent': UA, Accept: 'application/json' }
     if (token) headers.Authorization = 'Bearer ' + token
-    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs, headers })
+    const res = await pacedFetch('reddit', url, { timeoutMs: ctx.timeoutMs, headers })
     if (res.status === 403 && !token) return demandError('reddit', label, 'Reddit blocks anonymous server traffic — set REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET.')
     if (res.status === 429) return demandError('reddit', label, 'Reddit rate limited this request.', true)
     if (!res.ok) return demandError('reddit', label, 'Reddit returned ' + res.status + '.')
@@ -73,7 +85,8 @@ export async function searchReddit(query: string, ctx: AdapterContext = {}): Pro
       relevance: 1,
     }))
     return { source: 'reddit', label, status: 'ok', totalCount: children.length, items }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return demandError('reddit', label, e.message, e.status === 429)
     return demandError('reddit', label, 'Reddit request failed or timed out.')
   }
 }
@@ -86,8 +99,8 @@ export async function searchStackOverflow(query: string, ctx: AdapterContext = {
       encodeURIComponent(query)
     const listUrl = url.replace('&filter=total', '')
     const [totalRes, listRes] = await Promise.all([
-      fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs }),
-      fetchWithTimeout(listUrl, { timeoutMs: ctx.timeoutMs }),
+      pacedFetch('stackoverflow', url, { timeoutMs: ctx.timeoutMs }),
+      pacedFetch('stackoverflow', listUrl, { timeoutMs: ctx.timeoutMs }),
     ])
     if (listRes.status === 429 || listRes.status === 400) {
       return demandError('stackoverflow', label, 'Stack Exchange throttled this request.', true)
@@ -105,7 +118,8 @@ export async function searchStackOverflow(query: string, ctx: AdapterContext = {
       relevance: 1,
     }))
     return { source: 'stackoverflow', label, status: 'ok', totalCount: typeof total === 'number' ? total : raw.length, items }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return demandError('stackoverflow', label, e.message, e.status === 429)
     return demandError('stackoverflow', label, 'Stack Exchange request failed or timed out.')
   }
 }
@@ -114,7 +128,7 @@ export async function searchAskHN(query: string, ctx: AdapterContext = {}): Prom
   const label = 'Ask HN + comment pull'
   try {
     const url = 'https://hn.algolia.com/api/v1/search?query=' + encodeURIComponent(query) + '&tags=(ask_hn,comment)&hitsPerPage=20'
-    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs })
+    const res = await pacedFetch('askhn', url, { timeoutMs: ctx.timeoutMs })
     if (!res.ok) return demandError('askhn', label, 'Hacker News returned ' + res.status + '.')
     const data = await res.json()
     const hits: Array<{ title?: string | null; story_title?: string | null; comment_text?: string | null; objectID: string; created_at: string; points?: number | null }> = data.hits ?? []
@@ -127,7 +141,8 @@ export async function searchAskHN(query: string, ctx: AdapterContext = {}): Prom
       relevance: 1,
     }))
     return { source: 'askhn', label, status: 'ok', totalCount: data.nbHits ?? items.length, items }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return demandError('askhn', label, e.message, e.status === 429)
     return demandError('askhn', label, 'Hacker News request failed or timed out.')
   }
 }
