@@ -8,14 +8,14 @@ export const metadata: Metadata = {
 
 const PLANS = [
   { name: 'Free', price: '$0', note: 'forever', items: ['20 scans / 10 min', 'All 10 sources + battlefield', 'JSON capsule + receipt', 'Local watchlist', 'MCP + HTTP API (fair use)'], cta: ['Scan an idea', '/'] },
-  { name: 'Pro', price: '$19', note: '/mo · $189/yr', items: ['Unlimited scans', 'Weekly delta email alerts', 'Compare up to 5 ideas', 'PDF one-pager export', 'Charter: 40% off for first 500'], cta: ['Join the charter list', 'https://github.com/Kartik24Hulmukh/frontier-oss-ideas/issues/new?title=Pro%20charter%20request'] },
-  { name: 'Team / API', price: '$99', note: '/mo', items: ['5,000 API + MCP calls / mo', 'Dedicated API key', 'Webhook alerts', 'Signed Ed25519 receipts'], cta: ['Request a key', 'https://github.com/Kartik24Hulmukh/frontier-oss-ideas/issues/new?title=Team%20API%20key%20request'] },
-  { name: 'Cohort Screening', price: '$2k–$10k', note: '/yr', items: ['Batch screening 200–500 ideas', 'Idea-twin collision map', 'Novelty ranking + CSV/PDF brief', 'White-label + onboarding'], cta: ['Book a pilot', '/funds'] },
+  { name: 'Pro · planned', price: '$19', note: '/mo · $189/yr', items: ['Usage limits to be confirmed', 'Weekly delta email alerts', 'Compare up to 3 ideas today', 'PDF one-pager export', 'Charter: 40% off for first 500'], cta: ['Join the charter list', 'https://github.com/Kartik24Hulmukh/frontier-oss-ideas/issues/new?title=Pro%20charter%20request'] },
+  { name: 'Team / API · planned', price: '$99', note: '/mo', items: ['5,000 API + MCP calls / mo', 'Dedicated API key', 'Webhook alerts', 'Signed Ed25519 receipts'], cta: ['Request a key', 'https://github.com/Kartik24Hulmukh/frontier-oss-ideas/issues/new?title=Team%20API%20key%20request'] },
+  { name: 'Cohort pilot', price: '$2k–$10k', note: '/yr', items: ['Up to 25 ideas per demo batch', 'Idea-twin collision map', 'Crowding ranking + CSV today', 'Larger batches: discuss a pilot'], cta: ['Book a pilot', '/funds'] },
 ]
 
 export default function PricingPage() {
   return (
-    <PageShell eyebrow="Pricing" title="Free for builders. Paid for teams who screen many ideas." lede="The core scan stays free and open-source — the metric must be citeable by anyone.">
+    <PageShell eyebrow="Pricing" title="Free for builders. Paid for teams who screen many ideas." lede="The free scanner works today. Paid prices are proposals, not purchasable subscriptions; email alerts, billing, PDF and webhooks are not yet available. Do not post private ideas or credentials in public GitHub requests.">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((p) => (
           <section key={p.name} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5">

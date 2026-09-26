@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto'
 import { InFlight, TTLCache } from '@/lib/core/cache'
 import { dedupeAcrossSources } from '@/lib/core/dedup'
 import { expandQuery } from '@/lib/core/expand'
-import { displayQuery, normalizeQuery, queryHash } from '@/lib/core/normalize'
+import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { runDemand } from '@/lib/demand'
 import { computeCrowding } from '@/lib/scoring'
 import { quadrantFor } from '@/lib/scoring/quadrant'
@@ -46,7 +47,7 @@ export interface ScanOptions {
 
 export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promise<CrowdingResult & { cached?: boolean }> {
   const query = displayQuery(rawQuery)
-  const key = queryHash(normalizeQuery(query)) + (opts.demand === false ? ':s' : '') + (opts.expand === false ? ':x' : '')
+  const key = createHash('sha256').update(JSON.stringify([normalizeQuery(query), opts.ctx ?? null])).digest('hex') + (opts.demand === false ? ':s' : '') + (opts.expand === false ? ':x' : '')
   if (!opts.fresh) {
     const hit = cache.get(key)
     if (hit) return { ...hit, cached: true }
@@ -72,6 +73,9 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
     const capsule = {
       ...base.capsule,
       version: '1.1' as const,
+      coverage: base.coverage,
+      demandCoverage: demand?.coverage ?? 0,
+      demandEvidenceLinks: demand?.sources.filter((s) => s.status === 'ok').flatMap((s) => s.items.slice(0, 5).map((i) => ({ source: s.source, title: i.title, url: i.url }))) ?? [],
       demandScore: demand?.score ?? null,
       quadrant: quadrant?.quadrant ?? null,
     }

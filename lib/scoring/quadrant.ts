@@ -6,11 +6,11 @@ export const DEMAND_SPLIT = 40
 
 const COPY: Record<Quadrant, { headline: string; action: string }> = {
   'Blue Ocean': {
-    headline: 'Low supply, real demand — the rare window.',
+    headline: 'Low observed supply, stronger discussion signal — validate buyer demand.',
     action: 'Move now. Ship a narrow v1 in weeks, capture the people asking in the linked threads, and publish before the lane heats up.',
   },
   'Gold Rush': {
-    headline: 'High supply, high demand — money is here, so are rivals.',
+    headline: 'High observed supply and discussion activity — revenue is not established.',
     action: 'Enter only with a non-copyable asset: proprietary data, a distribution channel, deep workflow integration, or a compliance-grade niche.',
   },
   'Ghost Town': {
@@ -18,7 +18,7 @@ const COPY: Record<Quadrant, { headline: string; action: string }> = {
     action: 'Validate pull before building: 10 customer interviews or a landing page test. Either you are early or nobody needs it.',
   },
   Bloodbath: {
-    headline: 'High supply, weak demand — too many builders, too few buyers.',
+    headline: 'High observed supply, weak discussion signal — buyer demand remains uncertain.',
     action: 'Do not enter as another clone. Pivot to the layer above the lane (aggregation, evaluation, neutral tooling) or kill the idea.',
   },
 }

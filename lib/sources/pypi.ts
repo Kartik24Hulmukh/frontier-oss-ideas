@@ -14,29 +14,29 @@ export async function searchPypi(
     )
 
     const items: EvidenceItem[] = []
-    for (const name of candidates.slice(0, 3)) {
+    await Promise.all(candidates.slice(0, 3).map(async (name) => {
       try {
         const res = await fetchWithTimeout(
           'https://pypi.org/pypi/' + encodeURIComponent(name) + '/json',
           { timeoutMs: ctx.timeoutMs ?? 5000 },
         )
-        if (!res.ok) continue
+        if (!res.ok) return
         const data = await res.json()
         const info = data.info ?? {}
-        const versions = Object.keys(data.releases ?? {}).sort()
+        const dates = Object.values(data.releases ?? {}).flat().map((f) => (f as { upload_time_iso_8601?: string }).upload_time_iso_8601).filter((d): d is string => typeof d === 'string' && !Number.isNaN(Date.parse(d))).sort()
         items.push({
           title: info.name ?? name,
           description: info.summary ?? null,
           url: info.package_url ?? ('https://pypi.org/project/' + name + '/'),
-          date: versions.length ? versions[versions.length - 1] : null,
+          date: dates.at(-1) ?? null,
           meta: info.version ? 'version ' + info.version : null,
           relevance: name === slug ? 1 : 0.7,
         })
       } catch {
         // continue
       }
-    }
-
+    }))
+    let searchAvailable = false
     try {
       const searchRes = await fetchWithTimeout(
         'https://pypi.org/search/?q=' + encodeURIComponent(query),
@@ -47,6 +47,7 @@ export async function searchPypi(
       )
       if (searchRes.ok) {
         const html = await searchRes.text()
+        searchAvailable = /package-snippet|No projects found|No results found/i.test(html) && !/Client Challenge|captcha/i.test(html)
         const re =
           /href="\/project\/([^/]+)\/?"[^>]*>\s*<span class="package-snippet__name">([^<]+)<\/span>[\s\S]*?<p class="package-snippet__description">([^<]*)/g
         let m: RegExpExecArray | null
@@ -69,12 +70,14 @@ export async function searchPypi(
       // ignore HTML path failures
     }
 
+    if (!searchAvailable && items.length === 0) return errorResult('pypi', label, 'PyPI search unavailable or challenged; exact-name probes found no evidence. Not evidence of an empty ecosystem.')
+    const unique = [...new Map(items.map((i) => [i.url, i])).values()]
     return {
       source: 'pypi',
       label,
       status: 'ok',
-      totalCount: items.length,
-      items: items.slice(0, 10),
+      totalCount: unique.length,
+      items: unique.slice(0, 10),
     }
   } catch {
     return errorResult('pypi', label, 'PyPI request failed or timed out.')

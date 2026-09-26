@@ -197,7 +197,8 @@ export function computeDemand(sources: DemandSourceResult[]): DemandResult {
   return {
     score,
     coverage: sources.length ? Math.round((ok.length / sources.length) * 100) : 0,
-    trend: trendOf(sources),
+    // Relevance-ranked top hits are not comparable time windows.
+    trend: 'unknown',
     breakdown,
     sources,
   }

@@ -40,11 +40,11 @@ export function issueReceipt(capsule: EvidenceCapsule, pem?: string): ScanReceip
   const digest = digestCapsule(capsule)
   const key = loadKey(pem)
   if (!key) {
-    return { algorithm: 'sha256', digest, signature: null, publicKey: null, issuedAt: new Date().toISOString() }
+    return { algorithm: 'sha256', digest, signature: null, publicKey: null, issuedAt: capsule.searchedAt }
   }
   const signature = sign(null, Buffer.from(digest, 'hex'), key).toString('base64')
   const publicKey = createPublicKey(key).export({ type: 'spki', format: 'pem' }).toString()
-  return { algorithm: 'ed25519+sha256', digest, signature, publicKey, issuedAt: new Date().toISOString() }
+  return { algorithm: 'ed25519+sha256', digest, signature, publicKey, issuedAt: capsule.searchedAt }
 }
 
 export function verifyReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt): { digestMatches: boolean; signatureValid: boolean | null } {
@@ -56,4 +56,17 @@ export function verifyReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt): {
   } catch {
     return { digestMatches, signatureValid: false }
   }
+}
+
+/** Pin trust to a deployment-controlled key, never to a key supplied in a receipt. */
+export function trustedReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt, trustedPem = process.env.RECEIPT_PUBLIC_KEY): boolean {
+  try {
+    const trusted = trustedPem ? createPublicKey(trustedPem.replace(/\\n/g, '\n')) : (() => { const k = loadKey(); return k ? createPublicKey(k) : null })()
+    if (!trusted || !receipt.publicKey || receipt.algorithm !== 'ed25519+sha256' || receipt.issuedAt !== capsule.searchedAt) return false
+    if (trusted.asymmetricKeyType !== 'ed25519') return false
+    const supplied = createPublicKey(receipt.publicKey)
+    if (!trusted.export({ type: 'spki', format: 'der' }).equals(supplied.export({ type: 'spki', format: 'der' }))) return false
+    const checked = verifyReceipt(capsule, receipt)
+    return checked.digestMatches && checked.signatureValid === true
+  } catch { return false }
 }

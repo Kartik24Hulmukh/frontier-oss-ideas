@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
@@ -19,7 +19,7 @@
     "mcp:stdio": "node bin/simultaneity-mcp.mjs"
   },
   "dependencies": {
-    "next": "16.2.6",
+    "next": "16.3.6",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
@@ -28,9 +28,9 @@
     "@types/node": "24.0.0",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
-    "postcss": "8.5.6",
+    "postcss": "8.5.28",
     "tailwindcss": "4.2.0",
-    "tsx": "4.19.0",
+    "tsx": "4.23.15",
     "typescript": "5.7.3"
   },
   "bin": {

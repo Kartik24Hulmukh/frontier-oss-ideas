@@ -57,7 +57,8 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) =>
 }
 
 export function toCsv(rows: CohortRow[]): string {
-  const esc = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
+  const safe = (v: unknown) => { const s = String(v ?? ''); return /^[\s]*[=+@-]/.test(s) || /^[\t\r\n]/.test(s) ? "'" + s : s }
+  const esc = (v: unknown) => '"' + safe(v).replace(/"/g, '""') + '"'
   const head = ['novelty_rank', 'idea', 'simultaneity', 'verdict', 'confidence', 'quadrant', 'evidence']
   return [head.join(','), ...rows.map((r) => [r.noveltyRank, r.idea, r.score, r.verdict, r.confidence, r.quadrant, r.topEvidence.join(' ')].map(esc).join(','))].join('\n')
 }

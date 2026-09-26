@@ -11,6 +11,7 @@ export function PageShell({ eyebrow, title, lede, children }: { eyebrow: string;
             <a href="/funds" className="hover:text-foreground">For funds</a>
             <a href="/agents" className="hover:text-foreground">MCP</a>
             <a href="/methodology" className="hover:text-foreground">Methodology</a>
+            <a href="/privacy" className="hover:text-foreground">Privacy</a>
             <a href="/pricing" className="hover:text-foreground">Pricing</a>
           </nav>
         </div>

@@ -275,7 +275,7 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
       ? subs.reduce((s, v) => s + (v - mean) ** 2, 0) / subs.length
       : 0
   const agreement = clamp(100 - Math.sqrt(variance), 20, 100) / 100
-  const confidence = Math.round(clamp(coverage * 0.65 + agreement * 0.35, 0, 1) * 100)
+  const confidence = available.length === 0 ? 0 : Math.round(clamp(coverage * 0.65 + agreement * 0.35, 0, 1) * 100)
 
   const allDates = sources
     .flatMap((s) => s.items.map((i) => i.date))

@@ -1,3 +1,11 @@
+## 1.2.1 — Trust boundaries (2026-09-26)
+- Upgrade Next.js, PostCSS and tsx; lockfile frozen in CI/deploy, high-severity audit gate.
+- Bounded JSON/query input, no arbitrary-key quota bypass, compare admission, MCP batch rejection/origin checks and shared Redis admission option for all scan entry points.
+- Keep distinct HN item IDs in evidence dedup; blocked PyPI searches are no longer healthy empty results; timeouts cover response bodies.
+- Receipt downloads include the verification envelope and demand evidence. Verify distinguishes issuer trust from self-signatures.
+- CSV formula defense, watchlist resilience, explicit sharing/privacy disclosure, proposal-only paid plans and honest discussion-proxy/trend language.
+- See docs/PRODUCTION_GATES.md for remaining deployment and commercial gates.
+
 # Changelog
 
 ## 1.2.0 — 2026-09-26 · “Distribution loops”

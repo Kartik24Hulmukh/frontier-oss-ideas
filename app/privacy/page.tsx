@@ -1,0 +1,10 @@
+import { PageShell, Card } from '@/components/page-shell'
+export default function Privacy() {
+  return <PageShell eyebrow="Privacy & data handling" title="Your idea is sent to public search providers." lede="Do not submit confidential inventions, customer data, credentials or unreleased patent details.">
+    <Card title="Where queries go"><p>Scans send your query and synonym variants to GitHub, Hacker News/Algolia, arXiv, OpenAlex, npm, PyPI, Hugging Face, Reddit and Stack Exchange as applicable. These services have their own policies. HTTPS protects transport; it does not hide the query from the provider.</p></Card>
+    <Card title="Storage"><p>The server keeps full scan results, including query text, in a bounded in-memory cache (default 20 minutes, up to 500 results per process). Cache keys are SHA-256 fingerprints, not encryption. Watchlists and their history live in this browser’s localStorage; clear them with your browser’s site-data controls. There are no accounts or cross-device sync.</p></Card>
+    <Card title="Sharing & logs"><p>Sharing is explicit: a share URL contains the idea in plaintext, is accessible to anyone with the link, and re-runs the scan. Search results are not immutable snapshots. GET queries and shared URLs may appear in browser, hosting and provider logs. Use POST for API requests to avoid URL query logging. Infrastructure log retention is controlled by the hosting operator; this app does not promise zero logging.</p></Card>
+    <Card title="Abuse protection & receipts"><p>IP-derived hashes are used for rate limits. If Redis is configured, quota counters expire within 20 minutes. Receipts prove digest integrity; a signed receipt proves issuer identity only when checked against a separately trusted key. Neither a receipt nor a score proves market demand, legal novelty or investment suitability.</p></Card>
+    <Card title="Commercial readiness"><p>No payments are collected here. Email alerts, billing, durable accounts and webhooks are planned, not available. Never submit secrets or private idea text in public GitHub issues.</p></Card>
+  </PageShell>
+}

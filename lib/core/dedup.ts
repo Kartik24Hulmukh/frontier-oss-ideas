@@ -13,7 +13,11 @@ export function canonicalUrl(url: string): string {
     if (host === 'arxiv.org') path = path.replace(/^\/(abs|pdf)\//, '/abs/').replace(/v\d+(\.pdf)?$/, '')
     if (host === 'github.com') path = path.split('/').slice(0, 3).join('/')
     if (host === 'doi.org' || host === 'dx.doi.org') host = 'doi.org'
-    return host + path
+    if (host === 'arxiv.org') path = path.replace(/\.pdf$/, '')
+    for (const key of [...u.searchParams.keys()]) if (key.startsWith('utm_') || ['ref', 'fbclid', 'gclid'].includes(key)) u.searchParams.delete(key)
+    u.searchParams.sort()
+    const query = u.searchParams.toString()
+    return host + path + (query ? '?' + query : '')
   } catch {
     return url.trim().toLowerCase()
   }
