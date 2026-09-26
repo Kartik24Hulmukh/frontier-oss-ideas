@@ -1,3 +1,9 @@
+## 1.4.1 — 2026-09-26
+
+- **Demand: Reddit mirror fallback with visible provenance (premortem PM1).** Anonymous Reddit is blocked from datacenter IPs, which silently removed 40% of the demand weight. `searchReddit` now tries the primary API, then the PullPush public archive (`REDDIT_MIRROR_URL`, disable with `REDDIT_MIRROR_DISABLED=true`). Mirrored results carry `provenance: 'mirror'`, a user-visible `notice`, are classified `degraded` (never `healthy`), and are weighted at 50%. If the mirror also fails, both reasons are stacked and the original `blocked` classification is preserved — demand is never fabricated.
+- New `tests/demand-mirror.test.ts` (4 cases); suite is 72 unit + 6 gate tests, all passing.
+- New `scripts/demand-live-probe.ts`. Live run 2026-09-26: primary 403 (blocked) → mirror ok, 25 threads, weight 0.2, 1.37s.
+
 ## 1.3.0 — 2026-09-26
 - AI analyst memo (`POST /api/analyst`, UI button) grounded in numbered evidence with citation validation and injection fencing.
 - Melious router across GLM-5.3, GLM-5.3 Flash, Kimi K3, Qwen 3.8 27B: pre-call token ceilings, <200 ms failover, per-model circuit breakers for 429/5xx/gateway timeouts.

@@ -28,7 +28,7 @@ function demandError(source: DemandSourceId, label: string, message: string, rat
  * adapter outage so the UI can render partial-demand banners honestly.
  */
 export function demandStatusLabel(r: DemandSourceResult): 'healthy' | 'degraded' | 'blocked' {
-  if (r.status === 'ok') return 'healthy'
+  if (r.status === 'ok') return r.provenance === 'mirror' ? 'degraded' : 'healthy'
   if (r.status === 'rate_limited') return 'degraded'
   return /blocks anonymous|credentials|OAuth/i.test(r.errorMessage ?? '') ? 'blocked' : 'degraded'
 }
@@ -61,7 +61,7 @@ async function redditToken(ctx: AdapterContext): Promise<string | null> {
   }
 }
 
-export async function searchReddit(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
+export async function searchRedditPrimary(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
   const label = 'Reddit discussions'
   try {
     // Reddit blocks most anonymous datacenter traffic; app-only OAuth (free) fixes it.
@@ -88,6 +88,66 @@ export async function searchReddit(query: string, ctx: AdapterContext = {}): Pro
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('reddit', label, e.message, e.status === 429)
     return demandError('reddit', label, 'Reddit request failed or timed out.')
+  }
+}
+
+
+/**
+ * Reddit mirror fallback (PullPush public archive). Reddit blocks most anonymous
+ * datacenter traffic, which used to silently zero out 40% of the demand weight.
+ * When the primary path fails we try the archive, label the result as mirrored,
+ * down-weight it, and keep the primary failure reason visible. If the mirror
+ * also fails, both reasons are stacked and the original classification
+ * (e.g. 'blocked') is preserved — demand is never fabricated.
+ */
+export const REDDIT_MIRROR_WEIGHT_FACTOR = 0.5
+const MIRROR_LABEL = 'PullPush archive mirror'
+
+export async function searchRedditMirror(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
+  const label = 'Reddit discussions'
+  try {
+    const after = Math.floor(Date.now() / 1000) - 365 * 24 * 3600
+    const base = process.env.REDDIT_MIRROR_URL || 'https://api.pullpush.io/reddit/search/submission/'
+    const url = base + '?q=' + encodeURIComponent(query) + '&size=25&after=' + after
+    const res = await pacedFetch('reddit-mirror', url, { timeoutMs: ctx.timeoutMs, headers: { 'User-Agent': UA, Accept: 'application/json' } })
+    if (res.status === 429) return demandError('reddit', label, MIRROR_LABEL + ' rate limited this request.', true)
+    if (!res.ok) return demandError('reddit', label, MIRROR_LABEL + ' returned ' + res.status + '.')
+    const data = (await res.json()) as { data?: unknown }
+    if (!data || !Array.isArray(data.data)) return demandError('reddit', label, MIRROR_LABEL + ' returned a malformed payload.')
+    const rows = (data.data as Array<Record<string, unknown>>).filter((d) => typeof d?.title === 'string' && typeof d?.permalink === 'string')
+    const items: EvidenceItem[] = rows.slice(0, 10).map((d) => {
+      const created = Number(d.created_utc)
+      const self = typeof d.selftext === 'string' && d.selftext !== '[removed]' && d.selftext !== '[deleted]' ? d.selftext : ''
+      return {
+        title: String(d.title),
+        description: self ? self.slice(0, 180) : null,
+        url: 'https://www.reddit.com' + String(d.permalink),
+        date: Number.isFinite(created) ? new Date(created * 1000).toISOString() : null,
+        meta: `r/${String(d.subreddit ?? '?')} · ${Number(d.score ?? 0)} upvotes · ${Number(d.num_comments ?? 0)} comments · via mirror`,
+        relevance: 1,
+      }
+    })
+    return { source: 'reddit', label, status: 'ok', totalCount: rows.length, items, provenance: 'mirror' }
+  } catch (e) {
+    if (e instanceof UpstreamError) return demandError('reddit', label, MIRROR_LABEL + ': ' + e.message, e.status === 429)
+    return demandError('reddit', label, MIRROR_LABEL + ' request failed or timed out.')
+  }
+}
+
+export async function searchReddit(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
+  const primary = await searchRedditPrimary(query, ctx)
+  if (primary.status === 'ok') return { ...primary, provenance: 'primary' }
+  if (process.env.REDDIT_MIRROR_DISABLED === 'true') return primary
+  const mirror = await searchRedditMirror(query, ctx)
+  if (mirror.status === 'ok') {
+    return {
+      ...mirror,
+      notice: 'Primary Reddit unavailable (' + (primary.errorMessage ?? primary.status) + '). Showing ' + MIRROR_LABEL + ' data, weighted at ' + REDDIT_MIRROR_WEIGHT_FACTOR * 100 + '%.',
+    }
+  }
+  return {
+    ...primary,
+    errorMessage: (primary.errorMessage ?? 'Reddit unavailable.') + ' Mirror fallback also failed: ' + (mirror.errorMessage ?? 'unknown error'),
   }
 }
 
@@ -168,7 +228,7 @@ function firstNumber(meta: string | null, word: string): number {
 }
 
 export function scoreDemandSource(r: DemandSourceResult): DemandBreakdown {
-  const weight = DEMAND_WEIGHTS[r.source]
+  const weight = DEMAND_WEIGHTS[r.source] * (r.provenance === 'mirror' ? REDDIT_MIRROR_WEIGHT_FACTOR : 1)
   if (r.status !== 'ok') {
     return { source: r.source, label: r.label, subScore: 0, signal: 'Source unavailable — excluded from demand score.', weight, included: false }
   }
@@ -191,6 +251,7 @@ export function scoreDemandSource(r: DemandSourceResult): DemandBreakdown {
     score = clamp(Math.log10(1 + r.totalCount) * 20 + asks * 8 + recent * 2)
     signal = `${r.totalCount.toLocaleString()} Ask HN posts/comments mention it; ${asks} direct Ask HN threads in top hits.`
   }
+  if (r.provenance === 'mirror') signal += ' [via archive mirror — primary unavailable; weight halved]'
   return { source: r.source, label: r.label, subScore: Math.round(score), signal, weight, included: true }
 }
 
