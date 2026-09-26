@@ -46,3 +46,14 @@ test('admission rejects invalid costs before network or local quota mutation', a
   assert.equal((await response.json()).digestMatches, true)
   assert.equal((await POST(request({ data: 'x'.repeat(262145) }))).status, 413)
 })
+
+test('brief retains demand provenance, operator notices and failed-source reasons', () => {
+  const r = computeCrowding('test idea', [])
+  r.demand = { score: 30, coverage: 67, trend: 'unknown', breakdown: [], sources: [
+    { source: 'reddit', label: 'Reddit', status: 'ok', totalCount: 2, items: [], provenance: 'mirror', notice: 'Primary unavailable <script>' },
+    { source: 'askhn', label: 'Ask HN', status: 'error', totalCount: 0, items: [], errorMessage: 'Upstream timed out' },
+  ] }
+  const brief = opportunityBrief(r)
+  for (const expected of ['Demand accountability', 'mirror', 'Primary unavailable', 'Upstream timed out', 'unknown', 'Mirror data is degraded']) assert.ok(brief.includes(expected), expected)
+  assert.ok(!brief.includes('<script>'))
+})

@@ -177,7 +177,7 @@ export async function searchStackOverflow(query: string, ctx: AdapterContext = {
       meta: `${q.view_count.toLocaleString()} views · ${q.answer_count} answers${q.is_answered ? '' : ' · unanswered'}`,
       relevance: 1,
     }))
-    return { source: 'stackoverflow', label, status: 'ok', totalCount: typeof total === 'number' ? total : raw.length, items }
+    return { source: 'stackoverflow', label, status: 'ok', totalCount: typeof total === 'number' ? total : raw.length, items, ...(typeof total !== 'number' ? { notice: 'Stack Overflow total count unavailable; count reflects returned top hits only.' } : {}) }
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('stackoverflow', label, e.message, e.status === 429)
     return demandError('stackoverflow', label, 'Stack Exchange request failed or timed out.')

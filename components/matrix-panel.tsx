@@ -53,6 +53,14 @@ export function MatrixPanel({ result }: { result: CrowdingResult }) {
             <span className="font-mono text-xs uppercase tracking-widest text-signal">What to do · </span>
             {quad.action}
           </p>
+          {demand && demand.sources.some((s) => s.status !== 'ok' || s.provenance === 'mirror' || s.notice) && (
+            <div role="status" className="rounded border border-border p-3 text-sm leading-6">
+              <strong>Demand evidence is incomplete or degraded.</strong> Coverage counts responding adapters, not healthy primary sources.
+              <ul>{demand.sources.filter((s) => s.status !== 'ok' || s.provenance === 'mirror' || s.notice).map((s) => (
+                <li key={s.source}>{s.label}: {s.notice ?? s.errorMessage ?? (s.provenance === 'mirror' ? 'archive mirror; primary unavailable' : s.status)}</li>
+              ))}</ul>
+            </div>
+          )}
           {demand && (
             <ul className="flex flex-col gap-2 border-t border-border pt-4">
               {demand.breakdown.map((b) => (

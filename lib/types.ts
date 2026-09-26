@@ -84,7 +84,7 @@ export interface EvidenceCapsule {
   duplicatesCollapsed?: number
   sourceSummary?: Array<{ source: SourceId; status: SourceStatus; totalCount: number; notice?: string }>
   breakdown?: ScoreBreakdown[]
-  demandSourceSummary?: Array<{ source: DemandSourceId; status: SourceStatus; totalCount: number }>
+  demandSourceSummary?: Array<{ source: DemandSourceId; status: SourceStatus; totalCount: number; provenance?: 'primary' | 'mirror'; notice?: string }>
   demandBreakdown?: DemandBreakdown[]
   coverage?: number
   demandCoverage?: number

@@ -79,6 +79,7 @@ export async function searchHuggingFace(
       status: 'ok',
       totalCount: items.length,
       items: items.slice(0, 10),
+      ...(!modelsRes.ok || !datasetsRes.ok ? { notice: `Partial Hugging Face evidence: ${!modelsRes.ok ? 'models' : 'datasets'} endpoint unavailable.` } : {}),
     }
   } catch {
     return errorResult('huggingface', label, 'Hugging Face request failed or timed out.')

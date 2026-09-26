@@ -78,6 +78,7 @@ export async function searchPypi(
       status: 'ok',
       totalCount: unique.length,
       items: unique.slice(0, 10),
+      ...(!searchAvailable ? { notice: 'PyPI search unavailable or challenged; exact-name evidence only, not ecosystem-wide search.' } : {}),
     }
   } catch {
     return errorResult('pypi', label, 'PyPI request failed or timed out.')

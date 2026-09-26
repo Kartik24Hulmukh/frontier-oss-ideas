@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "gateway": "melious",
+  "checkedAt": "2026-09-26T18:50:55.558Z",
+  "passed": false,
+  "checks": [
+    {
+      "name": "live-glm-5.3",
+      "passed": true,
+      "detail": {
+        "model": "glm-5.3",
+        "ms": 801,
+        "tokens": 65
+      }
+    },
+    {
+      "name": "live-glm-5.3-flash",
+      "passed": true,
+      "detail": {
+        "model": "glm-5.3-flash",
+        "ms": 1087,
+        "tokens": 80
+      }
+    },
+    {
+      "name": "live-kimi-k3",
+      "passed": true,
+      "detail": {
+        "model": "kimi-k3",
+        "ms": 1409,
+        "tokens": 195
+      }
+    },
+    {
+      "name": "live-qwen3.8-27b",
+      "passed": true,
+      "detail": {
+        "model": "qwen3.8-27b",
+        "ms": 4421,
+        "tokens": 424
+      }
+    },
+    {
+      "name": "failover-429-quality",
+      "passed": true,
+      "detail": {
+        "served": "kimi-k3",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-429-fast",
+      "passed": true,
+      "detail": {
+        "served": "qwen3.8-27b",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-429-reasoning",
+      "passed": true,
+      "detail": {
+        "served": "glm-5.3",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-5xx-cascade",
+      "passed": true,
+      "detail": {
+        "served": "glm-5.3-flash",
+        "failoverMs": 0,
+        "attempts": [
+          "server_error",
+          "timeout",
+          "empty",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-gateway-timeout",
+      "passed": false,
+      "detail": {
+        "failoverMs": 0,
+        "timeoutAttemptMs": 800
+      }
+    },
+    {
+      "name": "breaker-short-circuit",
+      "passed": true,
+      "detail": {
+        "attempts": [
+          "kimi-k3:circuit_open",
+          "glm-5.3:ok"
+        ]
+      }
+    },
+    {
+      "name": "budget-per-request-ceiling",
+      "passed": true,
+      "detail": {
+        "error": "budget_exceeded"
+      }
+    },
+    {
+      "name": "budget-window-ceiling",
+      "passed": true,
+      "detail": {
+        "first": 82,
+        "second": "budget_exceeded",
+        "third": "budget_exceeded",
+        "budget": {
+          "used": 489,
+          "windowTokens": 900,
+          "perRequestTokens": 2000,
+          "windowMs": 60000,
+          "remaining": 411,
+          "accounting": "conservative-no-refund"
+        }
+      }
+    },
+    {
+      "name": "auth-error-stops-chain",
+      "passed": true,
+      "detail": {
+        "attempts": [
+          "glm-5.3:401"
+        ]
+      }
+    }
+  ]
+}
