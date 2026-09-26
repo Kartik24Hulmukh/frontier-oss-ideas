@@ -6,6 +6,9 @@ export interface CohortRow {
   score: number
   verdict: CrowdingResult['verdict']
   confidence: number
+  coverage?: number
+  capsule?: CrowdingResult['capsule']
+  receipt?: CrowdingResult['receipt']
   quadrant: string | null
   noveltyRank: number
   topEvidence: string[]
@@ -36,6 +39,9 @@ export function rankCohort(results: Array<{ idea: string; result: CrowdingResult
     score: result.score,
     verdict: result.verdict,
     confidence: result.confidence,
+    coverage: result.coverage,
+    capsule: result.capsule,
+    receipt: result.receipt,
     quadrant: result.quadrant?.quadrant ?? null,
     noveltyRank: i + 1,
     topEvidence: result.capsule.evidenceLinks.slice(0, 3).map((e) => e.url),

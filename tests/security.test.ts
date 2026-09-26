@@ -10,7 +10,7 @@ import { computeCrowding } from '../lib/scoring/score'
 import { searchPypi } from '../lib/sources/pypi'
 import { canonicalUrl } from '../lib/core/dedup'
 import { GET as mcpGet } from '../app/api/mcp/route'
-import { toCsv } from '../lib/cohort'
+import { toCsv, rankCohort } from '../lib/cohort'
 import { POST as search } from '../app/api/search/route'
 import { POST as compare } from '../app/api/compare/route'
 import { POST as cohort } from '../app/api/cohort/route'
@@ -20,6 +20,14 @@ import type { EvidenceCapsule } from '../lib/types'
 const request = (value: unknown, headers = {}) => new Request('http://localhost/api/test', { method: 'POST', body: JSON.stringify(value), headers })
 const capsule: EvidenceCapsule = { version: '1.1', query: 'code review', score: 10, confidence: 50, verdict: 'Open lane', searchedAt: '2026-09-26T00:00:00Z', evidenceLinks: [], disclaimer: 'heuristic' }
 describe('public trust boundaries', () => {
+  it('cohort JSON carries the evidence envelope for each ranked result', () => {
+    const r = computeCrowding('public idea', [])
+    const receipt = issueReceipt(r.capsule)
+    const row = rankCohort([{ idea: r.query, result: { ...r, receipt } }])[0]
+    assert.deepEqual(row.capsule, r.capsule)
+    assert.deepEqual(row.receipt, receipt)
+    assert.equal(row.coverage, 0)
+  })
   it('zero available sources means zero confidence', () => {
     assert.equal(computeCrowding('test', []).confidence, 0)
     assert.equal(computeCrowding('test', [{ source: 'github', label: 'GH', status: 'error', totalCount: 0, items: [] }]).confidence, 0)
