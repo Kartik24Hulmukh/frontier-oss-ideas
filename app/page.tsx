@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { SearchForm } from '@/components/search-form'
 import { ScoreDisplay } from '@/components/score-display'
+import { QuadrantPanel } from '@/components/quadrant-panel'
 import { SourceSection } from '@/components/source-section'
 import { WedgePanel } from '@/components/wedge-panel'
 import { MatrixPanel } from '@/components/matrix-panel'

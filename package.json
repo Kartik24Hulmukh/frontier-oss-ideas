@@ -31,5 +31,15 @@
     "tailwindcss": "4.2.0",
     "tsx": "4.19.0",
     "typescript": "5.7.3"
-  }
+  },
+  "bin": {
+    "simultaneity-mcp": "scripts/mcp-server.mjs"
+  },
+  "files": [
+    "app",
+    "components",
+    "lib",
+    "scripts",
+    "public"
+  ]
 }

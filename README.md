@@ -18,7 +18,9 @@ Recommended env for production: `GITHUB_TOKEN`, `OPENALEX_API_KEY`, `REDDIT_CLIE
 
 **Live crowding intelligence for builders and AI agents.**
 
-Enter an idea and scan seven public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, and Hugging Face. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.
+Enter an idea and scan eight public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face, and Reddit. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, a **Supply x Demand battlefield quadrant** (Blue Ocean / Gold Rush / Ghost Town / Bloodbath), and open-wedge recommendations.
+
+Also ships as an **MCP tool** (`crowding_check`) so agents (Cursor, [redacted] Desktop, Windsurf, goose, ...) can pre-flight-check an idea before scaffolding a project — see [MCP server](#mcp-server-for-agents) below.
 
 ## Deploy to Vercel
 
@@ -106,6 +108,29 @@ curl -X POST https://YOUR_DOMAIN/api/compare \
   -H 'content-type: application/json' \
   -d '{"queries":["AI code review agent","local-first AI agent OS"]}'
 ```
+
+## MCP server for agents
+
+Simultaneity Index ships a zero-dependency MCP (Model Context Protocol) server so coding agents can pre-flight-check an idea before scaffolding a project.
+
+```bash
+npx simultaneity-mcp
+```
+
+Or point any MCP-compatible client (Cursor, [redacted] Desktop, Windsurf, goose) at:
+
+```json
+{
+  "mcpServers": {
+    "simultaneity-index": {
+      "command": "npx",
+      "args": ["simultaneity-mcp"]
+    }
+  }
+}
+```
+
+Exposes one tool, `crowding_check(query)`, returning the score, verdict, Supply x Demand quadrant, confidence, and top wedges as agent-readable text plus the raw JSON payload. Point it at a self-hosted deployment with `SIMULTANEITY_API_URL=https://your-domain.example`.
 
 ## Architecture
 
