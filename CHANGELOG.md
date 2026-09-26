@@ -1,3 +1,9 @@
+## 1.2.2 — Coverage recovery & agent distribution (2026-09-26)
+- **Fix production GitHub coverage loss:** a rejected deployment `GITHUB_TOKEN` (HTTP 401) no longer drops the GitHub supply source. The adapter retries anonymously, returns an `ok` result with a non-secret `notice`, and logs a rotation warning. Root cause of the 86% vs 100% live/local coverage gap for "AI code review agent".
+- `/api/health` reports credential *presence* (booleans only, never values) for GitHub, OpenAlex, Reddit and the pinned receipt key so misconfigured deployments are visible.
+- `/agents` now ships copy-paste configs with the real deployment URL for Cursor, Claude Code, Windsurf, goose, OpenHands and stdio-only clients (fixes wrong bridge env var; was `YOUR-DEPLOYMENT` placeholders).
+- New regression test for the 401 fallback (token never echoed in the result).
+
 ## 1.2.1 — Trust boundaries (2026-09-26)
 - Upgrade Next.js, PostCSS and tsx; lockfile frozen in CI/deploy, high-severity audit gate.
 - Bounded JSON/query input, no arbitrary-key quota bypass, compare admission, MCP batch rejection/origin checks and shared Redis admission option for all scan entry points.

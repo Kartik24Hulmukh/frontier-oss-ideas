@@ -27,6 +27,8 @@ export interface SourceResult {
   totalCount: number
   items: EvidenceItem[]
   errorMessage?: string
+  /** Non-fatal operator notice, e.g. credential fallback. Never contains secrets. */
+  notice?: string
 }
 
 export interface ScoreBreakdown {

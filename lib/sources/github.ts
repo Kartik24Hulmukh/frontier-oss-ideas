@@ -16,10 +16,20 @@ export async function searchGitHub(
     }
     if (ctx.githubToken) headers.Authorization = 'Bearer ' + ctx.githubToken
 
-    const res = await fetchWithTimeout(url, {
+    let notice: string | undefined
+    let res = await fetchWithTimeout(url, {
       headers,
       timeoutMs: ctx.timeoutMs,
     })
+    // A revoked/expired/mis-scoped deployment token returns 401. Public repository
+    // search works anonymously, so degrade to the unauthenticated quota instead of
+    // silently dropping a supply source (the root cause of 86% production coverage).
+    if (res.status === 401 && headers.Authorization) {
+      delete headers.Authorization
+      notice = 'GITHUB_TOKEN rejected (401); used anonymous GitHub search. Rotate the deployment token.'
+      console.warn('[simultaneity] ' + notice)
+      res = await fetchWithTimeout(url, { headers, timeoutMs: ctx.timeoutMs })
+    }
     if (res.status === 403 || res.status === 429) {
       return errorResult(
         'github',
@@ -54,6 +64,7 @@ export async function searchGitHub(
       status: 'ok',
       totalCount: data.total_count ?? items.length,
       items,
+      ...(notice ? { notice } : {}),
     }
   } catch {
     return errorResult('github', label, 'GitHub request failed or timed out.')

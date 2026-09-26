@@ -1,4 +1,4 @@
-# Production gates — 1.2.1
+# Production gates — 1.2.2
 
 This is a hardened public beta, not a fully provisioned commercial SaaS. Do not claim production readiness from a green build alone.
 
@@ -9,6 +9,11 @@ This is a hardened public beta, not a fully provisioned commercial SaaS. Do not 
 4. Provision Reddit OAuth and OpenAlex credentials under approved provider terms; inspect coverage. A credential does not guarantee access. Never call discussion heat verified buyer demand.
 5. Generate an Ed25519 key offline, store the private PEM only in deployment secrets. Publish/pin the corresponding RECEIPT_PUBLIC_KEY independently. Verify issuerTrusted; signatureValid alone accepts self-signed keys. Old hash-only receipts are not issuer-authenticated. Key-rotation history is not implemented.
 6. Add external uptime checks, source-coverage and latency alerts; test Redis outage and concurrent traffic in staging. Tune work-unit budgets with real provider quotas before increasing traffic. Current limits are conservative defaults, not load-test capacity claims.
+
+## 1.2.2 status (verified by this release)
+- [x] GitHub 401 no longer silently removes a source: anonymous fallback + `notice`. Operators must still rotate `GITHUB_TOKEN` (anonymous quota is ~10 search req/min) — check `/api/health` `credentials.github` and logs for `GITHUB_TOKEN rejected`.
+- [x] Agent config templates published at `/agents` (Cursor, Claude Code, Windsurf, goose, OpenHands, stdio). Registry submissions and real-client integration tests remain open.
+- [ ] Redis, independent calibration, billing, durable watchlists/webhooks, pilot contract — still open (unchanged, see below).
 
 ## Reproduction
 - `pnpm install --frozen-lockfile`
