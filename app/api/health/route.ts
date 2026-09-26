@@ -8,10 +8,12 @@ export async function GET() {
     {
       ok: true,
       service: 'simultaneity-index',
-      version: '1.3.0',
+      version: '1.3.1',
       build: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       admission: process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? 'distributed-configured' : process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' ? 'blocked-missing-config' : 'per-instance',
       receipts: process.env.RECEIPT_PRIVATE_KEY ? 'signing-configured' : 'hash-only',
+      pacing: 'provider-ceilings+circuit-breakers',
+      modelGateway: process.env.MELIOUS_API_KEY ? 'configured' : 'not-configured',
       // Presence only (booleans) - never values. Lets operators spot missing deployment config.
       credentials: {
         github: Boolean(process.env.GITHUB_TOKEN),

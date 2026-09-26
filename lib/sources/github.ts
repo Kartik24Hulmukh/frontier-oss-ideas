@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 export async function searchGitHub(
@@ -17,7 +18,7 @@ export async function searchGitHub(
     if (ctx.githubToken) headers.Authorization = 'Bearer ' + ctx.githubToken
 
     let notice: string | undefined
-    let res = await fetchWithTimeout(url, {
+    let res = await pacedFetch('github', url, {
       headers,
       timeoutMs: ctx.timeoutMs,
     })
@@ -28,15 +29,22 @@ export async function searchGitHub(
       delete headers.Authorization
       notice = 'GITHUB_TOKEN rejected (401); used anonymous GitHub search. Rotate the deployment token.'
       console.warn('[simultaneity] ' + notice)
-      res = await fetchWithTimeout(url, { headers, timeoutMs: ctx.timeoutMs })
+      res = await pacedFetch('github', url, { headers, timeoutMs: ctx.timeoutMs })
     }
     if (res.status === 403 || res.status === 429) {
-      return errorResult(
-        'github',
-        label,
-        'GitHub rate limit — set GITHUB_TOKEN for higher limits.',
-        true,
-      )
+      // Single bounded retry after the provider signalled backoff window,
+      // capped at 5s so a scan never stalls beyond its adapter timeout.
+      const waitMs = Math.min(5000, Number(res.headers.get('retry-after') ?? 2) * 1000)
+      await new Promise((r) => setTimeout(r, waitMs))
+      res = await pacedFetch('github', url, { headers, timeoutMs: ctx.timeoutMs })
+      if (res.status === 403 || res.status === 429) {
+        return errorResult(
+          'github',
+          label,
+          'GitHub rate limit — set GITHUB_TOKEN for higher limits.',
+          true,
+        )
+      }
     }
     if (!res.ok) return errorResult('github', label, 'GitHub returned ' + res.status + '.')
 
@@ -66,7 +74,8 @@ export async function searchGitHub(
       items,
       ...(notice ? { notice } : {}),
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('github', label, e.message, e.status === 429)
     return errorResult('github', label, 'GitHub request failed or timed out.')
   }
 }
