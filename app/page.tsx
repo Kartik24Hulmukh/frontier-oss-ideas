@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SearchForm } from '@/components/search-form'
 import { ScoreDisplay } from '@/components/score-display'
+import { QuadrantPanel } from '@/components/quadrant-panel'
 import { SourceSection } from '@/components/source-section'
 import { WedgePanel } from '@/components/wedge-panel'
 import type { CrowdingResult } from '@/lib/types'
@@ -15,6 +16,7 @@ const SOURCE_NAMES = [
   'npm',
   'PyPI',
   'Hugging Face',
+  'Reddit',
 ]
 
 export default function Home() {
@@ -79,7 +81,7 @@ export default function Home() {
           </span>
           <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <span aria-hidden="true" className="inline-block size-2 rounded-full bg-signal" />
-            7 live sources
+            8 live sources
           </span>
         </div>
       </header>
@@ -138,6 +140,7 @@ export default function Home() {
         {data && !isLoading && (
           <div className="flex flex-col gap-7">
             <ScoreDisplay result={data} />
+            <QuadrantPanel result={data} />
             <WedgePanel wedges={data.wedges} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">

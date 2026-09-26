@@ -1,6 +1,8 @@
-import { displayQuery } from '@/lib/core/normalize'
+import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { computeCrowding } from '@/lib/scoring'
 import { runAllSources } from '@/lib/sources'
+import { cacheGet, cacheSet } from '@/lib/core/cache'
+import type { CrowdingResult } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,6 +22,18 @@ export async function POST(request: Request) {
   }
 
   const query = displayQuery(raw)
+  const cacheKey = normalizeQuery(query)
+  const cached = cacheGet<CrowdingResult>(cacheKey)
+  if (cached) {
+    return Response.json(cached, {
+      headers: {
+        'Cache-Control': 'no-store',
+        'X-Robots-Tag': 'noindex',
+        'X-Cache': 'hit',
+      },
+    })
+  }
+
   const sources = await runAllSources(query, {
     githubToken: process.env.GITHUB_TOKEN,
     openAlexApiKey: process.env.OPENALEX_API_KEY,
@@ -27,10 +41,14 @@ export async function POST(request: Request) {
     timeoutMs: 8_000,
   })
 
-  return Response.json(computeCrowding(query, sources), {
+  const result = computeCrowding(query, sources)
+  cacheSet(cacheKey, result)
+
+  return Response.json(result, {
     headers: {
       'Cache-Control': 'no-store',
       'X-Robots-Tag': 'noindex',
+      'X-Cache': 'miss',
     },
   })
 }
