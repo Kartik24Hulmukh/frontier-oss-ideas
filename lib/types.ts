@@ -121,6 +121,10 @@ export interface DemandSourceResult {
   totalCount: number
   items: EvidenceItem[]
   errorMessage?: string
+  /** Where the evidence came from. 'mirror' = public archive fallback after the primary was unavailable. */
+  provenance?: 'primary' | 'mirror'
+  /** Non-fatal, user-visible provenance notice (e.g. why a mirror was used). Never contains secrets. */
+  notice?: string
 }
 
 export interface DemandBreakdown {
