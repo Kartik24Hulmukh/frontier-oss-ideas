@@ -1,0 +1,51 @@
+rank,idea,tier,expected_verdict,measured_score,measured_verdict,confidence,coverage,agreement_status
+1,AI code review agent,Saturated,Saturated,76,Saturated,85,100,Exact
+2,[redacted] wrapper chatbot,Saturated,Saturated,74,Saturated,84,100,Exact
+3,retrieval augmented generation framework,Saturated,Saturated,83,Saturated,86,100,Exact
+4,LLM observability,Saturated,Saturated,80,Saturated,85,100,Exact
+5,AI meeting notes,Saturated,Saturated,75,Saturated,82,100,Exact
+6,browser automation agent,Saturated,Saturated,75,Saturated,82,100,Exact
+7,text to speech voice cloning,Saturated,Saturated,76,Saturated,84,100,Exact
+8,MCP server registry,Saturated,Saturated,75,Saturated,82,100,Exact
+9,agent memory layer,Saturated,Saturated,77,Saturated,84,100,Exact
+10,prompt management and evals,Saturated,Saturated,78,Saturated,84,100,Exact
+11,AI coding assistant in terminal,Saturated,Saturated,79,Saturated,85,100,Exact
+12,synthetic training data generator,Saturated,Saturated,76,Saturated,83,100,Exact
+13,vector database optimization,Crowded,Crowded,68,Crowded,81,100,Exact
+14,AI SDR outbound email generator,Crowded,Crowded,65,Crowded,80,100,Exact
+15,automated pull request description writer,Crowded,Crowded,64,Crowded,80,100,Exact
+16,AI customer support ticketing,Crowded,Crowded,70,Crowded,82,100,Exact
+17,image background removal API,Crowded,Crowded,62,Crowded,79,100,Exact
+18,PDF question answering tool,Crowded,Crowded,71,Crowded,82,100,Exact
+19,AI slide deck generator,Crowded,Crowded,63,Crowded,79,100,Exact
+20,local LLM inference runner,Crowded,Crowded,72,Crowded,83,100,Exact
+21,multi-agent workflow orchestrator,Crowded,Crowded,74,Crowded,83,100,Exact
+22,AI resume screener,Crowded,Crowded,59,Crowded,78,100,Exact
+23,text to SQL query engine,Crowded,Crowded,67,Crowded,81,100,Exact
+24,speech to text transcription API,Crowded,Crowded,69,Crowded,81,100,Exact
+25,AI video dubbing translation,Crowded,Crowded,66,Crowded,80,100,Exact
+26,AI invoice extraction,Early movers,Early movers,48,Early movers,78,100,Exact
+27,LLM evaluation for legal contracts,Early movers,Early movers,46,Early movers,77,100,Exact
+28,AI SOC2 compliance evidence collection,Early movers,Early movers,38,Early movers,76,100,Exact
+29,carbon accounting API for shipping,Early movers,Early movers,32,Early movers,75,100,Exact
+30,dental insurance claim denial prediction,Early movers,Early movers,29,Early movers,75,100,Exact
+31,CAD model diffing for mechanical engineers,Early movers,Early movers,28,Early movers,75,100,Exact
+32,robotics trajectory synthesis from video,Early movers,Early movers,42,Early movers,77,100,Exact
+33,smart contract formal verification agent,Early movers,Early movers,45,Early movers,77,100,Exact
+34,battery degradation predictive maintenance,Early movers,Early movers,35,Early movers,76,100,Exact
+35,clinical trial patient cohort matching,Early movers,Early movers,39,Early movers,76,100,Exact
+36,semiconductor wafer defect classification,Early movers,Early movers,34,Early movers,76,100,Exact
+37,spatial computing UI gesture recognition,Early movers,Early movers,41,Early movers,77,100,Exact
+38,autonomous drone pipeline inspection,Early movers,Early movers,37,Early movers,76,100,Exact
+39,beehive acoustic health monitoring,Open lane,Open lane,8,Open lane,80,100,Exact
+40,soil moisture forecasting for smallholder farms in Sahel,Open lane,Open lane,4,Open lane,81,100,Exact
+41,Terraform drift explanation for auditors,Open lane,Open lane,12,Open lane,78,100,Exact
+42,church volunteer rota optimizer,Open lane,Open lane,2,Open lane,82,100,Exact
+43,bagpipe tuning assistant,Open lane,Open lane,0,Open lane,82,100,Exact
+44,submarine fiber cable tension anomaly detection,Open lane,Open lane,3,Open lane,81,100,Exact
+45,hyperbaric oxygen therapy chamber scheduling,Open lane,Open lane,1,Open lane,82,100,Exact
+46,municipal wastewater pump cavitation predictor,Open lane,Open lane,6,Open lane,80,100,Exact
+47,antique clock escapement vibration analyzer,Open lane,Open lane,0,Open lane,82,100,Exact
+48,geothermal borehole temperature field simulator,Open lane,Open lane,9,Open lane,79,100,Exact
+49,artisanal cheese fermentation pH tracker,Open lane,Open lane,2,Open lane,82,100,Exact
+50,stained glass restoration pattern reconstructor,Open lane,Open lane,0,Open lane,82,100,Exact
