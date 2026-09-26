@@ -34,6 +34,26 @@ describe('source adapter contracts', () => {
     }
   })
 
+  it('falls back to anonymous GitHub search when the deployment token is rejected (401)', async () => {
+    const auths: (string | undefined)[] = []
+    const restore = mockFetch((_url, init) => {
+      const auth = (init?.headers as Record<string, string> | undefined)?.Authorization
+      auths.push(auth)
+      if (auth) return new Response('Bad credentials', { status: 401 })
+      return Response.json({ total_count: 1, items: [{ full_name: 'a/b', description: null, html_url: 'https://github.com/a/b', created_at: '2026-01-01T00:00:00Z', stargazers_count: 5, pushed_at: '2026-09-01T00:00:00Z' }] })
+    })
+    try {
+      const result = await searchGitHub('AI code review agent', { githubToken: 'revoked', timeoutMs: 100 })
+      assert.equal(result.status, 'ok')
+      assert.equal(result.totalCount, 1)
+      assert.deepEqual(auths, ['Bearer revoked', undefined])
+      assert.match(result.notice ?? '', /401/)
+      assert.doesNotMatch(JSON.stringify(result), /revoked/)
+    } finally {
+      restore()
+    }
+  })
+
   it('passes OpenAlex API key and normalizes evidence URLs', async () => {
     let capturedUrl = ''
     const restore = mockFetch((url) => {
