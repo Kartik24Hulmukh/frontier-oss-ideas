@@ -18,7 +18,9 @@ test('real Redis: production Lua enforces concurrency, rollover, global and roll
   const extra = Array.from({length: 6}, (_,i) => prefix + i)
   const rolling = [prefix + 'client2', prefix + 'global2']
   try {
-    const admit = (client: string, cost = 1) => redis('EVAL', ADMISSION_LUA, 2, client, global, cost, 80, 400, 1200)
+    let seq = 0
+    // ARGV: cost, perKey, global, ttlSeconds, windowMs, per-admission uniqueness nonce.
+    const admit = (client: string, cost = 1) => redis('EVAL', ADMISSION_LUA, 2, client, global, cost, 80, 400, 1200, 600000, 'n' + seq++)
     const results = await Promise.all(Array.from({length: 100}, () => admit(key)))
     assert.equal(results.filter(r => r === '1').length, 80)
     assert.equal(results.filter(r => r === '0').length, 20)
