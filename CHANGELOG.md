@@ -1,3 +1,27 @@
+# 1.5.3 — true rolling-window admission (2026-09-26)
+
+### Fixed
+- **Admission is a true rolling window.** `ADMISSION_LUA` no longer derives a fixed ten-minute bucket
+  from `TIME`; it stores one sorted-set member per admitted work unit scored with Redis TIME in
+  milliseconds, prunes elapsed members and admits on `ZCARD + cost`. This closes the documented
+  1.5.1 boundary defect where two windows of quota could be admitted back to back, and makes the
+  80-per-key and 400 shared upstream ceilings hold over *any* ten-minute interval.
+- Admission keys move to the `si:quota:v3:{admission}:*` namespace (cluster hash tag retained) to
+  avoid WRONGTYPE against v2 hashes. Migration procedure is in `docs/LOOPBACK_LIMITER.md`.
+- Each admission carries a UUID nonce so same-millisecond concurrent admissions cannot collapse onto
+  a single sorted-set member. The nonce is the only app-supplied argument; no app clock reaches the
+  script, and `tests/health.test.ts` now asserts exactly that.
+- The loopback emulator implements the same rolling semantics and dispatches scripts on a marker
+  unique to each production script instead of an `HSET`/`ZREMRANGEBYSCORE` heuristic that silently
+  misrouted the new admission script.
+
+### Tests
+- `tests/distributed-loopback.test.ts`: a half-elapsed window does not refill quota; a fully elapsed
+  one releases exactly the elapsed admissions.
+- `tests/redis-lua.test.ts`: against real Redis, 80 stale members are pruned, a fresh 80 are admitted
+  and the very next unit is refused; TTLs are retained.
+- 84 TypeScript tests + 6 release-gate tests pass; 0 failures.
+
 # 1.5.2 — provenance and release-gate hardening
 
 Preserve demand degradation in signed exports and briefs; expose partial adapters; require primary demand and exact deployment SHA in canaries. Public beta only. See [release record](docs/RELEASE_1_5_2.md).

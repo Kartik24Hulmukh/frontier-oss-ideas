@@ -26,7 +26,7 @@ test('Redis URL validation parses HTTPS and treats IPv6 loopback consistently', 
   assert.equal(acceptableRedisUrl('http://[::1]:8099', { NODE_ENV: 'test', ALLOW_LOOPBACK_REDIS: 'true' }), true)
   assert.equal(acceptableRedisUrl('https://localhost', { NODE_ENV: 'production', ALLOW_LOOPBACK_REDIS: 'true' }), false)
 })
-test('application clock skew cannot choose independent admission buckets', async () => {
+test('application clock skew cannot choose independent admission windows', async () => {
   const saved = { ...process.env }, now = Date.now
   const commands: unknown[][] = []
   try {
@@ -37,7 +37,10 @@ test('application clock skew cannot choose independent admission buckets', async
     await admitScan('same-client', 1, fetcher)
     Date.now = () => 9999999999999
     await admitScan('same-client', 1, fetcher)
-    assert.deepEqual(commands[0], commands[1])
+    // Only the per-admission uniqueness nonce may differ: no app-clock input reaches the script.
+    assert.deepEqual(commands[0].slice(0, -1), commands[1].slice(0, -1))
+    assert.notEqual(commands[0].at(-1), commands[1].at(-1), 'each admission must carry a unique member nonce')
+    assert.match(String(commands[0].at(-1)), /^[0-9a-f-]{36}$/)
     assert.match(commands[0][1] as string, /redis.call\('TIME'\)/)
   } finally { Date.now = now; for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved) }
 })

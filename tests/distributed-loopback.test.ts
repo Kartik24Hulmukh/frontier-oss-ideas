@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { startEmulator, type Emulator } from '@/scripts/upstash-rest-emulator'
-import { admitScan } from '@/lib/core/admission'
+import { startEmulator, createStore, execCommand, type Emulator } from '@/scripts/upstash-rest-emulator'
+import { admitScan, ADMISSION_LUA } from '@/lib/core/admission'
 import { reserveSharedTokens } from '@/lib/llm/shared-budget'
 import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 
@@ -73,4 +73,15 @@ test('production refuses a loopback limiter outright', async () => {
   assert.equal(await admitScan('tenant-prod', 1), 'unavailable')
   assert.equal(await reserveSharedTokens(10, 100, 60000, 10000), 'unavailable')
   setNodeEnv('test')
+})
+
+test('admission is a rolling window: a boundary cannot admit two quotas back to back', async () => {
+  const ctx = createStore()
+  const run = (cost: number, nonce: string) => execCommand(ctx, ['EVAL', ADMISSION_LUA, 2, 'k', 'g', cost, 4, 100, 60, 150, nonce])
+  assert.deepEqual(run(4, 'a'), { result: 1 })
+  assert.deepEqual(run(1, 'b'), { result: 0 })
+  await new Promise((r) => setTimeout(r, 80))
+  assert.deepEqual(run(1, 'c'), { result: 0 }, 'half a window must not refill the quota')
+  await new Promise((r) => setTimeout(r, 90))
+  assert.deepEqual(run(4, 'd'), { result: 1 }, 'a fully elapsed window releases exactly the elapsed admissions')
 })
