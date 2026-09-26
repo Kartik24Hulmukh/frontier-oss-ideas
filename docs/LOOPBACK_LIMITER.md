@@ -45,7 +45,22 @@ Without that opt-in the Redis integration test is explicitly skipped, never sile
 This complements HTTP fault injection; it does not certify a provisioned Upstash deployment.
 
 ### Migration / rollback
-The new hashes use `si:quota:v2:{admission}:*` to avoid WRONGTYPE against v1 string keys.
+The v3 sorted sets use `si:quota:v3:{admission}:*` to avoid WRONGTYPE against v1 string and v2 hash keys.
+
+## 1.5.2 — fixed window replaced by a rolling window
+
+Up to 1.5.1 admission was a *fixed* ten-minute window: at a bucket boundary a client could be
+admitted 80 work units at 09:59:59 and another 80 at 10:00:00, so the advertised ceiling was not a
+real ceiling. 1.5.2 stores one sorted-set member per admitted work unit, scored with Redis TIME in
+milliseconds, prunes members older than the window inside the same atomic script and admits only if
+`ZCARD + cost` fits. The per-key ceiling (80) and the shared upstream ceiling (400) are now true
+rolling guarantees over any ten-minute interval. Members carry a caller-supplied UUID nonce so that
+concurrent admissions in the same millisecond can never collapse onto one member.
+
+**Migration (v2 hashes to v3 sorted sets).** Same procedure as the v1-to-v2 migration: pause
+admission at the edge, drain old instances, wait a full ten-minute window, promote every instance,
+then resume. Do not run v2 and v3 instances against the same database concurrently and do not flush
+a shared database; the v2 keys expire on their own 1200-second TTL.
 **Do not overlap v1 and v2 traffic:** their quotas are independent. Pause admission at the edge,
 drain old instances, wait a full 10-minute window, promote all instances, then resume. A rollback
 requires the same pause/drain/window procedure. Old keys expire automatically; do not flush a
