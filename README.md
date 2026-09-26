@@ -18,9 +18,7 @@ Recommended env for production: `GITHUB_TOKEN`, `OPENALEX_API_KEY`, `REDDIT_CLIE
 
 **Live crowding intelligence for builders and AI agents.**
 
-Enter an idea and scan eight public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face, and Reddit. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, a **Supply x Demand battlefield quadrant** (Blue Ocean / Gold Rush / Ghost Town / Bloodbath), and open-wedge recommendations.
-
-Also ships as an **MCP tool** (`crowding_check`) so agents (Cursor, [redacted] Desktop, Windsurf, goose, ...) can pre-flight-check an idea before scaffolding a project — see [MCP server](#mcp-server-for-agents) below.
+Enter an idea and scan seven public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, and Hugging Face. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.
 
 ## Deploy to Vercel
 
@@ -109,29 +107,6 @@ curl -X POST https://YOUR_DOMAIN/api/compare \
   -d '{"queries":["AI code review agent","local-first AI agent OS"]}'
 ```
 
-## MCP server for agents
-
-Simultaneity Index ships a zero-dependency MCP (Model Context Protocol) server so coding agents can pre-flight-check an idea before scaffolding a project.
-
-```bash
-npx simultaneity-mcp
-```
-
-Or point any MCP-compatible client (Cursor, [redacted] Desktop, Windsurf, goose) at:
-
-```json
-{
-  "mcpServers": {
-    "simultaneity-index": {
-      "command": "npx",
-      "args": ["simultaneity-mcp"]
-    }
-  }
-}
-```
-
-Exposes one tool, `crowding_check(query)`, returning the score, verdict, Supply x Demand quadrant, confidence, and top wedges as agent-readable text plus the raw JSON payload. Point it at a self-hosted deployment with `SIMULTANEITY_API_URL=https://your-domain.example`.
-
 ## Architecture
 
 ```text
@@ -168,3 +143,23 @@ query
 ## License
 
 MIT
+
+
+## Distribution surfaces (v1.2)
+
+**README badge** — show builders you checked the lane:
+
+```md
+![simultaneity](https://frontier-oss-ideas.vercel.app/api/badge?q=AI+code+review+agent)
+```
+
+**MCP for agents** (Cursor, Claude Desktop, Windsurf, goose):
+
+```json
+{ "mcpServers": { "simultaneity": { "url": "https://frontier-oss-ideas.vercel.app/api/mcp" } } }
+```
+
+stdio-only clients: `{ "command": "npx", "args": ["-y", "mcp-remote", "https://frontier-oss-ideas.vercel.app/api/mcp"] }`
+or, from a clone, `node bin/simultaneity-mcp.mjs` (set `SIMULTANEITY_API_URL` for self-hosting).
+
+**Share cards** — `/s/<idea>` renders a live OG image with score, verdict and quadrant.

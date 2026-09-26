@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 — 2026-09-26 · “Distribution loops”
+
+### Added
+- **README badge** `GET /api/badge?q=` — shields-style SVG (score · verdict), CDN-cached 6h. Every repo that embeds it is a backlink + live ad.
+- **Dynamic OG image** for share links `/s/[idea]` (score, verdict, quadrant, confidence) so shared scans render as cards on X/LinkedIn/Slack; Twitter card upgraded to `summary_large_image`.
+- **Zero-dependency MCP stdio bridge** `bin/simultaneity-mcp.mjs` (newline-delimited JSON-RPC → hosted `/api/mcp`); one server implementation, two transports. `GET /api/mcp` now returns copy-paste configs for HTTP, `npx mcp-remote` and local stdio.
+- `lib/site.ts` single source of truth for the canonical URL.
+- 3 new tests (29 total).
+
+### Fixed
+- PR #3 was unmergeable (branched before PR #2). Reconciled: v1.1 implementation kept; PR #2 duplicates removed (`lib/sources/reddit.ts` counted Reddit as *supply*, `components/quadrant-panel.tsx`, `tests/quadrant.test.ts`), and the PR #2 stdio script (LSP `Content-Length` framing, which MCP stdio does not use, and the wrong `query` argument) replaced by the bridge.
+- `crowding_check` accepts `query` as an alias for `idea` (back-compat with PR #2 clients).
+- Canonical URL defaulted to a non-existent `simultaneity-index.vercel.app` in metadata, robots and sitemap → now the real deployment.
+- `tsconfig.tsbuildinfo` untracked; test glob quoted so CI runs identically in every shell.
+
 ## 1.1.0 — 2026-09-26 · “Battlefield”
 
 ### Added

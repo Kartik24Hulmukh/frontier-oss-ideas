@@ -54,7 +54,7 @@ export async function handleRpc(
       return ok({
         protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'simultaneity-index', version: '1.1.0' },
+        serverInfo: { name: 'simultaneity-index', version: '1.2.0' },
         instructions: 'Call crowding_check with a one-line idea before scaffolding any new project.',
       })
     case 'ping':
@@ -64,8 +64,9 @@ export async function handleRpc(
     case 'tools/call': {
       const params = msg.params ?? {}
       if (params.name !== 'crowding_check') return fail(-32602, `Unknown tool: ${String(params.name)}`)
-      const args = (params.arguments ?? {}) as { idea?: unknown; depth?: unknown }
-      const idea = typeof args.idea === 'string' ? args.idea.trim() : ''
+      const args = (params.arguments ?? {}) as { idea?: unknown; query?: unknown; depth?: unknown }
+      const rawIdea = typeof args.idea === 'string' ? args.idea : typeof args.query === 'string' ? args.query : ''
+      const idea = rawIdea.trim()
       if (idea.length < 3) return ok({ content: [{ type: 'text', text: 'Provide an idea of at least 3 characters.' }], isError: true })
       const result = await scan(idea, { demand: args.depth !== 'quick' })
       return ok({ content: [{ type: 'text', text: summarize(result) }], structuredContent: { ...result.capsule, receipt: result.receipt } })

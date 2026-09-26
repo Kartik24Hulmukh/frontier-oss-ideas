@@ -21,21 +21,14 @@
 
 ## P1 — Traction surface (weeks 2–6)
 - [ ] Authenticated GitHub by default in deploy docs  
-- [x] Response cache (query hash, TTL) — in-memory 10-minute TTL cache in `lib/core/cache.ts`, wired into `/api/search`  
+- [ ] Response cache (query hash, TTL)  
 - [ ] Share page `/s/[id]` + OG image  
 - [ ] Public rate-limited API  
-- [x] MCP tool schema `crowding_check` — zero-dependency stdio server in `scripts/mcp-server.mjs`, published as `npx simultaneity-mcp`  
+- [ ] MCP tool schema `crowding.check`  
 - [ ] 20-idea gold set calibration  
 - [ ] Product Hunt adapter (optional key)  
-- [x] Reddit demand-side adapter + Supply x Demand 2D quadrant (Blue Ocean / Gold Rush / Ghost Town / Bloodbath) — closes the demand-blind-spot gap identified in the GTM Master Council Verdict (2026-09-26)  
 
 **Acceptance:** 500 weekly scans; ≥30% return within 7 days; share rate ≥10% of scans.
-
-### Next up (highest leverage, in order)
-1. Ship the MCP server to the goose "founder distro" and mcpservers.org / Glama / Lobehub listings — idea-reality-mcp already occupies this wedge; the differentiated pitch is the Supply x Demand quadrant + 8-source evidence capsule, not just a score.
-2. Gold-set calibration (40–60 ideas, human-ranked) with a published ordinal-accuracy badge — moves the score from "heuristic" to "measured."
-3. Magic-link accounts + watchlists + weekly "Simultaneity Pulse" public page for retention, SEO, and shareability.
-4. B2B cohort-screening wedge (accelerators/funds, $2–10k/yr) once the free product has traction data to sell against.
 
 ## P2 — Category ownership (months 2–3)
 - [ ] Semantic clustering of near-duplicate competitors  

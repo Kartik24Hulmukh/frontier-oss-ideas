@@ -1,5 +1,6 @@
 import { clientKey, rateLimitResponse, scanLimiter } from '@/lib/core/ratelimit'
 import { handleRpc, TOOLS } from '@/lib/mcp'
+import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,7 +37,11 @@ export function GET() {
       transport: 'streamable-http (stateless JSON)',
       endpoint: '/api/mcp',
       tools: TOOLS.map((t) => t.name),
-      install: 'Add { "simultaneity": { "url": "https://<your-deployment>/api/mcp" } } to your MCP client config.',
+      install: {
+        http: { simultaneity: { url: `${SITE_URL}/api/mcp` } },
+        stdio: { simultaneity: { command: 'npx', args: ['-y', 'mcp-remote', `${SITE_URL}/api/mcp`] } },
+        local: 'node bin/simultaneity-mcp.mjs (zero-dependency stdio bridge, SIMULTANEITY_API_URL to override)',
+      },
     },
     { headers: HEADERS },
   )

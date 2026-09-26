@@ -1,7 +1,8 @@
+import { SITE_URL } from '@/lib/site'
 import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://simultaneity-index.vercel.app'
+  const siteUrl = SITE_URL
   const pages: Array<[string, number, 'daily' | 'weekly' | 'monthly']> = [
     ['', 1, 'weekly'],
     ['/pulse', 0.9, 'daily'],
