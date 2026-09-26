@@ -6,7 +6,8 @@ export async function GET() {
     {
       ok: true,
       service: 'simultaneity-index',
-      version: '1.2.2',
+      version: '1.2.3',
+      build: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       admission: process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? 'distributed-configured' : process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' ? 'blocked-missing-config' : 'per-instance',
       receipts: process.env.RECEIPT_PRIVATE_KEY ? 'signing-configured' : 'hash-only',
       // Presence only (booleans) - never values. Lets operators spot missing deployment config.

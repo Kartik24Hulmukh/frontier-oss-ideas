@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 /**
  * Sliding-window per-key rate limiter (in-memory, per instance).
- * Protects upstream API quotas (GitHub 60/h unauthenticated, 5000/h with token)
+ * Protects app capacity; GitHub Search has a separate 10/min anonymous or 30/min authenticated budget.
+ * App admission is not a substitute for per-provider request pacing.
  * and your bill. Free tier default: 20 scans / 10 minutes / IP.
  */
 export class RateLimiter {

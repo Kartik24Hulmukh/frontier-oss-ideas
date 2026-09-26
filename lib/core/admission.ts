@@ -13,6 +13,8 @@ redis.call('EXPIRE', KEYS[2], ARGV[4])
 return 1`
 /** Atomic fixed-window admission across instances, with a hard shared upstream budget. */
 export async function admitScan(key: string, cost = 1, fetcher: typeof fetch = fetch): Promise<'ok' | 'limited' | 'unavailable'> {
+  // Reject invalid costs before either backend; negative EVAL costs could refund quota.
+  if (!Number.isSafeInteger(cost) || cost < 1 || cost > 80) return 'limited'
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url && !token) {

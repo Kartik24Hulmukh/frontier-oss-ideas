@@ -1,4 +1,4 @@
-import { readObject, inputResponse, validIdea } from '@/lib/core/input'
+import { readObject, inputResponse } from '@/lib/core/input'
 import { verifyReceipt, trustedReceipt } from '@/lib/scoring/receipt'
 import type { EvidenceCapsule, ScanReceipt } from '@/lib/types'
 
@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export async function POST(request: Request) {
   let body: { capsule?: EvidenceCapsule; receipt?: ScanReceipt }
   try {
-    body = await readObject(request) as typeof body
+    body = await readObject(request, 262144) as typeof body
   } catch (error) {
     return inputResponse(error)
   }

@@ -7,6 +7,7 @@ import { SourceSection } from '@/components/source-section'
 import { WedgePanel } from '@/components/wedge-panel'
 import { MatrixPanel } from '@/components/matrix-panel'
 import { WatchButton, Watchlist, recordScan } from '@/components/watchlist'
+import { opportunityBrief } from '@/lib/brief'
 import type { CrowdingResult } from '@/lib/types'
 
 const SOURCE_NAMES = [
@@ -84,6 +85,16 @@ export default function Home() {
     }
   }
 
+  function downloadBrief() {
+    if (!data) return
+    const url = URL.createObjectURL(new Blob([opportunityBrief(data)], { type: 'text/markdown;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'simultaneity-opportunity-brief.md'
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   function downloadCapsule() {
     if (!data) return
     const blob = new Blob([JSON.stringify({ capsule: data.capsule, receipt: data.receipt }, null, 2)], {
@@ -128,7 +139,7 @@ export default function Home() {
               id="page-title"
               className="text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-balance md:text-6xl"
             >
-              How many teams are already inventing your idea?
+              How crowded is the field around your idea?
             </h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
               Scan code, launches, papers, packages, models, and datasets in real time.
@@ -189,6 +200,7 @@ export default function Home() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 <WatchButton result={data} />
+                <button type="button" onClick={downloadBrief} className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest hover:border-foreground">Download decision brief</button>
                 <button
                   type="button"
                   onClick={shareScan}
