@@ -1,3 +1,5 @@
+import { sharedRouter } from '@/lib/llm/analyst'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +21,7 @@ export async function GET() {
         reddit: Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET),
         receiptPublicKeyPinned: Boolean(process.env.RECEIPT_PUBLIC_KEY),
       },
+      llm: sharedRouter().health(),
       timestamp: new Date().toISOString(),
     },
     {

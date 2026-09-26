@@ -1,3 +1,9 @@
+## 1.3.0 — 2026-09-26
+- AI analyst memo (`POST /api/analyst`, UI button) grounded in numbered evidence with citation validation and injection fencing.
+- Melious router across GLM-5.3, GLM-5.3 Flash, Kimi K3, Qwen 3.8 27B: pre-call token ceilings, <200 ms failover, per-model circuit breakers for 429/5xx/gateway timeouts.
+- `pnpm llm:torture` live gate (13/13 passed); `/api/health` exposes breaker + budget state.
+- 60 tests.
+
 ## 1.2.3 — 2026-09-26
 - Downloadable local Opportunity Brief with evidence, uncertainty and human decision worksheet.
 - Capsule 1.2 captures model, source/demand health and contributions, actual expansions and dedup metadata under receipt integrity.

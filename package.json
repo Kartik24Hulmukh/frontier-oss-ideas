@@ -17,7 +17,8 @@
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "calibrate": "tsx scripts/calibrate.ts",
     "mcp:stdio": "node bin/simultaneity-mcp.mjs",
-    "gate": "node scripts/release-gate.mjs"
+    "gate": "node scripts/release-gate.mjs",
+    "llm:torture": "tsx scripts/llm-torture.ts"
   },
   "dependencies": {
     "next": "16.3.6",
