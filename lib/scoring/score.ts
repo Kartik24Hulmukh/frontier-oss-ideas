@@ -231,24 +231,24 @@ function verdictFor(score: number): { verdict: Verdict; verdictDetail: string } 
     return {
       verdict: 'Open lane',
       verdictDetail:
-        'Little evidence anyone is building this. Either genuinely early — or the idea has a feasibility problem nobody has cracked. Validate demand next.',
+        'Few matching artifacts were observed in the searched sources. Low visibility is not proof of an open market. Check coverage and interview potential users.',
     }
   if (score <= 50)
     return {
       verdict: 'Early movers',
       verdictDetail:
-        'A handful of teams are circling. There is still room, but the clock started — differentiation and wedge matter from day one.',
+        'Some matching public artifacts were observed. Matches are not a count of unique teams; check relevance and differentiation before building.',
     }
   if (score <= 75)
     return {
       verdict: 'Crowded',
       verdictDetail:
-        'Multiple shipping teams occupy this lane. Compete only with a non-copyable asset: data, distribution, workflow depth, or position.',
+        'Many matching public artifacts were observed. Verify which are direct competitors before choosing a differentiated audience, workflow, or distribution channel.',
     }
   return {
     verdict: 'Saturated',
     verdictDetail:
-      'This idea has been independently invented many times. Consider being the neutral layer above the lane rather than another entrant.',
+      'Strong crowding signals were observed across public artifacts. This does not establish independent invention or unique competitor counts. Verify relevance before considering an infrastructure or interoperability wedge.',
   }
 }
 

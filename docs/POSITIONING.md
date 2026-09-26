@@ -1,7 +1,7 @@
 # Positioning — Simultaneity Index
 
 ## One-liner
-Live crowding radar: how many teams are already inventing your idea — independently.
+Live crowding radar: inspect public evidence around an idea before committing to build.
 
 ## Category
 **Crowding intelligence** (supply-side simultaneity detection)
