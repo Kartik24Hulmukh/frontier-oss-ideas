@@ -1,4 +1,5 @@
 import { displayQuery } from '@/lib/core/normalize'
+import { clientIp, rateLimit, rateLimitHeaders } from '@/lib/core/ratelimit'
 import { computeCrowding } from '@/lib/scoring'
 import { runAllSources } from '@/lib/sources'
 
@@ -6,7 +7,19 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 45
 
+/** Compares are expensive (2-3 full scans). Cap harder than /api/search. */
+const COMPARE_LIMIT = 3
+const COMPARE_WINDOW_MS = 60_000
+
 export async function POST(request: Request) {
+  const rl = rateLimit('compare:' + clientIp(request), COMPARE_LIMIT, COMPARE_WINDOW_MS)
+  if (!rl.allowed) {
+    return Response.json(
+      { error: 'Rate limit exceeded. Try again in ' + rl.resetInSeconds + ' seconds.' },
+      { status: 429, headers: rateLimitHeaders(rl) },
+    )
+  }
+
   let body: { queries?: unknown }
   try {
     body = await request.json()
@@ -55,6 +68,7 @@ export async function POST(request: Request) {
       headers: {
         'Cache-Control': 'no-store',
         'X-Robots-Tag': 'noindex',
+        ...rateLimitHeaders(rl),
       },
     },
   )

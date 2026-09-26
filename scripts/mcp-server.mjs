@@ -57,15 +57,43 @@ function sendLegacyLineProtocol(message) {
 }
 
 async function callCrowdingCheck(query) {
-  const res = await fetch(API_BASE + '/api/search', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ query }),
-  })
-  if (!res.ok) {
+  // One retry on transient failures (5xx, network errors, rate limits after a
+  // short pause) so a single cold-start blip does not dead-end the agent.
+  let lastError
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let res
+    try {
+      res = await fetch(API_BASE + '/api/search', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(20_000),
+      })
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error('network error')
+      await new Promise((r) => setTimeout(r, 1500))
+      continue
+    }
+    if (res.ok) {
+      const data = await res.json()
+      return shapeCrowdingResult(data)
+    }
+    if (res.status === 429 || res.status >= 500) {
+      lastError = new Error('Simultaneity Index API returned ' + res.status)
+      await new Promise((r) => setTimeout(r, 1500))
+      continue
+    }
     throw new Error('Simultaneity Index API returned ' + res.status)
   }
-  const data = await res.json()
+  throw lastError ?? new Error('Simultaneity Index API unreachable')
+}
+
+function shapeCrowdingResult(rawData) {
+  // Defensive normalization: older deployments returned the quadrant as an
+  // object ({ quadrant, supply, demand, headline, action }) while the current
+  // API returns flat fields. Accept both so the tool never prints
+  // "[object Object]" during a rolling deployment.
+  const data = normalizeCrowdingPayload(rawData)
   const lines = [
     'Simultaneity check for "' + data.query + '"',
     'Score: ' + data.score + '/100 — ' + data.verdict,
@@ -79,6 +107,20 @@ async function callCrowdingCheck(query) {
     'Evidence: ' + (data.capsule?.evidenceLinks ?? []).slice(0, 5).map((e) => e.url).join(', '),
   ]
   return { text: lines.join('\n'), raw: data }
+}
+
+function normalizeCrowdingPayload(data) {
+  if (data && typeof data.quadrant === 'object' && data.quadrant !== null) {
+    const q = data.quadrant
+    return {
+      ...data,
+      quadrant: q.quadrant,
+      quadrantDetail: [q.headline, q.action].filter(Boolean).join(' '),
+      supplyScore: q.supply,
+      demandScore: q.demand,
+    }
+  }
+  return data
 }
 
 let usesLineProtocol = false
@@ -106,8 +148,24 @@ async function handleRequest(req) {
       if (!query) {
         return respond(id, undefined, { code: -32602, message: 'query is required' })
       }
-      const { text } = await callCrowdingCheck(query)
-      return respond(id, { content: [{ type: 'text', text }] })
+      const { text, raw } = await callCrowdingCheck(query)
+      return respond(id, {
+        content: [{ type: 'text', text }],
+        structuredContent: {
+          query: raw.query,
+          score: raw.score,
+          verdict: raw.verdict,
+          quadrant: raw.quadrant,
+          supplyScore: raw.supplyScore,
+          demandScore: raw.demandScore,
+          confidence: raw.confidence,
+          coverage: raw.coverage,
+          verdictDetail: raw.verdictDetail,
+          wedges: raw.wedges,
+          capsule: raw.capsule,
+          searchedAt: raw.searchedAt,
+        },
+      })
     }
     if (method === 'notifications/initialized' || method === 'ping') {
       return null
