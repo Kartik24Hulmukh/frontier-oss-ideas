@@ -1,7 +1,7 @@
 import type { Verdict } from '@/lib/types'
 
 /**
- * Gold set for ordinal calibration. `rank` is the expert ordinal crowding
+ * Gold set for ordinal calibration. `rank` is the author-estimated ordinal crowding
  * judgement (1 = most crowded). Bands are the expected verdict. Edit via PR;
  * `pnpm calibrate` scores every idea live and reports Spearman rho + band
  * agreement into docs/CALIBRATION.md. Failures are published, not hidden.

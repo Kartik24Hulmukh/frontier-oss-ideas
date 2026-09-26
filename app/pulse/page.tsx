@@ -9,7 +9,7 @@ export const maxDuration = 60
 
 export const metadata: Metadata = {
   title: 'Simultaneity Pulse — the most crowded builder lanes right now',
-  description: 'A live leaderboard of how many teams are independently building the hottest ideas of fall 2026.',
+  description: 'A live comparison of public-artifact crowding signals for curated fall-2026 ideas; not a count of unique teams.',
 }
 
 /** Curated fall-2026 lanes. Override with PULSE_LANES="idea one|idea two". */

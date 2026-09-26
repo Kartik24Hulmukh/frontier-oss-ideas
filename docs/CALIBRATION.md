@@ -1,13 +1,15 @@
 # Calibration — 2026-09-26
 
-Gold set: 20 ideas with expert ordinal crowding ranks (lib/calibration/gold-set.ts).
+> These are author-estimated labels, not an independent expert evaluation. Historical metrics below were not rerun in this release and do not establish predictive validity.
+
+Gold set: 20 ideas with author-estimated ordinal crowding ranks (lib/calibration/gold-set.ts).
 
 - **Spearman rho:** 0.83
 - **Pairwise ordinal agreement:** 81%
 - **Exact band agreement:** 10/20
 - **Within one band:** 19/20
 
-| Expert rank | Idea | Expected | Engine | Score | Confidence |
+| Author rank | Idea | Expected | Engine | Score | Confidence |
 |---|---|---|---|---|---|
 | 1 | AI code review agent | Saturated | Saturated | 76 | 74% |
 | 2 | chatgpt wrapper chatbot | Saturated | Crowded | 53 | 78% |
