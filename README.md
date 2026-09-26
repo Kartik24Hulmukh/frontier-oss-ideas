@@ -1,5 +1,21 @@
 # Simultaneity Index
 
+## What's new in v1.1 — “Battlefield”
+
+- **Supply × Demand battlefield** — 7 supply sources + Reddit, Stack Overflow, Ask HN demand → Blue Ocean / Gold Rush / Ghost Town / Bloodbath with a concrete next move.
+- **MCP server for agents** — `POST /api/mcp` exposes `crowding_check(idea)`. Claude Code: `claude mcp add --transport http simultaneity https://<deployment>/api/mcp`. See `/agents`.
+- **Cohort screening for funds** — `POST /api/cohort` + `/funds` (novelty ranking, idea-twin collisions, CSV).
+- **Verifiable receipts** — SHA-256 (Ed25519 with `RECEIPT_PRIVATE_KEY`), check with `POST /api/verify`.
+- **Retention** — watchlist with deltas, share links `/s/<idea>`, `/pulse` leaderboard.
+- **Trust** — query expansion + cross-source dedup, public `/methodology`, live gold-set calibration: **Spearman ρ 0.83, 81% pairwise ordinal agreement, 19/20 within one band** (`docs/CALIBRATION.md`, `pnpm calibrate`).
+- **Production hardening** — scan cache, in-flight coalescing, per-IP rate limits; 26 tests; `pnpm verify` green.
+
+```bash
+curl "https://<deployment>/api/search?q=AI+code+review+agent"
+```
+
+Recommended env for production: `GITHUB_TOKEN`, `OPENALEX_API_KEY`, `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET`, `RECEIPT_PRIVATE_KEY` (see `.env.example`). Council + premortem: `docs/COUNCIL_PREMORTEM_V11.md`.
+
 **Live crowding intelligence for builders and AI agents.**
 
 Enter an idea and scan seven public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, and Hugging Face. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.

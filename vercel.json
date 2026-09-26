@@ -9,15 +9,36 @@
     },
     "app/api/compare/route.ts": {
       "maxDuration": 45
+    },
+    "app/api/mcp/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/cohort/route.ts": {
+      "maxDuration": 60
+    },
+    "app/pulse/page.tsx": {
+      "maxDuration": 60
+    },
+    "app/s/[q]/page.tsx": {
+      "maxDuration": 30
     }
   },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
       ]
     }
   ]

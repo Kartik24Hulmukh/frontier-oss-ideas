@@ -1,8 +1,8 @@
 {
   "name": "simultaneity-index",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Live crowding radar for builders and AI agents",
+  "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
     "smoke": "tsx scripts/smoke-score.ts",
-    "verify": "pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "calibrate": "tsx scripts/calibrate.ts"
   },
   "dependencies": {
     "next": "16.2.6",

@@ -1,0 +1,14 @@
+# Simultaneity Index
+
+> Live crowding + demand radar: how many teams are already building an idea. Supply from GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face; demand from Reddit, Stack Overflow, Ask HN.
+
+## For agents
+- MCP (Streamable HTTP, stateless): POST /api/mcp  tool: crowding_check {idea, depth?: quick|full}
+- HTTP: GET /api/search?q=<idea>  -> score, verdict, quadrant, confidence, wedges, capsule, receipt
+- Cohorts: POST /api/cohort {ideas: string[], format?: json|csv}
+- Verify a receipt: POST /api/verify {capsule, receipt}
+
+## Docs
+- /methodology  published formula, weights, thresholds, gold-set calibration
+- /pulse        live leaderboard of the most simultaneous lanes
+- /agents       install instructions for Cursor, Claude Code, Windsurf, goose

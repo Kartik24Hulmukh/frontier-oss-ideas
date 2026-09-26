@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SearchForm } from '@/components/search-form'
 import { ScoreDisplay } from '@/components/score-display'
 import { SourceSection } from '@/components/source-section'
 import { WedgePanel } from '@/components/wedge-panel'
+import { MatrixPanel } from '@/components/matrix-panel'
+import { WatchButton, Watchlist, recordScan } from '@/components/watchlist'
 import type { CrowdingResult } from '@/lib/types'
 
 const SOURCE_NAMES = [
@@ -15,6 +17,9 @@ const SOURCE_NAMES = [
   'npm',
   'PyPI',
   'Hugging Face',
+  'Reddit (demand)',
+  'Stack Overflow (demand)',
+  'Ask HN (demand)',
 ]
 
 export default function Home() {
@@ -39,10 +44,33 @@ export default function Home() {
         throw new Error(payload?.error ?? 'Search failed. Please try again.')
       }
       setData(payload as CrowdingResult)
+      recordScan(payload as CrowdingResult)
+      const url = new URL(window.location.href)
+      url.searchParams.set('q', query)
+      window.history.replaceState(null, '', url.toString())
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Search failed.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) void runSearch(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const [shared, setShared] = useState(false)
+  async function shareScan() {
+    if (!data) return
+    const url = `${window.location.origin}/s/${encodeURIComponent(data.query)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setShared(true)
+      window.setTimeout(() => setShared(false), 1800)
+    } catch {
+      window.prompt('Copy this share link', url)
     }
   }
 
@@ -79,8 +107,15 @@ export default function Home() {
           </span>
           <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <span aria-hidden="true" className="inline-block size-2 rounded-full bg-signal" />
-            7 live sources
+            10 live sources
           </span>
+          <nav className="hidden gap-4 font-mono text-xs uppercase tracking-widest text-muted-foreground sm:flex">
+            <a href="/pulse" className="hover:text-foreground">Pulse</a>
+            <a href="/funds" className="hover:text-foreground">For funds</a>
+            <a href="/agents" className="hover:text-foreground">MCP</a>
+            <a href="/methodology" className="hover:text-foreground">Methodology</a>
+            <a href="/pricing" className="hover:text-foreground">Pricing</a>
+          </nav>
         </div>
       </header>
 
@@ -102,6 +137,7 @@ export default function Home() {
             </p>
           </div>
           <SearchForm onSearch={runSearch} isLoading={isLoading} />
+          <Watchlist onRescan={runSearch} />
         </section>
 
         {isLoading && (
@@ -138,6 +174,13 @@ export default function Home() {
         {data && !isLoading && (
           <div className="flex flex-col gap-7">
             <ScoreDisplay result={data} />
+            <MatrixPanel result={data} />
+            {(data.expansions?.length ?? 0) > 1 || (data.duplicatesCollapsed ?? 0) > 0 ? (
+              <p className="font-mono text-xs leading-5 text-muted-foreground">
+                Also searched: {data.expansions?.slice(1).join(', ') || '—'} · {data.duplicatesCollapsed ?? 0} cross-source duplicate(s) collapsed
+                {data.receipt ? ` · receipt ${data.receipt.digest.slice(0, 12)}… (${data.receipt.algorithm})` : ''}
+              </p>
+            ) : null}
             <WedgePanel wedges={data.wedges} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -145,6 +188,14 @@ export default function Home() {
                 Verifiable evidence
               </h2>
               <div className="flex flex-wrap gap-2">
+                <WatchButton result={data} />
+                <button
+                  type="button"
+                  onClick={shareScan}
+                  className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest transition-colors hover:border-foreground"
+                >
+                  {shared ? 'Link copied' : 'Share scan'}
+                </button>
                 <button
                   type="button"
                   onClick={copyCapsule}
