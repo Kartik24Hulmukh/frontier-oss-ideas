@@ -19,7 +19,8 @@ return 1`
 function required() { return process.env.NODE_ENV === 'production' || process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' }
 
 export function sharedBudgetMode() {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) return 'distributed-configured'
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (url || token) return url && token && acceptableRedisUrl(url) ? 'distributed-configured' : 'blocked-invalid-config'
   return required() ? 'blocked-missing-config' : 'per-instance'
 }
 

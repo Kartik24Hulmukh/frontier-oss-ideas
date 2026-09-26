@@ -12,11 +12,12 @@ export function loopbackRedisAllowed(env: NodeJS.ProcessEnv = process.env): bool
 }
 
 export function acceptableRedisUrl(url: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  if (url.startsWith('https://')) return true
-  if (!loopbackRedisAllowed(env)) return false
   try {
     const u = new URL(url)
-    return u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '::1')
+    if (u.username || u.password || u.hash || u.search) return false
+    const local = ['127.0.0.1', 'localhost', '[::1]'].includes(u.hostname)
+    if (local) return loopbackRedisAllowed(env) && ['http:', 'https:'].includes(u.protocol)
+    return u.protocol === 'https:'
   } catch {
     return false
   }

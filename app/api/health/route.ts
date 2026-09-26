@@ -1,3 +1,5 @@
+import { version } from '@/package.json'
+import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 import { sharedRouter } from '@/lib/llm/analyst'
 
 export const runtime = 'nodejs'
@@ -8,9 +10,9 @@ export async function GET() {
     {
       ok: true,
       service: 'simultaneity-index',
-      version: '1.3.1',
+      version,
       build: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
-      admission: process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? 'distributed-configured' : process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' ? 'blocked-missing-config' : 'per-instance',
+      admission: process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_TOKEN ? (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN && acceptableRedisUrl(process.env.UPSTASH_REDIS_REST_URL) ? 'distributed-configured' : 'blocked-invalid-config') : process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' ? 'blocked-missing-config' : 'per-instance',
       receipts: process.env.RECEIPT_PRIVATE_KEY ? 'signing-configured' : 'hash-only',
       pacing: 'provider-ceilings+circuit-breakers',
       modelGateway: process.env.MELIOUS_API_KEY ? 'configured' : 'not-configured',
