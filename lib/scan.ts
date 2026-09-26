@@ -75,7 +75,7 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
       version: '1.2' as const,
       expansions: variant ? expansions.slice(0, 2) : [query],
       duplicatesCollapsed: collapsed,
-      demandSourceSummary: demand?.sources.map(({ source, status, totalCount }) => ({ source, status, totalCount })) ?? [],
+      demandSourceSummary: demand?.sources.map(({ source, status, totalCount, provenance, notice }) => ({ source, status, totalCount, ...(provenance ? { provenance } : {}), ...(notice ? { notice } : {}) })) ?? [],
       demandBreakdown: demand?.breakdown ?? [],
       coverage: base.coverage,
       demandCoverage: demand?.coverage ?? 0,

@@ -1,3 +1,7 @@
+# 1.5.2 — provenance and release-gate hardening
+
+Preserve demand degradation in signed exports and briefs; expose partial adapters; require primary demand and exact deployment SHA in canaries. Public beta only. See [release record](docs/RELEASE_1_5_2.md).
+
 ## 1.5.1 — server-time admission and independently exercised Lua (2026-09-26)
 - Admission buckets now derive from Redis TIME rather than application clocks.
 - Execute the production Lua against real Redis in CI, in addition to the HTTP contract emulator.

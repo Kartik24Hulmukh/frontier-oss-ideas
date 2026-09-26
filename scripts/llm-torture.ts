@@ -56,7 +56,7 @@ async function main() {
   {
     const r = new ModelRouter({ apiKey: key, fetcher: faulty({ 'glm-5.3-flash': 'hang' }), timeouts: { 'glm-5.3-flash': 800 } })
     const res = await r.complete({ messages, profile: 'fast', maxOutputTokens: 400 })
-    record('failover-gateway-timeout', res.ok && res.attempts[0].outcome === 'timeout' && res.maxFailoverMs < 200, { served: res.model, failoverMs: res.maxFailoverMs, timeoutAttemptMs: res.attempts[0].latencyMs })
+    record('failover-gateway-timeout', res.ok && res.attempts[0].outcome === 'timeout' && res.maxFailoverMs < 200, { served: res.model, failoverMs: res.maxFailoverMs, timeoutAttemptMs: res.attempts[0].latencyMs, error: res.error, attempts: res.attempts.map(a => ({ model: a.model, outcome: a.outcome, latencyMs: a.latencyMs, failoverMs: a.failoverMs })) })
   }
   // 5. Breaker keeps a tripped model out of the path on the next request (no wasted call).
   {

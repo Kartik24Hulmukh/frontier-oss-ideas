@@ -1,0 +1,18 @@
+✔ strict gate accepts complete technical fixture (0.881008ms)
+✔ strict gate rejects per-instance admission and untrusted issuer (0.16535ms)
+✔ strict gate rejects anonymous fallback despite 100% coverage (3.644423ms)
+✔ gate rejects missing provenance, malformed score and broken digest (0.261829ms)
+✔ beta gate explicitly permits unprovisioned infrastructure, not strict gate (0.1563ms)
+✔ strict gate rejects enabled analyst with per-instance spending limits (0.151109ms)
+✔ strict gate rejects mirror demand even with 100% responding coverage (0.225039ms)
+✔ strict gate rejects lost or changed receipt-covered demand metadata (0.272259ms)
+✔ gate rejects duplicate sources, impossible coverage and unexpected deployment SHA (0.37613ms)
+✔ strict gate requires explicit primary Reddit provenance (0.26928ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.522531

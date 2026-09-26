@@ -20,11 +20,12 @@ jobs:
       - name: Check deployment
         env:
           STRICT: ${{ inputs.strict }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           if [ "$STRICT" = "true" ]; then
-            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict --output release-gate.json
+            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict --expected-sha "$EXPECTED_SHA" --output release-gate.json
           else
-            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --output release-gate.json
+            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --expected-sha "$EXPECTED_SHA" --output release-gate.json
           fi
       - uses: actions/upload-artifact@v4
         if: always()

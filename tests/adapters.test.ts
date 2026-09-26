@@ -106,3 +106,35 @@ describe('source adapter contracts', () => {
     }
   })
 })
+
+
+it('partial Hugging Face responses retain evidence but flag degraded coverage', async () => {
+  for (const failed of ['/api/models', '/api/datasets']) {
+    const restore = mockFetch(url => url.includes(failed) ? new Response('', { status: 503 }) : Response.json([{ id: 'org/item' }]))
+    try {
+      const result = await searchHuggingFace('partial test')
+      assert.equal(result.status, 'ok')
+      assert.equal(result.items.length, 1)
+      assert.match(result.notice ?? '', /Partial Hugging Face/)
+    } finally { restore() }
+  }
+})
+it('PyPI exact-name success cannot conceal challenged ecosystem search', async () => {
+  const { searchPypi } = await import('../lib/sources/pypi')
+  const restore = mockFetch(url => url.includes('/search/') ? new Response('Client Challenge') : Response.json({ info: { name: 'example', package_url: 'https://pypi.org/project/example/' }, releases: {} }))
+  try {
+    const result = await searchPypi('example')
+    assert.equal(result.status, 'ok')
+    assert.equal(result.items.length, 1)
+    assert.match(result.notice ?? '', /exact-name evidence only/)
+  } finally { restore() }
+})
+it('Stack Overflow top hits cannot conceal an unavailable total count', async () => {
+  const { searchStackOverflow } = await import('../lib/demand')
+  const restore = mockFetch(url => url.includes('filter=total') ? new Response('', { status: 403 }) : Response.json({ items: [] }))
+  try {
+    const result = await searchStackOverflow('partial count')
+    assert.equal(result.status, 'ok')
+    assert.match(result.notice ?? '', /top hits only/)
+  } finally { restore() }
+})
