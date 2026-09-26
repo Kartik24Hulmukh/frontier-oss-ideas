@@ -6,4 +6,6 @@ node_modules
 .vercel/
 dist/
 coverage/
+tsconfig.tsbuildinfo
 package-lock.json
+*.tsbuildinfo

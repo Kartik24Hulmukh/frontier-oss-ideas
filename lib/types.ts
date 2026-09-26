@@ -6,10 +6,6 @@ export type SourceId =
   | 'npm'
   | 'pypi'
   | 'huggingface'
-  | 'reddit'
-
-/** Supply = people building it. Demand = people wanting/discussing it. */
-export type SourceCategory = 'supply' | 'demand'
 
 export type SourceStatus = 'ok' | 'error' | 'rate_limited'
 
@@ -44,8 +40,6 @@ export interface ScoreBreakdown {
 
 export type Verdict = 'Open lane' | 'Early movers' | 'Crowded' | 'Saturated'
 
-export type Quadrant = 'Blue Ocean' | 'Gold Rush' | 'Ghost Town' | 'Bloodbath'
-
 export interface Wedge {
   title: string
   rationale: string
@@ -67,15 +61,22 @@ export interface CrowdingResult {
   searchedAt: string
   methodology: string
   capsule: EvidenceCapsule
-  /** Supply x Demand battlefield geometry (2D matrix) */
-  supplyScore: number
-  demandScore: number
-  quadrant: Quadrant
-  quadrantDetail: string
+  /** Demand-side heat (Reddit, Stack Overflow, Ask HN). Optional for backwards compatibility. */
+  demand?: DemandResult
+  /** Supply x Demand battlefield quadrant. */
+  quadrant?: QuadrantResult
+  /** Query variants actually searched (semantic expansion). */
+  expansions?: string[]
+  /** Near-duplicate evidence items collapsed across sources. */
+  duplicatesCollapsed?: number
+  /** Tamper-evident receipt for the capsule. */
+  receipt?: ScanReceipt
 }
 
 export interface EvidenceCapsule {
-  version: '1.0'
+  version: '1.0' | '1.1'
+  demandScore?: number | null
+  quadrant?: Quadrant | null
   query: string
   score: number
   confidence: number
@@ -96,3 +97,49 @@ export type SourceAdapter = (
   query: string,
   ctx: AdapterContext,
 ) => Promise<SourceResult>
+
+export type DemandSourceId = 'reddit' | 'stackoverflow' | 'askhn'
+
+export interface DemandSourceResult {
+  source: DemandSourceId
+  label: string
+  status: SourceStatus
+  totalCount: number
+  items: EvidenceItem[]
+  errorMessage?: string
+}
+
+export interface DemandBreakdown {
+  source: DemandSourceId
+  label: string
+  subScore: number
+  signal: string
+  weight: number
+  included: boolean
+}
+
+export interface DemandResult {
+  score: number | null
+  coverage: number
+  trend: 'rising' | 'flat' | 'falling' | 'unknown'
+  breakdown: DemandBreakdown[]
+  sources: DemandSourceResult[]
+}
+
+export type Quadrant = 'Blue Ocean' | 'Gold Rush' | 'Ghost Town' | 'Bloodbath'
+
+export interface QuadrantResult {
+  quadrant: Quadrant | null
+  supply: number
+  demand: number | null
+  headline: string
+  action: string
+}
+
+export interface ScanReceipt {
+  algorithm: 'sha256' | 'ed25519+sha256'
+  digest: string
+  signature: string | null
+  publicKey: string | null
+  issuedAt: string
+}

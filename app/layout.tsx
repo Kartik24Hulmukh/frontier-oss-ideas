@@ -1,7 +1,8 @@
+import { SITE_URL } from '@/lib/site'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://simultaneity-index.vercel.app'
+const siteUrl = SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'Simultaneity Index',
     description: 'How many teams are already inventing your idea?',
   },

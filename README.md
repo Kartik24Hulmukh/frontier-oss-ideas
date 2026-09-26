@@ -1,10 +1,24 @@
 # Simultaneity Index
 
+## What's new in v1.1 — “Battlefield”
+
+- **Supply × Demand battlefield** — 7 supply sources + Reddit, Stack Overflow, Ask HN demand → Blue Ocean / Gold Rush / Ghost Town / Bloodbath with a concrete next move.
+- **MCP server for agents** — `POST /api/mcp` exposes `crowding_check(idea)`. Claude Code: `claude mcp add --transport http simultaneity https://<deployment>/api/mcp`. See `/agents`.
+- **Cohort screening for funds** — `POST /api/cohort` + `/funds` (novelty ranking, idea-twin collisions, CSV).
+- **Verifiable receipts** — SHA-256 (Ed25519 with `RECEIPT_PRIVATE_KEY`), check with `POST /api/verify`.
+- **Retention** — watchlist with deltas, share links `/s/<idea>`, `/pulse` leaderboard.
+- **Trust** — query expansion + cross-source dedup, public `/methodology`, live gold-set calibration: **Spearman ρ 0.83, 81% pairwise ordinal agreement, 19/20 within one band** (`docs/CALIBRATION.md`, `pnpm calibrate`).
+- **Production hardening** — scan cache, in-flight coalescing, per-IP rate limits; 26 tests; `pnpm verify` green.
+
+```bash
+curl "https://<deployment>/api/search?q=AI+code+review+agent"
+```
+
+Recommended env for production: `GITHUB_TOKEN`, `OPENALEX_API_KEY`, `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET`, `RECEIPT_PRIVATE_KEY` (see `.env.example`). Council + premortem: `docs/COUNCIL_PREMORTEM_V11.md`.
+
 **Live crowding intelligence for builders and AI agents.**
 
-Enter an idea and scan eight public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face, and Reddit. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, a **Supply x Demand battlefield quadrant** (Blue Ocean / Gold Rush / Ghost Town / Bloodbath), and open-wedge recommendations.
-
-Also ships as an **MCP tool** (`crowding_check`) so agents (Cursor, [redacted] Desktop, Windsurf, goose, ...) can pre-flight-check an idea before scaffolding a project — see [MCP server](#mcp-server-for-agents) below.
+Enter an idea and scan seven public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, and Hugging Face. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.
 
 ## Deploy to Vercel
 
@@ -93,29 +107,6 @@ curl -X POST https://YOUR_DOMAIN/api/compare \
   -d '{"queries":["AI code review agent","local-first AI agent OS"]}'
 ```
 
-## MCP server for agents
-
-Simultaneity Index ships a zero-dependency MCP (Model Context Protocol) server so coding agents can pre-flight-check an idea before scaffolding a project.
-
-```bash
-npx simultaneity-mcp
-```
-
-Or point any MCP-compatible client (Cursor, [redacted] Desktop, Windsurf, goose) at:
-
-```json
-{
-  "mcpServers": {
-    "simultaneity-index": {
-      "command": "npx",
-      "args": ["simultaneity-mcp"]
-    }
-  }
-}
-```
-
-Exposes one tool, `crowding_check(query)`, returning the score, verdict, Supply x Demand quadrant, confidence, and top wedges as agent-readable text plus the raw JSON payload. Point it at a self-hosted deployment with `SIMULTANEITY_API_URL=https://your-domain.example`.
-
 ## Architecture
 
 ```text
@@ -152,3 +143,23 @@ query
 ## License
 
 MIT
+
+
+## Distribution surfaces (v1.2)
+
+**README badge** — show builders you checked the lane:
+
+```md
+![simultaneity](https://frontier-oss-ideas.vercel.app/api/badge?q=AI+code+review+agent)
+```
+
+**MCP for agents** (Cursor, Claude Desktop, Windsurf, goose):
+
+```json
+{ "mcpServers": { "simultaneity": { "url": "https://frontier-oss-ideas.vercel.app/api/mcp" } } }
+```
+
+stdio-only clients: `{ "command": "npx", "args": ["-y", "mcp-remote", "https://frontier-oss-ideas.vercel.app/api/mcp"] }`
+or, from a clone, `node bin/simultaneity-mcp.mjs` (set `SIMULTANEITY_API_URL` for self-hosting).
+
+**Share cards** — `/s/<idea>` renders a live OG image with score, verdict and quadrant.
