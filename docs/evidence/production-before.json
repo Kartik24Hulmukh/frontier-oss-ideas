@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "base": "https://frontier-oss-ideas.vercel.app",
+  "checkedAt": "2026-09-26T15:32:36.100Z",
+  "mode": "strict-technical",
+  "version": "1.3.1",
+  "build": "345a1ac52042b5c3c948048c3ee8c35b08b199de",
+  "passed": false,
+  "checks": [
+    {
+      "name": "health",
+      "passed": true,
+      "detail": "1.3.1"
+    },
+    {
+      "name": "scan-contract",
+      "passed": true,
+      "detail": "Score must be bounded and query present"
+    },
+    {
+      "name": "coverage",
+      "passed": true,
+      "detail": "Required: 95%"
+    },
+    {
+      "name": "receipt-integrity",
+      "passed": true,
+      "detail": "Exported capsule must match receipt"
+    },
+    {
+      "name": "snapshot-provenance",
+      "passed": true,
+      "detail": "Capsule 1.2 with model and seven source statuses"
+    },
+    {
+      "name": "llm-distributed-budget",
+      "passed": true,
+      "detail": "Enabled AI analyst requires distributed token admission; runtime outage tests still required"
+    },
+    {
+      "name": "distributed-configured",
+      "passed": false,
+      "detail": "Configuration only; concurrent/outage tests still required"
+    },
+    {
+      "name": "issuer-trust",
+      "passed": false,
+      "detail": "Pinned issuer key required"
+    },
+    {
+      "name": "healthy-supply",
+      "passed": false,
+      "detail": "All seven adapters healthy without credential fallback"
+    },
+    {
+      "name": "healthy-demand",
+      "passed": false,
+      "detail": "All demand adapters healthy"
+    },
+    {
+      "name": "tamper-rejected",
+      "passed": true,
+      "detail": "Modified score must not verify"
+    }
+  ],
+  "limitation": "A canary is not a load test, external calibration, secret revocation, customer validation or commercial launch approval."
+}

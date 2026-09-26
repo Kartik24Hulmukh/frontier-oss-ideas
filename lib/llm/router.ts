@@ -1,3 +1,4 @@
+import { reserveSharedTokens, sharedBudgetMode } from './shared-budget'
 /**
  * Melious model router: token-budget ceilings, sub-200ms failover and per-model
  * circuit breakers for HTTP 429 / 5xx / gateway timeouts.
@@ -55,13 +56,13 @@ export interface RouteResult {
   model?: ModelId
   attempts: Attempt[]
   usage: { promptTokens: number; completionTokens: number; totalTokens: number; estimated: boolean }
-  error?: 'budget_exceeded' | 'all_models_failed' | 'auth_error' | 'not_configured' | 'deadline_exceeded'
+  error?: 'budget_exceeded' | 'all_models_failed' | 'auth_error' | 'not_configured' | 'deadline_exceeded' | 'budget_unavailable'
   maxFailoverMs: number
 }
 
-/** Cheap, conservative token estimate (~4 chars/token, rounded up, plus framing). */
+/** Conservative UTF-8 byte reservation plus message framing; not a tokenizer. */
 export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4) + 4
+  return Buffer.byteLength(text, 'utf8') + 16
 }
 
 export function estimateMessages(messages: ChatMessage[]): number {
@@ -79,32 +80,25 @@ export interface BudgetConfig {
 }
 
 export class TokenBudget {
-  private used = 0
-  private windowStart: number
-  constructor(public readonly config: BudgetConfig, private now: () => number = Date.now) {
-    this.windowStart = now()
+  private reservations: Array<{ at: number; tokens: number }> = []
+  constructor(public readonly config: BudgetConfig, private now: () => number = Date.now) {}
+  private used() {
+    const cutoff = this.now() - this.config.windowMs
+    this.reservations = this.reservations.filter(r => r.at > cutoff)
+    return this.reservations.reduce((sum, r) => sum + r.tokens, 0)
   }
-  private roll() {
-    const t = this.now()
-    if (t - this.windowStart >= this.config.windowMs) { this.windowStart = t; this.used = 0 }
-  }
-  /** Reserve tokens up front; returns false (and reserves nothing) if a ceiling would be crossed. */
+  /** Conservative rolling-window charge. Unknown billing is never refunded. */
   reserve(tokens: number): boolean {
-    this.roll()
-    if (!Number.isFinite(tokens) || tokens <= 0) return false
-    if (tokens > this.config.perRequestTokens) return false
-    if (this.used + tokens > this.config.windowTokens) return false
-    this.used += tokens
+    const used = this.used()
+    if (!Number.isSafeInteger(tokens) || tokens <= 0 || tokens > this.config.perRequestTokens || used + tokens > this.config.windowTokens) return false
+    this.reservations.push({ at: this.now(), tokens })
     return true
   }
-  /** Replace a reservation with actual usage (refund or charge the difference). */
-  settle(reserved: number, actual: number) {
-    this.roll()
-    this.used = Math.max(0, this.used - reserved + Math.max(0, actual))
-  }
+  /** No refunds: provider usage can omit reasoning tokens or arrive after a timeout. */
+  settle(_reserved: number, _actual: number) {}
   snapshot() {
-    this.roll()
-    return { used: this.used, windowTokens: this.config.windowTokens, perRequestTokens: this.config.perRequestTokens, windowMs: this.config.windowMs, remaining: Math.max(0, this.config.windowTokens - this.used) }
+    const used = this.used()
+    return { used, windowTokens: this.config.windowTokens, perRequestTokens: this.config.perRequestTokens, windowMs: this.config.windowMs, remaining: Math.max(0, this.config.windowTokens - used), accounting: 'conservative-no-refund' }
   }
 }
 
@@ -130,6 +124,7 @@ export class CircuitBreaker {
     if (this.state === 'half_open' && !this.probing) { this.probing = true; return true }
     return false
   }
+  releaseProbe() { this.probing = false }
   success() { this.failures = 0; this.state = 'closed'; this.probing = false; this.cooldown = this.config.cooldownMs }
   /** Trip on retryable failure. retryAfterMs (from HTTP 429) extends the cooldown. */
   failure(retryAfterMs?: number, immediate = false) {
@@ -159,6 +154,7 @@ export interface RouterOptions {
   breaker?: BreakerConfig
   /** Hard wall-clock deadline for the whole chain. */
   deadlineMs?: number
+  sharedBudget?: boolean
   timeouts?: Partial<Record<ModelId, number>>
 }
 
@@ -193,12 +189,14 @@ export class ModelRouter {
   private now: () => number
   private baseUrl: string
   private apiKey?: string
+  private sharedBudget: boolean
   private deadlineMs: number
   private timeouts: Partial<Record<ModelId, number>>
 
   constructor(opts: RouterOptions = {}) {
     this.fetcher = opts.fetcher ?? fetch
     this.now = opts.now ?? Date.now
+    this.sharedBudget = opts.sharedBudget ?? false
     this.apiKey = opts.apiKey
     this.baseUrl = (opts.baseUrl ?? 'https://api.melious.ai/v1').replace(/\/$/, '')
     this.deadlineMs = opts.deadlineMs ?? 28_000
@@ -212,7 +210,7 @@ export class ModelRouter {
 
   health() {
     const breakers = Object.fromEntries([...this.breakers].map(([id, b]) => [id, b.snapshot().state]))
-    return { configured: this.configured(), gateway: 'melious', breakers, budget: this.budget.snapshot() }
+    return { configured: this.configured(), gateway: 'melious', budgetScope: this.sharedBudget ? sharedBudgetMode() : 'per-instance', breakers, budget: this.budget.snapshot() }
   }
 
   async complete(req: CompleteRequest): Promise<RouteResult> {
@@ -223,6 +221,16 @@ export class ModelRouter {
     const chain = ROUTES[req.profile ?? 'quality']
     const promptTokens = estimateMessages(req.messages)
     const started = this.now()
+    const outputs = chain.map(id => Math.max(16, Math.min(req.maxOutputTokens ?? MODELS[id].maxOutputTokens, MODELS[id].maxOutputTokens)))
+    if (outputs.some(n => !Number.isSafeInteger(n)) || promptTokens + outputs[0] > this.budget.config.perRequestTokens) return fail('budget_exceeded')
+    if (this.sharedBudget) {
+      // One atomic reservation covers the complete failover chain. No network roundtrip
+      // between attempts, so shared accounting does not add failover latency.
+      const worstCase = Math.min(this.budget.config.perRequestTokens, outputs.reduce((sum, n) => sum + promptTokens + n, 0))
+      const admission = await reserveSharedTokens(worstCase, this.budget.config.windowTokens, this.budget.config.windowMs, this.deadlineMs)
+      if (admission !== 'ok') return fail(admission === 'limited' ? 'budget_exceeded' : 'budget_unavailable')
+    }
+    let requestCharged = 0
     let lastEnd: number | undefined
     for (const id of chain) {
       const spec = MODELS[id]
@@ -236,8 +244,9 @@ export class ModelRouter {
         continue
       }
       const remaining = this.deadlineMs - (this.now() - started)
-      if (remaining <= 50) return fail('deadline_exceeded')
-      if (!this.budget.reserve(reservation)) return fail('budget_exceeded')
+      if (remaining <= 50) { breaker.releaseProbe(); return fail('deadline_exceeded') }
+      if (requestCharged + reservation > this.budget.config.perRequestTokens || !this.budget.reserve(reservation)) { breaker.releaseProbe(); return fail('budget_exceeded') }
+      requestCharged += reservation
       const dispatch = this.now()
       const failoverMs = lastEnd === undefined ? undefined : dispatch - lastEnd
       const timeoutMs = Math.min(this.timeouts[id] ?? spec.timeoutMs, remaining)
@@ -288,7 +297,8 @@ export class ModelRouter {
       const end = this.now()
       attempts.push({ model: id, outcome, status, latencyMs: end - dispatch, failoverMs })
       lastEnd = end
-      if (outcome === 'auth_error') return fail('auth_error')
+      if (outcome === 'auth_error') { breaker.releaseProbe(); return fail('auth_error') }
+      if (outcome === 'bad_request') breaker.releaseProbe()
       if (outcome === 'rate_limited') breaker.failure(retryAfter, true)
       else if (outcome === 'model_unavailable') breaker.failure(300_000, true)
       else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure()
@@ -304,6 +314,7 @@ export function getRouter(): ModelRouter {
   if (!shared) {
     const num = (v: string | undefined, d: number) => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : d }
     shared = new ModelRouter({
+      sharedBudget: true,
       apiKey: process.env.MELIOUS_API_KEY || undefined,
       baseUrl: process.env.MELIOUS_BASE_URL || undefined,
       budget: {

@@ -70,7 +70,7 @@ test('token budget ceilings are enforced before any network call', async () => {
   assert.equal(b.reserve(100), true)
   assert.equal(b.reserve(100), false)
   b.settle(100, 20)
-  assert.equal(b.reserve(100), true)
+  assert.equal(b.reserve(100), false, 'settlement cannot refund unknown billable work')
   assert.equal(b.reserve(-5), false)
   assert.equal(b.reserve(Number.NaN), false)
   t = 1000

@@ -20,3 +20,9 @@ test('beta gate explicitly permits unprovisioned infrastructure, not strict gate
   assert.equal(evaluateGate(betaHealth, scan, { digestMatches: true }).passed, true)
   assert.equal(evaluateGate(betaHealth, scan, { digestMatches: true }, true).passed, false)
 })
+
+test('strict gate rejects enabled analyst with per-instance spending limits', () => {
+  const result = evaluateGate({ ...health, llm: { configured: true, budgetScope: 'per-instance' } }, scan, { digestMatches: true, issuerTrusted: true }, true)
+  assert.equal(result.passed, false)
+  assert.equal(result.checks.find(c => c.name === 'llm-distributed-budget').passed, false)
+})
