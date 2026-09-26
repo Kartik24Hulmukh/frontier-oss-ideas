@@ -7,5 +7,4 @@ node_modules
 dist/
 coverage/
 tsconfig.tsbuildinfo
-package-lock.json
 *.tsbuildinfo
