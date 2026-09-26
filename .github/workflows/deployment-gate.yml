@@ -1,0 +1,33 @@
+name: Deployment canary
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: Require provisioned production dependencies
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check deployment
+        env:
+          STRICT: ${{ inputs.strict }}
+        run: |
+          if [ "$STRICT" = "true" ]; then
+            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict --output release-gate.json
+          else
+            node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --output release-gate.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-gate
+          path: release-gate.json

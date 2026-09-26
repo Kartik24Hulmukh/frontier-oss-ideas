@@ -1,3 +1,11 @@
+## 1.2.3 — 2026-09-26
+- Downloadable local Opportunity Brief with evidence, uncertainty and human decision worksheet.
+- Capsule 1.2 captures model, source/demand health and contributions, actual expansions and dedup metadata under receipt integrity.
+- Bounded verify payload raised to 256 KiB; invalid admission costs rejected before either backend.
+- Fail-closed beta/strict deployment canary and manual artifact-producing CI workflow.
+- 54 tests; no changes to the heuristic score model or claims of independent calibration.
+- Public beta only: provisioning, credential rotation, provider pacing, pilots and commercial lifecycle remain open.
+
 ## 1.2.2 — Coverage recovery & agent distribution (2026-09-26)
 - **Fix production GitHub coverage loss:** a rejected deployment `GITHUB_TOKEN` (HTTP 401) no longer drops the GitHub supply source. The adapter retries anonymously, returns an `ok` result with a non-secret `notice`, and logs a rotation warning. Root cause of the 86% vs 100% live/local coverage gap for "AI code review agent".
 - `/api/health` reports credential *presence* (booleans only, never values) for GitHub, OpenAlex, Reddit and the pinned receipt key so misconfigured deployments are visible.

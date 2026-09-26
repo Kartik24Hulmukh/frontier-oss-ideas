@@ -76,7 +76,16 @@ export interface CrowdingResult {
 }
 
 export interface EvidenceCapsule {
-  version: '1.0' | '1.1'
+  version: '1.0' | '1.1' | '1.2'
+  /** Snapshot metadata is covered by the receipt digest/signature. */
+  modelVersion?: string
+  normalizedQuery?: string
+  expansions?: string[]
+  duplicatesCollapsed?: number
+  sourceSummary?: Array<{ source: SourceId; status: SourceStatus; totalCount: number; notice?: string }>
+  breakdown?: ScoreBreakdown[]
+  demandSourceSummary?: Array<{ source: DemandSourceId; status: SourceStatus; totalCount: number }>
+  demandBreakdown?: DemandBreakdown[]
   coverage?: number
   demandCoverage?: number
   demandEvidenceLinks?: Array<{ source: DemandSourceId; title: string; url: string }>

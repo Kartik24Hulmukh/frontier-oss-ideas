@@ -15,7 +15,12 @@ export function buildCapsule(result: CapsuleInput): EvidenceCapsule {
     .slice(0, 25)
 
   return {
-    version: '1.0',
+    version: '1.2',
+    modelVersion: 'crowding-1.0',
+    normalizedQuery: result.normalizedQuery,
+    coverage: result.coverage,
+    sourceSummary: result.sources.map(({ source, status, totalCount, notice }) => ({ source, status, totalCount, ...(notice ? { notice } : {}) })),
+    breakdown: result.breakdown.map((entry) => ({ ...entry })),
     query: result.query,
     score: result.score,
     confidence: result.confidence,

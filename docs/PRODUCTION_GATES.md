@@ -1,6 +1,9 @@
-# Production gates — 1.2.2
+# Production gates — 1.2.3
 
 This is a hardened public beta, not a fully provisioned commercial SaaS. Do not claim production readiness from a green build alone.
+
+## Executable canary (1.2.3)
+Run `node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict --output gate.json`. Manual Actions workflow retains the result. This is not automatically enforced promotion protection, load testing or commercial approval. Read [release scope and remaining work](RELEASE_1_2_3.md).
 
 ## Configure before promotion
 1. Rotate the GitHub credential shared in chat. Never deploy that broad personal token as GITHUB_TOKEN. Use a dedicated, least-privilege read-only token for searches.

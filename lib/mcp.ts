@@ -14,7 +14,7 @@ export const TOOLS = [
     name: 'crowding_check',
     title: 'Simultaneity Index crowding check',
     description:
-      'Before building a new project, check how many teams are already building the same idea. Scans GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face (supply) and Reddit, Stack Overflow, Ask HN (demand). Returns a 0-100 Simultaneity score, verdict, Supply x Demand quadrant, confidence, wedges and evidence links.',
+      'Before building a new project, check public-source crowding around the idea (not a unique-team count). Scans GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face (supply) and Reddit, Stack Overflow, Ask HN (demand). Returns a 0-100 Simultaneity score, verdict, Supply x Demand quadrant, confidence, wedges and evidence links.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -59,7 +59,7 @@ export async function handleRpc(
       return ok({
         protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'simultaneity-index', version: '1.2.0' },
+        serverInfo: { name: 'simultaneity-index', version: '1.2.3' },
         instructions: 'Call crowding_check with a one-line idea before scaffolding any new project.',
       })
     case 'ping':

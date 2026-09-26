@@ -72,7 +72,11 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
     const quadrant = demand ? quadrantFor(base.score, demand.score, demand.trend) : undefined
     const capsule = {
       ...base.capsule,
-      version: '1.1' as const,
+      version: '1.2' as const,
+      expansions: variant ? expansions.slice(0, 2) : [query],
+      duplicatesCollapsed: collapsed,
+      demandSourceSummary: demand?.sources.map(({ source, status, totalCount }) => ({ source, status, totalCount })) ?? [],
+      demandBreakdown: demand?.breakdown ?? [],
       coverage: base.coverage,
       demandCoverage: demand?.coverage ?? 0,
       demandEvidenceLinks: demand?.sources.filter((s) => s.status === 'ok').flatMap((s) => s.items.slice(0, 5).map((i) => ({ source: s.source, title: i.title, url: i.url }))) ?? [],

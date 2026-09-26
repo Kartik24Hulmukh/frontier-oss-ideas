@@ -1,3 +1,5 @@
+> **1.2.3 decision artifacts:** Download a dated decision brief from each scan. Capsule 1.2 retains receipt-covered provenance. See [release record](docs/RELEASE_1_2_3.md) and run `node scripts/release-gate.mjs <deployment> --strict` before promotion. Commercial readiness remains blocked.
+
 > **1.2.1 public-beta hardening:** Read [production gates](docs/PRODUCTION_GATES.md) before launch. Configure shared Redis admission for multi-instance production. Email alerts, billing and paid plans remain planned. Existing calibration labels are author estimates, not independent expert validation. `/privacy` describes actual query handling. Exported evidence is `{ capsule, receipt }`; verify it with `POST /api/verify` and check `issuerTrusted` separately from `signatureValid`.
 
 # Simultaneity Index
