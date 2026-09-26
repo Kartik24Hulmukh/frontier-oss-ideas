@@ -4,6 +4,8 @@ import { scanIdea } from '../lib/scan'
 import { issueReceipt, verifyReceipt } from '../lib/scoring/receipt'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
+import { summarize } from '../lib/mcp'
+import { analystMessages } from '../lib/llm/analyst'
 import { MatrixPanel } from '../components/matrix-panel'
 
 test('scan → signed capsule → verification preserves degraded demand provenance', async () => {
@@ -27,6 +29,12 @@ test('scan → signed capsule → verification preserves degraded demand provena
     assert.equal(verifyReceipt(roundtrip, receipt).signatureValid, true)
     roundtrip.demandSourceSummary.find((s: { source: string }) => s.source === 'reddit').provenance = 'primary'
     assert.equal(verifyReceipt(roundtrip, receipt).digestMatches, false)
+    assert.match(summarize(result), /Primary Reddit unavailable/)
+    assert.match(summarize(result), /not verified buyer demand/)
+    const messages = analystMessages(result, [])
+    assert.match(messages[1].content, /provenance=mirror/)
+    assert.match(messages[1].content, /Primary Reddit unavailable/)
+    assert.match(messages[0].content, /not a calibrated probability/)
     const html = renderToStaticMarkup(createElement(MatrixPanel, { result }))
     assert.match(html, /Demand evidence is incomplete or degraded/)
     assert.match(html, /Primary Reddit unavailable/)

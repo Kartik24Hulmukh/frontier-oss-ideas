@@ -32,3 +32,8 @@ Both supplied files were read in full. The repository was cloned at a31061f. Fou
 Missing: managed Redis provisioning/outage and rollback drill, independently published fresh signing pin, approved provider access, rotated secrets, independent relevance validation, consented decision pilots and retention/WTP evidence. Durable accounts, entitlements, billing, hosted immutable snapshots and email retention remain unimplemented. Do not add them solely to satisfy a feature checklist before validated demand.
 
 Secrets supplied in the task were used only in process memory for authorized API operations; not committed or installed as deployment runtime secrets. Operator must rotate exposed GitHub and Melious credentials.
+
+## Follow-up increment
+Implementation PR #22 merged as `82bbf3135797eb54f7d7cbf9cac7fd3918613c04` after CI, GitGuardian and Vercel preview passed. The subsequent fix carries the same caveats into MCP text summaries and analyst input, not just structured capsules/UI. Local HTTP smoke passed 14 checks: health, malformed input, real scan, cache, receipt, tamper, MCP initialize/list/call, cohort.
+
+The diagnostic gateway repeat passed 13/13, with all four models answering. Timeout detection was 801 ms and next dispatch gap 0 ms; its successful next model took 3589 ms to respond. Original 12/13 failure remains retained; an intermittent failed recovery is not disproved by one successful retry. Root cause of the first failure was not captured by the old diagnostic output. The repeat adds per-attempt diagnostics for future failures. No sub-200ms end-to-end recovery claim.
