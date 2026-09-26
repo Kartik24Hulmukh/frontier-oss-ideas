@@ -11,6 +11,7 @@ export function evaluateGate(health, scan, verification, strict = false) {
   check('receipt-integrity', verification?.digestMatches === true, 'Exported capsule must match receipt')
   check('snapshot-provenance', scan?.capsule?.version === '1.2' && Boolean(scan?.capsule?.modelVersion) && Array.isArray(scan?.capsule?.sourceSummary) && scan.capsule.sourceSummary.length === 7, 'Capsule 1.2 with model and seven source statuses')
   if (strict) {
+    check('llm-distributed-budget', !health?.llm?.configured || health?.llm?.budgetScope === 'distributed-configured', 'Enabled AI analyst requires distributed token admission; runtime outage tests still required')
     check('distributed-configured', health?.admission === 'distributed-configured', 'Configuration only; concurrent/outage tests still required')
     check('issuer-trust', verification?.issuerTrusted === true && health?.credentials?.receiptPublicKeyPinned === true, 'Pinned issuer key required')
     const expected = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface']

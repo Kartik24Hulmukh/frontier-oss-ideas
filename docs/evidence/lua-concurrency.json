@@ -1,0 +1,9 @@
+{
+  "backend": "fakeredis 2.38.0 + Lua (not Upstash)",
+  "concurrentRequests": 100,
+  "accepted": 10,
+  "rejected": 90,
+  "ceiling": 1000,
+  "reserved": 1000,
+  "passed": true
+}

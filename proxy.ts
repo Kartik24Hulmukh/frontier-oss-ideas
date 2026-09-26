@@ -11,4 +11,4 @@ export async function proxy(request: NextRequest) {
   if (status !== 'ok') return NextResponse.json({ error: status === 'limited' ? 'Scan capacity reached. Retry later.' : 'Scan admission unavailable. Retry later.' }, { status: status === 'limited' ? 429 : 503, headers: { 'Retry-After': '600', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } })
   return NextResponse.next()
 }
-export const config = { matcher: ['/api/search', '/api/compare', '/api/cohort', '/api/mcp', '/api/badge', '/s/:path*', '/pulse'] }
+export const config = { matcher: ['/api/analyst', '/api/search', '/api/compare', '/api/cohort', '/api/mcp', '/api/badge', '/s/:path*', '/pulse'] }
