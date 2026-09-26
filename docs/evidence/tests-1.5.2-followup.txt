@@ -1,0 +1,146 @@
+
+> simultaneity-index@1.5.2 test
+> tsx --test 'tests/*.test.ts' && node --test tests/*.test.mjs
+
+[simultaneity] GITHUB_TOKEN rejected (401); used anonymous GitHub search. Rotate the deployment token.
+▶ source adapter contracts
+  ✔ encodes GitHub queries and sends bearer auth server-side (13.718504ms)
+  ✔ falls back to anonymous GitHub search when the deployment token is rejected (401) (61.420281ms)
+  ✔ passes OpenAlex API key and normalizes evidence URLs (1.437768ms)
+  ✔ merges Hugging Face models and datasets into one source result (0.725319ms)
+✔ source adapter contracts (78.022839ms)
+✔ partial Hugging Face responses retain evidence but flag degraded coverage (0.674768ms)
+✔ PyPI exact-name success cannot conceal challenged ecosystem search (3.661273ms)
+✔ Stack Overflow top hits cannot conceal an unavailable total count (5.31765ms)
+✔ capsule records failed sources, weights and model, with stable JSON roundtrip (1.600526ms)
+✔ brief is dated, portable, honest about uncertainty and receipt scope (0.419779ms)
+✔ brief escapes hostile titles and excludes unsafe evidence URLs (0.23075ms)
+✔ admission rejects invalid costs before network or local quota mutation (0.236219ms)
+✔ verify accepts richer exports over 32 KiB and rejects bodies over 256 KiB (69.729195ms)
+✔ brief retains demand provenance, operator notices and failed-source reasons (0.26703ms)
+✔ crowding copy does not assert independent invention or unique team counts (1.277188ms)
+✔ calibration output and fixtures disclose author-estimated labels (0.22185ms)
+▶ reddit demand mirror fallback
+  ✔ uses primary when reddit answers and marks provenance primary (51.56936ms)
+  ✔ falls back to the mirror on anonymous 403, labels it, and down-weights it (1.251348ms)
+  ✔ stacks reasons and preserves blocked classification when the mirror also fails (0.570539ms)
+  ✔ honours REDDIT_MIRROR_DISABLED (0.299339ms)
+✔ reddit demand mirror fallback (54.498105ms)
+✔ scan → signed capsule → verification preserves degraded demand provenance (95.883724ms)
+✔ loopback endpoint is refused unless explicitly opted in, and never in production (4.730721ms)
+✔ admission is atomic and enforces the per-key window against the emulator (90.644764ms)
+✔ admission enforces the shared global ceiling across distinct keys (7.837495ms)
+✔ concurrent admissions never oversell the window (289.979219ms)
+✔ token reservations are irrevocable and bounded by the rolling window (4.106752ms)
+✔ gateway faults fail closed, never open (6.574087ms)
+✔ production refuses a loopback limiter outright (0.26508ms)
+✔ health uses package version and never labels partial/invalid limiter config distributed (58.276807ms)
+✔ Redis URL validation parses HTTPS and treats IPv6 loopback consistently (0.18481ms)
+✔ application clock skew cannot choose independent admission buckets (2.261556ms)
+✔ a configured signer alone is not an independent issuer pin (12.755426ms)
+✔ HTTP 429 fails over to the next model in under 200ms and opens that breaker (16.498109ms)
+✔ 5xx, 504 gateway timeouts and aborted requests fail over; all failing returns all_models_failed (0.667479ms)
+✔ breaker opens after threshold, half-opens after cooldown with a single probe, closes on success (0.145489ms)
+✔ token budget ceilings are enforced before any network call (0.2096ms)
+✔ 401 stops the chain immediately; missing key never calls the network (0.375879ms)
+✔ analyst memo only keeps citations to real evidence and treats evidence as untrusted data (64.996694ms)
+▶ token-budget ceilings
+  ✔ refuses traffic past the per-minute ceiling and reports a retry delay (0.57345ms)
+  ✔ window slides: oldest entries expire and free budget (0.11572ms)
+✔ token-budget ceilings (1.357338ms)
+▶ circuit breakers for HTTP 429 and 5xx gateway timeouts
+  ✔ opens after threshold consecutive failures and fast-fails (0.23966ms)
+  ✔ half-open probe after cooldown; success closes the circuit (0.123229ms)
+  ✔ UpstreamError carries status and retryability (0.13133ms)
+✔ circuit breakers for HTTP 429 and 5xx gateway timeouts (0.677009ms)
+✔ real Redis: production Lua enforces concurrency, rollover, global and rolling ceilings (993.460438ms)
+▶ computeCrowding
+  ✔ returns open lane when all sources empty (12.599296ms)
+  ✔ raises score when github shows traction (0.511419ms)
+  ✔ excludes failed sources from weighted score but keeps coverage honest (0.25633ms)
+✔ computeCrowding (14.066143ms)
+▶ public trust boundaries
+  ✔ cohort JSON carries the evidence envelope for each ranked result (1.532577ms)
+  ✔ zero available sources means zero confidence (0.2774ms)
+  ✔ does not report a challenged PyPI search as a healthy empty ecosystem (68.745357ms)
+  ✔ keeps distinct HN evidence instead of collapsing all item URLs (0.492379ms)
+  ✔ validates MCP Origin, protocol version, and SSE refusal (1.960236ms)
+  ✔ rejects null, scalar and array request bodies without crashing (6.374077ms)
+  ✔ bounds actual streamed bytes, not the claimed Content-Length (0.600529ms)
+  ✔ rejects long and control-character queries (0.786249ms)
+  ✔ arbitrary API keys cannot rotate rate-limit identities (0.33849ms)
+  ✔ charges weighted work atomically and bounds active key memory (0.294319ms)
+  ✔ rejects malformed RPC and batches without scan amplification (0.541399ms)
+  ✔ distinguishes self-signed integrity from trusted issuer identity (4.171562ms)
+  ✔ neutralizes spreadsheet formulas without dropping user text (0.315729ms)
+  ✔ shared quota fails closed on missing configuration, timeout and invalid Redis replies (0.771489ms)
+✔ public trust boundaries (88.24883ms)
+✔ analyst scan path is covered by global admission (0.613579ms)
+✔ UTF8 accounting is conservative for multilingual prompts (0.13633ms)
+✔ reservations form a rolling window, no cross-window settlement refund (0.271929ms)
+✔ unknown timeouts consume budget across the whole request, not just one model (0.848499ms)
+✔ shared reservation fails closed on missing config, Redis faults and malformed responses (5.00582ms)
+✔ half-open probe released when local budget blocks dispatch (1.099118ms)
+▶ cache + rate limit
+  ✔ expires and evicts LRU (0.550138ms)
+  ✔ coalesces in-flight work (0.16513ms)
+  ✔ limits per key in a sliding window (0.258839ms)
+✔ cache + rate limit (1.619397ms)
+▶ query expansion + dedup
+  ✔ expands code review synonyms and keeps original first (0.399189ms)
+  ✔ returns only the original for unknown vocabulary (0.855558ms)
+  ✔ canonicalizes arxiv and github urls (0.3163ms)
+  ✔ collapses cross-source duplicates (0.508299ms)
+  ✔ merges variant results without duplicating urls (0.223329ms)
+  ✔ measures term similarity (0.23207ms)
+✔ query expansion + dedup (2.845304ms)
+▶ demand + quadrant
+  ✔ scores hot demand higher than cold demand (12.975115ms)
+  ✔ excludes failed demand sources and returns null when all fail (0.12555ms)
+  ✔ detects rising trend (0.177969ms)
+  ✔ maps all four quadrants and the null case (0.1413ms)
+✔ demand + quadrant (13.555744ms)
+▶ receipts
+  ✔ digest is stable regardless of key order (0.288449ms)
+  ✔ detects tampering and verifies ed25519 signatures (2.621685ms)
+✔ receipts (2.987934ms)
+▶ MCP server
+  ✔ initializes and lists crowding_check (0.25794ms)
+  ✔ calls the tool and returns text + structured capsule (0.800368ms)
+  ✔ handles notifications, bad tools and unknown methods (0.13634ms)
+✔ MCP server (1.280658ms)
+▶ cohort + calibration
+  ✔ finds idea twins and ranks by novelty (0.546148ms)
+  ✔ spearman and pairwise agreement behave (0.245979ms)
+✔ cohort + calibration (0.858178ms)
+▶ README badge
+  ✔ renders score + verdict with verdict colour (0.653299ms)
+  ✔ renders an unavailable badge when scan failed (0.15961ms)
+  ✔ escapes hostile labels (0.175189ms)
+✔ README badge (1.651937ms)
+ℹ tests 89
+ℹ suites 13
+ℹ pass 89
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5173.19565
+✔ strict gate accepts complete technical fixture (0.854649ms)
+✔ strict gate rejects per-instance admission and untrusted issuer (0.16077ms)
+✔ strict gate rejects anonymous fallback despite 100% coverage (3.652713ms)
+✔ gate rejects missing provenance, malformed score and broken digest (0.179169ms)
+✔ beta gate explicitly permits unprovisioned infrastructure, not strict gate (0.1554ms)
+✔ strict gate rejects enabled analyst with per-instance spending limits (0.1374ms)
+✔ strict gate rejects mirror demand even with 100% responding coverage (0.227869ms)
+✔ strict gate rejects lost or changed receipt-covered demand metadata (0.25095ms)
+✔ gate rejects duplicate sources, impossible coverage and unexpected deployment SHA (0.348279ms)
+✔ strict gate requires explicit primary Reddit provenance (0.250809ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 98.39033
