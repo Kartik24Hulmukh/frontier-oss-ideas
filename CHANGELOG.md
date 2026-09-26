@@ -1,3 +1,11 @@
+## 1.5.1 — server-time admission and independently exercised Lua (2026-09-26)
+- Admission buckets now derive from Redis TIME rather than application clocks.
+- Execute the production Lua against real Redis in CI, in addition to the HTTP contract emulator.
+- Health version comes from package.json; partial/invalid Redis configuration is reported blocked.
+- Parse Redis URLs; reject malformed URLs, embedded credentials and production loopback.
+- Issuer trust requires an explicit public-key pin; configuring a private signer alone is insufficient.
+- No commercial readiness claim. See docs/RELEASE_1_5_1.md and migration precautions in docs/LOOPBACK_LIMITER.md.
+
 
 ## 1.5.0 - 2026-09-26
 

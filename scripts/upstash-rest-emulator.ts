@@ -16,6 +16,7 @@ import { createServer, type Server } from 'node:http'
 export type Fault = 'off' | 'error' | 'malformed' | 'down'
 
 interface Entry {
+  bucket?: number
   value?: number
   zset?: Array<{ score: number; member: string }>
   expiresAt?: number
@@ -47,11 +48,13 @@ export function createStore() {
 /** Fixed-window admission script (KEYS: per-key, global; ARGV: cost, perKey, global, ttlSeconds). */
 function evalAdmission(ctx: ReturnType<typeof createStore>, keys: string[], argv: string[]): number {
   const [cost, perKey, globalCap, ttl] = argv.map(Number)
-  const n = ctx.live(keys[0])?.value ?? 0
-  const g = ctx.live(keys[1])?.value ?? 0
+  const bucket = Math.floor(Date.now() / 600_000)
+  const a = ctx.live(keys[0]), b = ctx.live(keys[1])
+  const n = a?.bucket === bucket ? a.value ?? 0 : 0
+  const g = b?.bucket === bucket ? b.value ?? 0 : 0
   if (n + cost > perKey || g + cost > globalCap) return 0
-  ctx.store.set(keys[0], { value: n + cost, expiresAt: Date.now() + ttl * 1000 })
-  ctx.store.set(keys[1], { value: g + cost, expiresAt: Date.now() + ttl * 1000 })
+  ctx.store.set(keys[0], { bucket, value: n + cost, expiresAt: Date.now() + ttl * 1000 })
+  ctx.store.set(keys[1], { bucket, value: g + cost, expiresAt: Date.now() + ttl * 1000 })
   return 1
 }
 
@@ -82,7 +85,7 @@ export function execCommand(ctx: ReturnType<typeof createStore>, cmd: unknown[])
   const argv = cmd.slice(3 + numKeys).map(String)
   try {
     if (script.includes('ZREMRANGEBYSCORE')) return { result: evalReserve(ctx, keys, argv) }
-    if (script.includes('INCRBY')) return { result: evalAdmission(ctx, keys, argv) }
+    if (script.includes("'HSET'")) return { result: evalAdmission(ctx, keys, argv) }
     return { error: 'ERR unknown script' }
   } catch (e) {
     return { error: 'ERR ' + (e as Error).message }

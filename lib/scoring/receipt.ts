@@ -61,7 +61,7 @@ export function verifyReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt): {
 /** Pin trust to a deployment-controlled key, never to a key supplied in a receipt. */
 export function trustedReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt, trustedPem = process.env.RECEIPT_PUBLIC_KEY): boolean {
   try {
-    const trusted = trustedPem ? createPublicKey(trustedPem.replace(/\\n/g, '\n')) : (() => { const k = loadKey(); return k ? createPublicKey(k) : null })()
+    const trusted = trustedPem ? createPublicKey(trustedPem.replace(/\\n/g, '\n')) : null
     if (!trusted || !receipt.publicKey || receipt.algorithm !== 'ed25519+sha256' || receipt.issuedAt !== capsule.searchedAt) return false
     if (trusted.asymmetricKeyType !== 'ed25519') return false
     const supplied = createPublicKey(receipt.publicKey)

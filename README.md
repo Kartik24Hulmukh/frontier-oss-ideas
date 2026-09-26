@@ -1,3 +1,5 @@
+> **1.5.1 verification hardening:** Redis-server-time admission, real-Lua concurrency tests in CI, truthful version/config health, and explicit issuer pins. [Release scope](docs/RELEASE_1_5_1.md). Public research beta; strict production gates remain blocking.
+
 > **1.3.0 AI analyst:** grounded, cited diligence memo routed across GLM-5.3 / GLM-5.3 Flash / Kimi K3 / Qwen 3.8 27B with token ceilings, <200 ms failover and circuit breakers. See [release record](docs/RELEASE_1_3_0.md).
 > **1.2.3 decision artifacts:** Download a dated decision brief from each scan. Capsule 1.2 retains receipt-covered provenance. See [release record](docs/RELEASE_1_2_3.md) and run `node scripts/release-gate.mjs <deployment> --strict` before promotion. Commercial readiness remains blocked.
 
