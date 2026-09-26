@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { RateLimiter } from './ratelimit'
+import { acceptableRedisUrl } from './redis-endpoint'
 const local = new RateLimiter(80, 600_000)
 const globalLocal = new RateLimiter(400, 600_000)
 const LUA = `local n = tonumber(redis.call('GET', KEYS[1]) or '0')
@@ -21,7 +22,7 @@ export async function admitScan(key: string, cost = 1, fetcher: typeof fetch = f
     if (process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true') return 'unavailable'
     return local.check(key, Date.now(), cost).allowed && globalLocal.check('global', Date.now(), cost).allowed ? 'ok' : 'limited'
   }
-  if (!url || !token || !url.startsWith('https://')) return 'unavailable'
+  if (!url || !token || !acceptableRedisUrl(url)) return 'unavailable'
   const bucket = Math.floor(Date.now() / 600_000)
   const hash = createHash('sha256').update(key).digest('hex')
   try {

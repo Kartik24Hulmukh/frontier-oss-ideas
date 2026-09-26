@@ -207,6 +207,7 @@ export async function searchAskHN(query: string, ctx: AdapterContext = {}): Prom
   }
 }
 
+
 export const DEMAND_WEIGHTS: Record<DemandSourceId, number> = {
   reddit: 0.4,
   stackoverflow: 0.25,

@@ -1,4 +1,4 @@
-import type { SourceResult } from '@/lib/types'
+import type { DemandSourceResult, SourceResult } from '@/lib/types'
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null
@@ -11,7 +11,9 @@ function formatDate(iso: string | null): string | null {
   })
 }
 
-export function SourceSection({ result }: { result: SourceResult }) {
+export function SourceSection({ result }: { result: SourceResult | DemandSourceResult }) {
+  const mirrored = 'provenance' in result && result.provenance === 'mirror'
+  const notice = 'notice' in result ? result.notice : undefined
   return (
     <section aria-label={result.label} className="border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
@@ -21,18 +23,31 @@ export function SourceSection({ result }: { result: SourceResult }) {
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {result.status === 'ok'
             ? `${result.totalCount.toLocaleString()} matches`
-            : result.status === 'rate_limited'
-              ? 'Rate limited'
-              : 'Unavailable'}
+            : mirrored
+              ? 'Blocked - mirror evidence'
+              : result.status === 'rate_limited'
+                ? 'Rate limited'
+                : 'Unavailable'}
         </span>
       </div>
 
-      {result.status !== 'ok' ? (
-        <p className="p-4 text-sm text-muted-foreground">
-          {result.errorMessage ?? 'This source could not be reached.'}
-        </p>
-      ) : result.items.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">No matching artifacts found.</p>
+      {result.status !== 'ok' && (
+        <div role="status" className="border-b border-border bg-muted/40 p-4">
+          <p className="text-sm text-muted-foreground">
+            {result.errorMessage ?? 'This source could not be reached.'}
+          </p>
+          {notice && (
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+              {notice}
+            </p>
+          )}
+        </div>
+      )}
+
+      {result.items.length === 0 ? (
+        result.status === 'ok' ? (
+          <p className="p-4 text-sm text-muted-foreground">No matching artifacts found.</p>
+        ) : null
       ) : (
         <ul className="divide-y divide-border">
           {result.items.map((item) => {

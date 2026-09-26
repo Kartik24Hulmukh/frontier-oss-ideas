@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 
 // Redis server time avoids app-instance clock skew. Reservations are deliberately
 // irrevocable; a timeout does not prove that the provider performed no billable work.
@@ -27,7 +28,7 @@ export async function reserveSharedTokens(tokens: number, limit: number, windowM
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url && !token) return required() ? 'unavailable' : 'ok'
-  if (!url || !token || !url.startsWith('https://')) return 'unavailable'
+  if (!url || !token || !acceptableRedisUrl(url)) return 'unavailable'
   try {
     const res = await fetcher(url, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(['EVAL', RESERVE_TOKENS_LUA, 1, 'si:llm:tokens:v1', tokens, limit, windowMs, deadlineMs, randomUUID()]), signal: AbortSignal.timeout(1500), cache: 'no-store' })
     if (!res.ok) return 'unavailable'
