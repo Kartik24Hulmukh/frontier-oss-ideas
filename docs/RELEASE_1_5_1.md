@@ -4,9 +4,9 @@
 
 ## Review boundary
 Read both attached ship records in full and inspected the repository at 83c7115. Founder_Work.md
-is absent. Inspected the video using a chronological contact sheet and decoded all 908 frames;
-it is a previous side-by-side run, not an additional source archive. This is **not** a claim that
-every repository file or every video frame was semantically reviewed. Targeted deep review covered
+is absent. Decoded all 908 video frames without errors and generated a chronological contact sheet;
+visual inspection could not be confirmed in this desktop environment. The video contents remain
+unreviewed semantically. This is **not** a claim that every repository file was reviewed. Targeted deep review covered
 admission, token accounting, router, receipts, health, release gates, their tests and related docs.
 
 ## Premortem findings and implemented fixes
@@ -66,3 +66,10 @@ entitlements, webhooks, operator provisioning/rotation, production load/outage/r
 5. Commercial launch is **NO-GO** until operational and customer-evidence gates pass.
 
 Do not commit or deploy the task's exposed tokens. Revoke them after this authorized shipping run.
+
+## Post-merge production verification
+PR #19 merged as `85ce9dfdcc6d22f27155755a123a7aa969614298`. GitHub CI, GitGuardian and
+Vercel preview checks passed before merge. Vercel production health now reports **1.5.1**
+and that exact build SHA. Deployed strict canary was rerun against this build: see
+`docs/evidence/production-1.5.1.json`. The same four operational gates remain red.
+This confirms deployment, not production readiness. Frozen pnpm installation also passed locally.
