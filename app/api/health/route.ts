@@ -6,7 +6,7 @@ export async function GET() {
     {
       ok: true,
       service: 'simultaneity-index',
-      version: '1.0.0',
+      version: '1.2.0',
       timestamp: new Date().toISOString(),
     },
     {
