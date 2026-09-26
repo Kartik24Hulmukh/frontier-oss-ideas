@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.2.3",
+  "version": "1.3.0",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
@@ -17,7 +17,8 @@
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "calibrate": "tsx scripts/calibrate.ts",
     "mcp:stdio": "node bin/simultaneity-mcp.mjs",
-    "gate": "node scripts/release-gate.mjs"
+    "gate": "node scripts/release-gate.mjs",
+    "llm:torture": "tsx scripts/llm-torture.ts"
   },
   "dependencies": {
     "next": "16.3.6",

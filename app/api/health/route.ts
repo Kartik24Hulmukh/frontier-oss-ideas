@@ -1,3 +1,5 @@
+import { sharedRouter } from '@/lib/llm/analyst'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -6,7 +8,7 @@ export async function GET() {
     {
       ok: true,
       service: 'simultaneity-index',
-      version: '1.2.3',
+      version: '1.3.0',
       build: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       admission: process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN ? 'distributed-configured' : process.env.REQUIRE_DISTRIBUTED_LIMITS === 'true' ? 'blocked-missing-config' : 'per-instance',
       receipts: process.env.RECEIPT_PRIVATE_KEY ? 'signing-configured' : 'hash-only',
@@ -17,6 +19,7 @@ export async function GET() {
         reddit: Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET),
         receiptPublicKeyPinned: Boolean(process.env.RECEIPT_PUBLIC_KEY),
       },
+      llm: sharedRouter().health(),
       timestamp: new Date().toISOString(),
     },
     {

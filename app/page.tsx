@@ -28,11 +28,16 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [memo, setMemo] = useState<{ text: string; model: string; failovers: number } | null>(null)
+  const [memoState, setMemoState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [memoError, setMemoError] = useState<string | null>(null)
 
   async function runSearch(query: string) {
     setIsLoading(true)
     setError(null)
     setCopied(false)
+    setMemo(null)
+    setMemoState('idle')
 
     try {
       const response = await fetch('/api/search', {
@@ -82,6 +87,22 @@ export default function Home() {
       window.setTimeout(() => setCopied(false), 1800)
     } catch {
       setError('Could not copy the evidence capsule in this browser.')
+    }
+  }
+
+  async function requestMemo() {
+    if (!data) return
+    setMemoState('loading')
+    setMemoError(null)
+    try {
+      const response = await fetch('/api/analyst', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: data.query, profile: 'fast' }) })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.memo) throw new Error(payload?.error ?? (payload?.route?.error === 'budget_exceeded' ? 'AI budget reached for now. Use the decision brief.' : 'AI analyst unavailable. The deterministic decision brief still works.'))
+      setMemo({ text: payload.memo, model: payload.route?.model ?? 'unknown', failovers: Math.max(0, (payload.route?.attempts?.length ?? 1) - 1) })
+      setMemoState('idle')
+    } catch (cause) {
+      setMemoError(cause instanceof Error ? cause.message : 'AI analyst unavailable.')
+      setMemoState('error')
     }
   }
 
@@ -201,6 +222,16 @@ export default function Home() {
               <div className="flex flex-wrap gap-2">
                 <WatchButton result={data} />
                 <button type="button" onClick={downloadBrief} className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest hover:border-foreground">Download decision brief</button>
+                <button type="button" onClick={requestMemo} disabled={memoState === 'loading'} className="min-h-11 rounded-md border border-signal bg-card px-4 font-mono text-xs uppercase tracking-widest hover:border-foreground disabled:opacity-60">{memoState === 'loading' ? 'Analyst thinking…' : 'AI analyst memo'}</button>
+                {(memo || memoError) && (
+                  <div className="basis-full rounded-lg border border-border bg-card p-4" role="region" aria-label="AI analyst memo" aria-live="polite">
+                    {memoError && <p className="text-sm text-muted-foreground">{memoError}</p>}
+                    {memo && (<>
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">AI narrative · {memo.model}{memo.failovers ? ` · ${memo.failovers} failover(s)` : ''} · not covered by the receipt — verify each [E#] link</p>
+                      <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{memo.text}</pre>
+                    </>)}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={shareScan}

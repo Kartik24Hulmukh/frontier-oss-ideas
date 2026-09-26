@@ -59,7 +59,7 @@ export async function handleRpc(
       return ok({
         protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'simultaneity-index', version: '1.2.3' },
+        serverInfo: { name: 'simultaneity-index', version: '1.3.0' },
         instructions: 'Call crowding_check with a one-line idea before scaffolding any new project.',
       })
     case 'ping':
