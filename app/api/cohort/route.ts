@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const collisions = findCollisions(ideas)
   if (body.format === 'csv') {
     return new Response(toCsv(rows), {
-      headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="cohort-screening.csv"' },
+      headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="cohort-screening.csv"' },
     })
   }
   return Response.json({ generatedAt: new Date().toISOString(), count: rows.length, rows, collisions }, { headers: { 'Cache-Control': 'no-store' } })
