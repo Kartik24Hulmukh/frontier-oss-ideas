@@ -1,4 +1,5 @@
-import { verifyReceipt } from '@/lib/scoring/receipt'
+import { readObject, inputResponse, validIdea } from '@/lib/core/input'
+import { verifyReceipt, trustedReceipt } from '@/lib/scoring/receipt'
 import type { EvidenceCapsule, ScanReceipt } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -7,12 +8,14 @@ export const runtime = 'nodejs'
 export async function POST(request: Request) {
   let body: { capsule?: EvidenceCapsule; receipt?: ScanReceipt }
   try {
-    body = await request.json()
-  } catch {
-    return Response.json({ error: 'Invalid JSON body.' }, { status: 400 })
+    body = await readObject(request) as typeof body
+  } catch (error) {
+    return inputResponse(error)
   }
-  if (!body.capsule || !body.receipt?.digest) {
+  if (!body.capsule || typeof body.capsule !== 'object' || Array.isArray(body.capsule) || !body.receipt || typeof body.receipt !== 'object' || typeof body.receipt.digest !== 'string' || !/^[a-f0-9]{64}$/.test(body.receipt.digest)) {
     return Response.json({ error: 'Body must include capsule and receipt.' }, { status: 400 })
   }
-  return Response.json(verifyReceipt(body.capsule, body.receipt))
+  try {
+    return Response.json({ ...verifyReceipt(body.capsule, body.receipt), issuerTrusted: trustedReceipt(body.capsule, body.receipt), note: 'A matching hash or self-signed key does not prove issuer identity or evidence accuracy.' }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch { return Response.json({ error: 'Malformed capsule or receipt.' }, { status: 400 }) }
 }

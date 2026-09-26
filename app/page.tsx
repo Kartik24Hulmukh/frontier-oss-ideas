@@ -44,10 +44,8 @@ export default function Home() {
         throw new Error(payload?.error ?? 'Search failed. Please try again.')
       }
       setData(payload as CrowdingResult)
-      recordScan(payload as CrowdingResult)
-      const url = new URL(window.location.href)
-      url.searchParams.set('q', query)
-      window.history.replaceState(null, '', url.toString())
+      try { recordScan(payload as CrowdingResult) } catch { /* A storage failure must not discard a successful scan. */ }
+      // Keep private idea text out of browser history unless the user explicitly shares.
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Search failed.')
     } finally {
@@ -64,6 +62,7 @@ export default function Home() {
   const [shared, setShared] = useState(false)
   async function shareScan() {
     if (!data) return
+    if (!window.confirm('Sharing puts your idea in a public URL and re-runs the scan. Continue?')) return
     const url = `${window.location.origin}/s/${encodeURIComponent(data.query)}`
     try {
       await navigator.clipboard.writeText(url)
@@ -77,7 +76,7 @@ export default function Home() {
   async function copyCapsule() {
     if (!data) return
     try {
-      await navigator.clipboard.writeText(JSON.stringify(data.capsule, null, 2))
+      await navigator.clipboard.writeText(JSON.stringify({ capsule: data.capsule, receipt: data.receipt }, null, 2))
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     } catch {
@@ -87,7 +86,7 @@ export default function Home() {
 
   function downloadCapsule() {
     if (!data) return
-    const blob = new Blob([JSON.stringify(data.capsule, null, 2)], {
+    const blob = new Blob([JSON.stringify({ capsule: data.capsule, receipt: data.receipt }, null, 2)], {
       type: 'application/json',
     })
     const url = URL.createObjectURL(blob)
@@ -107,7 +106,7 @@ export default function Home() {
           </span>
           <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <span aria-hidden="true" className="inline-block size-2 rounded-full bg-signal" />
-            10 live sources
+            10 source adapters
           </span>
           <nav className="hidden gap-4 font-mono text-xs uppercase tracking-widest text-muted-foreground sm:flex">
             <a href="/pulse" className="hover:text-foreground">Pulse</a>
@@ -137,6 +136,7 @@ export default function Home() {
             </p>
           </div>
           <SearchForm onSearch={runSearch} isLoading={isLoading} />
+          <p className="text-xs text-muted-foreground">Queries go to external search providers. Do not submit confidential information. <a className="underline" href="/privacy">Privacy & data handling</a></p>
           <Watchlist onRescan={runSearch} />
         </section>
 
@@ -224,7 +224,7 @@ export default function Home() {
                 Evidence capsule preview
               </summary>
               <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs leading-5 text-muted-foreground">
-                {JSON.stringify(data.capsule, null, 2)}
+                {JSON.stringify({ capsule: data.capsule, receipt: data.receipt }, null, 2)}
               </pre>
             </details>
             <p className="font-mono text-xs leading-5 text-muted-foreground">

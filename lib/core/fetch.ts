@@ -7,18 +7,9 @@ export async function fetchWithTimeout(
   init?: RequestInit & { timeoutMs?: number },
 ): Promise<Response> {
   const timeoutMs = init?.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const { timeoutMs: _t, ...rest } = init ?? {}
-    return await fetch(url, {
-      ...rest,
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-  } finally {
-    clearTimeout(timer)
-  }
+  const { timeoutMs: _t, ...rest } = init ?? {}
+  const timeout = AbortSignal.timeout(timeoutMs)
+  return fetch(url, { ...rest, signal: rest.signal ? AbortSignal.any([rest.signal, timeout]) : timeout, cache: 'no-store' })
 }
 
 export function errorResult(

@@ -1,3 +1,4 @@
+import { readObject, inputResponse, validIdea } from '@/lib/core/input'
 import { findCollisions, mapLimit, rankCohort, toCsv } from '@/lib/cohort'
 import { clientKey, RateLimiter, rateLimitResponse } from '@/lib/core/ratelimit'
 import { scanIdea } from '@/lib/scan'
@@ -17,10 +18,11 @@ const cohortLimiter = new RateLimiter(3, 60 * 60 * 1000)
 export async function POST(request: Request) {
   let body: { ideas?: unknown; format?: unknown }
   try {
-    body = await request.json()
-  } catch {
-    return Response.json({ error: 'Invalid JSON body.' }, { status: 400 })
+    body = await readObject(request)
+  } catch (error) {
+    return inputResponse(error)
   }
+  if (!Array.isArray(body.ideas) || body.ideas.some((i) => !validIdea(i))) return Response.json({ error: 'Every idea must be 3–120 characters.' }, { status: 400 })
   const ideas = Array.isArray(body.ideas)
     ? [...new Set(body.ideas.filter((i): i is string => typeof i === 'string').map((i) => i.trim()).filter((i) => i.length >= 3))]
     : []
@@ -42,5 +44,5 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="cohort-screening.csv"' },
     })
   }
-  return Response.json({ generatedAt: new Date().toISOString(), count: rows.length, rows, collisions })
+  return Response.json({ generatedAt: new Date().toISOString(), count: rows.length, rows, collisions }, { headers: { 'Cache-Control': 'no-store' } })
 }

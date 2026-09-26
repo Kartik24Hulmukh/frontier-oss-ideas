@@ -27,7 +27,7 @@ async function forward(message) {
     const text = await res.text()
     let body
     try { body = JSON.parse(text) } catch { body = null }
-    if (body && typeof body === 'object') return out(body)
+    if (body && typeof body === 'object' && body.jsonrpc === '2.0') return out(body)
     if (id !== null) out({ jsonrpc: '2.0', id, error: { code: -32603, message: 'Upstream HTTP ' + res.status + ': ' + text.slice(0, 200) } })
   } catch (err) {
     if (id !== null) out({ jsonrpc: '2.0', id, error: { code: -32603, message: 'Simultaneity API unreachable (' + ENDPOINT + '): ' + (err && err.message) } })
@@ -39,6 +39,7 @@ const pending = new Set()
 rl.on('line', (line) => {
   const trimmed = line.trim()
   if (!trimmed) return
+  if (trimmed.length > 32768 || pending.size >= 8) return out({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Input or concurrency limit exceeded' } })
   let msg
   try { msg = JSON.parse(trimmed) } catch {
     return out({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })

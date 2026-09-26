@@ -12,6 +12,7 @@ function formatDate(iso: string | null): string {
 export function ScoreDisplay({ result }: { result: CrowdingResult }) {
   return (
     <section aria-label="Crowding score" className="border border-border bg-card">
+      {result.coverage < 50 && <p role="alert" className="border-b border-border p-4 text-sm">Insufficient source coverage. This score is provisional, not evidence of an open market. Re-scan before deciding.</p>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Crowding score

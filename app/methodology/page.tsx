@@ -15,13 +15,13 @@ export default function MethodologyPage() {
         <p>Bands: 0–25 Open lane · 26–50 Early movers · 51–75 Crowded · 76–100 Saturated.</p>
       </Card>
       <Card title="Demand heat (0–100) and the battlefield">
-        <p>Weighted mean of Reddit threads in the past year (0.40), Ask HN posts & comments (0.35) and Stack Overflow questions (0.25). Trend compares evidence from the last 6 months with the 6 months before.</p>
-        <p>Quadrants: supply ≥ 50 is high; demand ≥ 40 is real pull (−10 if falling, +5 if rising). Blue Ocean · Gold Rush · Ghost Town · Bloodbath.</p>
+        <p>Weighted mean of Reddit threads in the past year (0.40), Ask HN posts & comments (0.35) and Stack Overflow questions (0.25). These are discussion/activity proxies, not purchase intent. Trend is unknown: relevance-ranked samples cannot establish rising or falling market demand.</p>
+        <p>Quadrants: supply ≥ 50 is high; discussion heat ≥ 40 is the heuristic split. Blue Ocean · Gold Rush · Ghost Town · Bloodbath.</p>
       </Card>
       <Card title="Accuracy guards">
         <p>Transparent query expansion (one synonym variant for GitHub + HN, shown on every scan), cross-source de-duplication by canonical URL and title, confidence = 0.65 × coverage + 0.35 × cross-source agreement, and unavailable sources shown greyed out — never silently zero.</p>
       </Card>
-      <Card title={`Gold set · ${GOLD_SET.length} expert-ranked ideas`}>
+      <Card title={`Gold set · ${GOLD_SET.length} author-estimated ideas (not independent validation)`}>
         <p>Run <code className="font-mono">pnpm calibrate</code> to score every idea live and publish Spearman ρ, pairwise ordinal agreement and every miss to <code className="font-mono">docs/CALIBRATION.md</code>.</p>
         <ol className="list-decimal pl-5">
           {GOLD_SET.map((g) => (
@@ -29,6 +29,7 @@ export default function MethodologyPage() {
           ))}
         </ol>
       </Card>
+      <Card title="Receipt trust"><p>Exports include capsule and receipt. SHA-256 detects edits only relative to a known digest. Ed25519 verification authenticates this deployment only when issuerTrusted is true against its configured key. It does not verify that search providers or market claims are correct. Share links re-compute results and are not immutable receipts.</p></Card>
       <Card title="What this is not">
         <p>Not a viability score, not demand validation, not investment or legal novelty advice. Keyword and lexicon matching can still miss ideas described in unusual language — read the evidence links.</p>
       </Card>

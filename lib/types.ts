@@ -75,6 +75,9 @@ export interface CrowdingResult {
 
 export interface EvidenceCapsule {
   version: '1.0' | '1.1'
+  coverage?: number
+  demandCoverage?: number
+  demandEvidenceLinks?: Array<{ source: DemandSourceId; title: string; url: string }>
   demandScore?: number | null
   quadrant?: Quadrant | null
   query: string

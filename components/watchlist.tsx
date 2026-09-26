@@ -24,14 +24,16 @@ const KEY = 'simultaneity.watchlist.v1'
 export function loadWatchlist(): WatchEntry[] {
   if (typeof window === 'undefined') return []
   try {
-    return JSON.parse(window.localStorage.getItem(KEY) ?? '[]') as WatchEntry[]
+    const raw: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter((e): e is WatchEntry => e && typeof e.query === 'string' && e.query.length <= 120 && Array.isArray(e.points) && e.points.every((p: WatchPoint) => p && Number.isFinite(p.score) && typeof p.at === 'string')).slice(0, 50).map((e) => ({ ...e, points: e.points.slice(-26) }))
   } catch {
     return []
   }
 }
 
 function save(list: WatchEntry[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)))
+  try { window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50))) } catch { throw new Error('Browser storage unavailable. Watchlist was not saved.') }
   window.dispatchEvent(new Event('simultaneity-watchlist'))
 }
 
@@ -64,9 +66,11 @@ export function WatchButton({ result }: { result: CrowdingResult }) {
     <button
       type="button"
       onClick={() => {
-        if (watched) removeWatch(result.normalizedQuery)
-        else recordScan(result, true)
-        setWatched(!watched)
+        try {
+          if (watched) removeWatch(result.normalizedQuery)
+          else recordScan(result, true)
+          setWatched(!watched)
+        } catch { window.alert('Browser storage unavailable. Watchlist was not saved.') }
       }}
       className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest transition-colors hover:border-foreground"
     >

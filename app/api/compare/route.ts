@@ -1,6 +1,7 @@
+import { readObject, inputResponse, validIdea } from '@/lib/core/input'
 import { displayQuery } from '@/lib/core/normalize'
-import { computeCrowding } from '@/lib/scoring'
-import { runAllSources } from '@/lib/sources'
+import { scanIdea } from '@/lib/scan'
+import { clientKey, scanLimiter, rateLimitResponse } from '@/lib/core/ratelimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,12 +10,12 @@ export const maxDuration = 45
 export async function POST(request: Request) {
   let body: { queries?: unknown }
   try {
-    body = await request.json()
-  } catch {
-    return Response.json({ error: 'Invalid JSON body.' }, { status: 400 })
+    body = await readObject(request)
+  } catch (error) {
+    return inputResponse(error)
   }
 
-  if (!Array.isArray(body.queries)) {
+  if (!Array.isArray(body.queries) || body.queries.length > 3 || body.queries.some((q) => !validIdea(q))) {
     return Response.json({ error: 'Provide queries as an array of 2–3 ideas.' }, { status: 400 })
   }
 
@@ -28,16 +29,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Provide at least two valid ideas.' }, { status: 400 })
   }
 
-  const context = {
-    githubToken: process.env.GITHUB_TOKEN,
-    openAlexApiKey: process.env.OPENALEX_API_KEY,
-    openAlexMailto: process.env.OPENALEX_MAILTO,
-    timeoutMs: 8_000,
-  }
-
-  const results = await Promise.all(
-    queries.map(async (query) => computeCrowding(query, await runAllSources(query, context))),
-  )
+  const limit = scanLimiter.check(clientKey(request), Date.now(), queries.length)
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfterSec)
+  const results = await Promise.all(queries.map((query) => scanIdea(query)))
   const ranked = [...results].sort((a, b) => a.score - b.score)
 
   return Response.json(
