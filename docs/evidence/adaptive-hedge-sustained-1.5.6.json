@@ -1,0 +1,163 @@
+{
+  "version": "1.5.6",
+  "at": "2026-09-27T19:48:25.087Z",
+  "policy": {
+    "minSamples": 3,
+    "multiplier": 1.3,
+    "minMs": 250,
+    "maxMs": 8000,
+    "maxHedgeRate": 0.5,
+    "minRequestsForRate": 40
+  },
+  "maxCallsPerProfile": 12,
+  "phases": [
+    {
+      "profile": "quality",
+      "primary": "glm-5.3",
+      "sustainedCalls": 3,
+      "primarySuccesses": 3,
+      "primaryLatenciesMs": [
+        5427,
+        312,
+        317
+      ],
+      "hedgedDuringSustained": 0,
+      "observedP90Ms": 5427,
+      "learnedHedgeDelayMs": 7055,
+      "coldStartCeilingMs": 8000,
+      "clampedToCeiling": false,
+      "phasePass": true,
+      "healthProvenance": {
+        "samples": 3,
+        "learned": true,
+        "delayMs": 7055
+      },
+      "control": {
+        "ok": true,
+        "model": "glm-5.3",
+        "hedged": false
+      },
+      "fault": {
+        "ok": true,
+        "model": "kimi-k3",
+        "totalMs": 8546,
+        "recoveredFromHang": true,
+        "hedgeFired": true,
+        "attempts": [
+          {
+            "model": "kimi-k3",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 1488,
+            "hedged": true
+          },
+          {
+            "model": "glm-5.3",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 1488,
+            "hedged": true
+          }
+        ]
+      }
+    },
+    {
+      "profile": "fast",
+      "primary": "glm-5.3-flash",
+      "sustainedCalls": 5,
+      "primarySuccesses": 3,
+      "primaryLatenciesMs": [
+        484,
+        578,
+        7080
+      ],
+      "hedgedDuringSustained": 0,
+      "observedP90Ms": 7080,
+      "learnedHedgeDelayMs": 8000,
+      "coldStartCeilingMs": 8000,
+      "clampedToCeiling": true,
+      "phasePass": true,
+      "healthProvenance": {
+        "samples": 3,
+        "learned": true,
+        "delayMs": 8000
+      },
+      "control": {
+        "ok": true,
+        "model": "qwen3.8-27b",
+        "hedged": false
+      },
+      "fault": {
+        "ok": true,
+        "model": "qwen3.8-27b",
+        "totalMs": 8757,
+        "recoveredFromHang": true,
+        "hedgeFired": true,
+        "attempts": [
+          {
+            "model": "qwen3.8-27b",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 753,
+            "hedged": true
+          },
+          {
+            "model": "glm-5.3-flash",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 753,
+            "hedged": true
+          }
+        ]
+      }
+    },
+    {
+      "profile": "reasoning",
+      "primary": "kimi-k3",
+      "sustainedCalls": 12,
+      "primarySuccesses": 0,
+      "primaryLatenciesMs": [],
+      "hedgedDuringSustained": 0,
+      "observedP90Ms": null,
+      "learnedHedgeDelayMs": null,
+      "coldStartCeilingMs": 8000,
+      "clampedToCeiling": false,
+      "phasePass": true,
+      "healthProvenance": null,
+      "control": {
+        "ok": true,
+        "model": "glm-5.3",
+        "hedged": false
+      },
+      "fault": {
+        "ok": true,
+        "model": "glm-5.3",
+        "totalMs": 11596,
+        "recoveredFromHang": true,
+        "hedgeFired": true,
+        "attempts": [
+          {
+            "model": "glm-5.3",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 3593,
+            "hedged": true
+          },
+          {
+            "model": "kimi-k3",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 3593,
+            "hedged": true
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "profiles": 3,
+    "learnedFromSustainedTraffic": 2,
+    "healthReportsProvenance": 2,
+    "healthyCallsHedged": 0,
+    "hangsRecovered": 3,
+    "healthyHedgeRateWithinGovernor": true,
+    "pass": true
+  }
+}

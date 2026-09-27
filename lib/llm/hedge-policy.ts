@@ -103,9 +103,11 @@ export class HedgeController {
   snapshot() {
     this.prune()
     const learned: Record<string, number> = {}
-    for (const [model] of this.samples) {
+    const models: Record<string, { samples: number; learned: boolean; delayMs: number | null }> = {}
+    for (const [model, ring] of this.samples) {
       const p = this.p90(model)
       if (p !== undefined) learned[model] = this.delayFor(model)
+      models[model] = { samples: ring.length, learned: p !== undefined, delayMs: p !== undefined ? this.delayFor(model) : null }
     }
     return {
       policy: this.policy,
@@ -113,6 +115,7 @@ export class HedgeController {
       hedges: this.hedges.length,
       hedgeRate: this.requests.length ? Number((this.hedges.length / this.requests.length).toFixed(3)) : 0,
       learnedDelayMs: learned,
+      models,
     }
   }
 }
