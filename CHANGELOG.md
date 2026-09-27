@@ -1,3 +1,8 @@
+## 1.5.11 — 2026-09-27
+
+- Filter clear relevance drift before scoring with auditable provenance and a conservative recall floor.
+- Add three semantic relevance regression tests.
+
 ## 1.5.10 - reasoning starvation: thinking models no longer burn the completion ceiling on empty answers
 - **Found live (this run's first Melious torture drill FAILED 12/13):** one of the four routed models is a thinking model. With `max_tokens=400` it spent all 400 completion tokens on hidden reasoning and returned `content:""` with `finish_reason:length`. The router classified that as `empty`, tripped the breaker, billed the reservation and moved on after 4.4 s. In the `fast` chain that model is second, so a single primary hiccup turned into a silent, paid, 4-second no-op; the window-ceiling gate then had no budget left for a real answer.
 - **Fix on the wire:** every request now sends `reasoning_effort` (default `none`). Verified live on all four models: 0 reasoning tokens, content every time; the affected model drops from 4397 ms / 424 tokens to 801 ms / 74 tokens. Callers that want hidden reasoning opt in via `CompleteRequest.reasoningEffort`.
