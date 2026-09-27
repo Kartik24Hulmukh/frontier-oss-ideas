@@ -60,7 +60,7 @@ export function expandSubLanes(query: string, parentScore: number, verdict: Verd
 }
 
 function rank(lanes: SubLane[], limit: number): SubLane[] {
-  const sorted = [...lanes].sort((a, b) => a.estimatedScore - b.estimatedScore || a.claimedBy - b.claimedBy || a.id.localeCompare(b.id)).slice(0, limit)
+  const sorted = [...lanes].sort((a, b) => a.estimatedScore - b.estimatedScore || a.claimedBy - b.claimedBy || a.sampled - b.sampled || a.id.localeCompare(b.id)).slice(0, limit)
   if (sorted[0] && sorted[0].confidence !== 'insufficient') sorted[0] = { ...sorted[0], buildHere: true }
   return sorted
 }
