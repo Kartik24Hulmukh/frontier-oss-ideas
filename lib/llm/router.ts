@@ -1,4 +1,5 @@
 import { reserveSharedTokens, sharedBudgetMode } from './shared-budget'
+import { HedgeController, type HedgePolicy } from './hedge-policy'
 /**
  * Melious model router: token-budget ceilings, sub-200ms failover and per-model
  * circuit breakers for HTTP 429 / 5xx / gateway timeouts.
@@ -160,6 +161,10 @@ export interface RouterOptions {
   timeouts?: Partial<Record<ModelId, number>>
   /** Stall hedge: if the newest in-flight attempt has not settled after this many ms, dispatch the next model in parallel (max 2 in flight). First non-empty answer wins; the loser is aborted. Undefined = strictly sequential. */
   hedgeAfterMs?: number
+  /** 'adaptive' learns each model's p90 latency and hedges at p90*multiplier; 'static' uses hedgeAfterMs. */
+  hedgeMode?: 'static' | 'adaptive'
+  /** Overrides for the adaptive policy (multiplier, floor/ceiling, spend governor). */
+  hedgePolicy?: Partial<HedgePolicy>
 }
 
 export interface CompleteRequest {
@@ -199,6 +204,8 @@ export class ModelRouter {
   private deadlineMs: number
   private timeouts: Partial<Record<ModelId, number>>
   private hedgeAfterMs?: number
+  private hedgeMode: 'static' | 'adaptive'
+  readonly hedgeController: HedgeController
 
   constructor(opts: RouterOptions = {}) {
     this.fetcher = opts.fetcher ?? fetch
@@ -209,6 +216,8 @@ export class ModelRouter {
     this.deadlineMs = opts.deadlineMs ?? 28_000
     this.timeouts = opts.timeouts ?? {}
     this.hedgeAfterMs = opts.hedgeAfterMs !== undefined && Number.isFinite(opts.hedgeAfterMs) && opts.hedgeAfterMs >= 0 ? opts.hedgeAfterMs : undefined
+    this.hedgeMode = opts.hedgeMode === 'adaptive' ? 'adaptive' : 'static'
+    this.hedgeController = new HedgeController(opts.hedgePolicy ?? {}, this.now)
     this.budget = new TokenBudget(opts.budget ?? { perRequestTokens: 6000, windowTokens: 400_000, windowMs: 3_600_000 }, this.now)
     const bc = opts.breaker ?? { failureThreshold: 2, cooldownMs: 30_000, maxCooldownMs: 300_000 }
     for (const id of Object.keys(MODELS) as ModelId[]) this.breakers.set(id, new CircuitBreaker(bc, this.now))
@@ -218,7 +227,17 @@ export class ModelRouter {
 
   health() {
     const breakers = Object.fromEntries([...this.breakers].map(([id, b]) => [id, b.snapshot().state]))
-    return { configured: this.configured(), gateway: 'melious', budgetScope: this.sharedBudget ? sharedBudgetMode() : 'per-instance', breakers, budget: this.budget.snapshot() }
+    const hedging = this.hedgingEnabled() ? { mode: this.hedgeMode, staticAfterMs: this.hedgeAfterMs ?? null, ...this.hedgeController.snapshot() } : { mode: 'off' as const }
+    return { configured: this.configured(), hedging, gateway: 'melious', budgetScope: this.sharedBudget ? sharedBudgetMode() : 'per-instance', breakers, budget: this.budget.snapshot() }
+  }
+
+  /** Hedging is on when a static delay is configured or adaptive mode is selected. */
+  hedgingEnabled() { return this.hedgeMode === 'adaptive' || this.hedgeAfterMs !== undefined }
+
+  /** Stall threshold for the newest in-flight model: learned p90 in adaptive mode, else the static delay. */
+  private hedgeDelayFor(model: ModelId): number {
+    if (this.hedgeMode !== 'adaptive') return this.hedgeAfterMs ?? 86_400_000
+    return this.hedgeController.delayFor(model, this.hedgeAfterMs)
   }
 
   async complete(req: CompleteRequest): Promise<RouteResult> {
@@ -241,9 +260,12 @@ export class ModelRouter {
     let requestCharged = 0
     let lastEnd: number | undefined
     let lastDispatch = started
+    let lastDispatchId: ModelId = chain[0]
     let next = 0
     let terminal: RouteResult['error'] | undefined
-    let hedgeBlocked = this.hedgeAfterMs === undefined
+    // Spend governor: a gateway-wide slowdown must not double the token bill.
+    this.hedgeController.noteRequest()
+    let hedgeBlocked = !this.hedgingEnabled() || !this.hedgeController.allowHedge()
     const inflight = new Map<ModelId, { controller: AbortController; promise: Promise<Settled> }>()
     const perRequest = this.budget.config.perRequestTokens
     const maxOf = (id: ModelId) => Math.max(16, Math.min(req.maxOutputTokens ?? MODELS[id].maxOutputTokens, MODELS[id].maxOutputTokens))
@@ -268,6 +290,8 @@ export class ModelRouter {
         requestCharged += reservation
         const dispatch = this.now()
         lastDispatch = dispatch
+        lastDispatchId = id
+        if (hedge) this.hedgeController.noteHedge()
         const failoverMs = hedge ? undefined : lastEnd === undefined ? undefined : dispatch - lastEnd
         const controller = new AbortController()
         const timeoutMs = Math.min(this.timeouts[id] ?? MODELS[id].timeoutMs, remaining)
@@ -289,7 +313,7 @@ export class ModelRouter {
       const races: Array<Promise<Settled | 'hedge'>> = [...inflight.values()].map((f) => f.promise)
       let hedgeTimer: ReturnType<typeof setTimeout> | undefined
       if (!hedgeBlocked && inflight.size < 2 && next < chain.length) {
-        const wait = Math.max(0, this.hedgeAfterMs! - (this.now() - lastDispatch))
+        const wait = Math.max(0, this.hedgeDelayFor(lastDispatchId) - (this.now() - lastDispatch))
         races.push(new Promise((resolve) => { hedgeTimer = setTimeout(() => resolve('hedge'), wait) }))
       }
       const settled = await Promise.race(races)
@@ -299,6 +323,8 @@ export class ModelRouter {
       const breaker = this.breakers.get(settled.id)!
       const attempt: Attempt = { model: settled.id, outcome: settled.outcome, status: settled.status, latencyMs: settled.end - settled.dispatch, failoverMs: settled.failoverMs }
       if (settled.hedged) attempt.hedged = true
+      // Only clean successes teach the model its normal speed.
+      this.hedgeController.observe(settled.id, attempt.latencyMs, settled.outcome)
       if (settled.outcome === 'ok' && settled.text) {
         breaker.success()
         attempts.push(attempt)
@@ -370,6 +396,11 @@ export function getRouter(): ModelRouter {
     shared = new ModelRouter({
       sharedBudget: true,
       hedgeAfterMs: process.env.LLM_HEDGE_AFTER_MS ? num(process.env.LLM_HEDGE_AFTER_MS, 2500) : undefined,
+      hedgeMode: process.env.LLM_HEDGE_MODE === 'adaptive' ? 'adaptive' : 'static',
+      hedgePolicy: {
+        multiplier: Number(process.env.LLM_HEDGE_P90_MULTIPLIER) > 0 ? Number(process.env.LLM_HEDGE_P90_MULTIPLIER) : undefined,
+        maxHedgeRate: Number.isFinite(Number(process.env.LLM_HEDGE_MAX_RATE)) && process.env.LLM_HEDGE_MAX_RATE ? Number(process.env.LLM_HEDGE_MAX_RATE) : undefined,
+      } as Partial<import('./hedge-policy').HedgePolicy>,
       apiKey: process.env.MELIOUS_API_KEY || undefined,
       baseUrl: process.env.MELIOUS_BASE_URL || undefined,
       budget: {

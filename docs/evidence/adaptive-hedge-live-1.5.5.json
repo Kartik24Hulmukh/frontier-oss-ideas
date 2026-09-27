@@ -1,0 +1,199 @@
+{
+  "version": "1.5.5",
+  "at": "2026-09-27T19:28:07.310Z",
+  "policy": {
+    "minSamples": 3,
+    "multiplier": 1.3,
+    "minMs": 250,
+    "maxMs": 8000,
+    "maxHedgeRate": 0.34,
+    "minRequestsForRate": 6
+  },
+  "phases": [
+    {
+      "profile": "quality",
+      "primary": "glm-5.3",
+      "warmupLatenciesMs": [
+        552,
+        1324,
+        1712
+      ],
+      "observedP90Ms": null,
+      "learnedHedgeDelayMs": 8000,
+      "control": {
+        "ok": true,
+        "model": "glm-5.3",
+        "hedged": false,
+        "latencyMs": 7121
+      },
+      "fault": {
+        "ok": true,
+        "model": "qwen3.8-27b",
+        "totalMs": 4919,
+        "recoveredFromHang": true,
+        "attempts": [
+          {
+            "model": "kimi-k3",
+            "outcome": "empty",
+            "status": 200,
+            "latencyMs": 2139,
+            "hedged": true
+          },
+          {
+            "model": "qwen3.8-27b",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 551,
+            "hedged": true
+          },
+          {
+            "model": "glm-5.3",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 552,
+            "hedged": true
+          }
+        ]
+      },
+      "hedgeStats": {
+        "mode": "adaptive",
+        "staticAfterMs": null,
+        "policy": {
+          "multiplier": 1.3,
+          "minMs": 250,
+          "maxMs": 8000,
+          "minSamples": 3,
+          "maxHedgeRate": 0.34,
+          "statsWindowMs": 300000,
+          "minRequestsForRate": 6
+        },
+        "requests": 1,
+        "hedges": 2,
+        "hedgeRate": 2,
+        "learnedDelayMs": {
+          "glm-5.3": 2226
+        }
+      }
+    },
+    {
+      "profile": "fast",
+      "primary": "glm-5.3-flash",
+      "warmupLatenciesMs": [
+        675,
+        544,
+        559
+      ],
+      "observedP90Ms": null,
+      "learnedHedgeDelayMs": 8000,
+      "control": {
+        "ok": true,
+        "model": "glm-5.3-flash",
+        "hedged": false,
+        "latencyMs": 712
+      },
+      "fault": {
+        "ok": true,
+        "model": "qwen3.8-27b",
+        "totalMs": 1470,
+        "recoveredFromHang": true,
+        "attempts": [
+          {
+            "model": "qwen3.8-27b",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 592,
+            "hedged": true
+          },
+          {
+            "model": "glm-5.3-flash",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 592,
+            "hedged": true
+          }
+        ]
+      },
+      "hedgeStats": {
+        "mode": "adaptive",
+        "staticAfterMs": null,
+        "policy": {
+          "multiplier": 1.3,
+          "minMs": 250,
+          "maxMs": 8000,
+          "minSamples": 3,
+          "maxHedgeRate": 0.34,
+          "statsWindowMs": 300000,
+          "minRequestsForRate": 6
+        },
+        "requests": 1,
+        "hedges": 1,
+        "hedgeRate": 1,
+        "learnedDelayMs": {
+          "glm-5.3-flash": 878
+        }
+      }
+    },
+    {
+      "profile": "reasoning",
+      "primary": "kimi-k3",
+      "warmupLatenciesMs": [
+        80,
+        4023,
+        995
+      ],
+      "observedP90Ms": 8079,
+      "learnedHedgeDelayMs": 8000,
+      "control": {
+        "ok": true,
+        "model": "kimi-k3",
+        "hedged": false,
+        "latencyMs": 1117
+      },
+      "fault": {
+        "ok": true,
+        "model": "glm-5.3",
+        "totalMs": 15879,
+        "recoveredFromHang": true,
+        "attempts": [
+          {
+            "model": "glm-5.3",
+            "outcome": "ok",
+            "status": 200,
+            "latencyMs": 10647,
+            "hedged": true
+          },
+          {
+            "model": "kimi-k3",
+            "outcome": "hedge_cancelled",
+            "latencyMs": 10648,
+            "hedged": true
+          }
+        ]
+      },
+      "hedgeStats": {
+        "mode": "adaptive",
+        "staticAfterMs": null,
+        "policy": {
+          "multiplier": 1.3,
+          "minMs": 250,
+          "maxMs": 8000,
+          "minSamples": 3,
+          "maxHedgeRate": 0.34,
+          "statsWindowMs": 300000,
+          "minRequestsForRate": 6
+        },
+        "requests": 1,
+        "hedges": 1,
+        "hedgeRate": 1,
+        "learnedDelayMs": {
+          "kimi-k3": 5230
+        }
+      }
+    }
+  ],
+  "summary": {
+    "profiles": 3,
+    "healthyCallsHedged": 0,
+    "healthyCallsOk": 3,
+    "hangsRecovered": 3,
+    "pass": true
+  }
+}
