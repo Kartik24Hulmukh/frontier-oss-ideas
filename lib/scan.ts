@@ -6,6 +6,7 @@ import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { runDemand } from '@/lib/demand'
 import { computeCrowding } from '@/lib/scoring'
 import { quadrantFor } from '@/lib/scoring/quadrant'
+import { filterSourcesByRelevance } from '@/lib/scoring/semantic-filter'
 import { issueReceipt } from '@/lib/scoring/receipt'
 import { runAllSources, searchGitHub, searchHackerNews } from '@/lib/sources'
 import type { AdapterContext, CrowdingResult, DemandResult, SourceResult } from '@/lib/types'
@@ -67,7 +68,8 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
     const merged = primary.map((s) =>
       s.source === 'github' ? mergeSource(s, ghVariant) : s.source === 'hackernews' ? mergeSource(s, hnVariant) : s,
     )
-    const { sources, collapsed } = dedupeAcrossSources(merged)
+    const { sources: deduped, collapsed } = dedupeAcrossSources(merged)
+    const sources = filterSourcesByRelevance(deduped, query)
     const base = computeCrowding(query, sources)
     const quadrant = demand ? quadrantFor(base.score, demand.score, demand.trend) : undefined
     const capsule = {
