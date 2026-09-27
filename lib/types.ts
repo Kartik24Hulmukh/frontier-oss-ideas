@@ -50,6 +50,22 @@ export interface Wedge {
   priority: 'high' | 'medium' | 'low'
 }
 
+/** Evidence-derived positioning bet inside a crowded lane (1.5.12). */
+export interface SubLane {
+  id: string
+  label: string
+  /** Parent crowding scaled by the share of sampled evidence claiming this dimension. */
+  estimatedScore: number
+  claimedBy: number
+  sampled: number
+  confidence: 'medium' | 'low' | 'insufficient'
+  recommendation: string
+  /** Re-scan this exact phrase to verify the estimate on live sources. */
+  verifyQuery: string
+  examples: { source: SourceId; title: string; url: string }[]
+  buildHere: boolean
+}
+
 export interface CrowdingResult {
   query: string
   normalizedQuery: string
@@ -61,6 +77,7 @@ export interface CrowdingResult {
   breakdown: ScoreBreakdown[]
   sources: SourceResult[]
   wedges: Wedge[]
+  subLanes?: SubLane[]
   timeline: { earliest: string | null; latest: string | null }
   searchedAt: string
   methodology: string

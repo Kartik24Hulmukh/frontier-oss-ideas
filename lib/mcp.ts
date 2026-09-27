@@ -39,6 +39,7 @@ export function summarize(r: CrowdingResult): string {
     'Discussion heat is not verified buyer demand; confidence is not a calibrated probability.',
     'Top wedges:',
     ...r.wedges.slice(0, 3).map((w) => `- [${w.priority}] ${w.title}: ${w.rationale}`),
+    ...(r.subLanes?.length ? ['Least-claimed sub-lanes (estimates; verify with crowding_check):', ...r.subLanes.map((l) => `- ${l.label}: est. ${l.estimatedScore}/100 (${l.claimedBy}/${l.sampled} sampled claim it, ${l.confidence})${l.buildHere ? ' <- build here' : ''}; verify: "${l.verifyQuery}"`)] : []),
     'Evidence:',
     ...r.capsule.evidenceLinks.slice(0, 8).map((e) => `- (${e.source}) ${e.title} — ${e.url}`),
   ]

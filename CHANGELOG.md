@@ -1,3 +1,9 @@
+## 1.5.12 — 2026-09-27
+
+- Sub-lane expansion: every scan now returns `subLanes`, the three least-claimed positioning dimensions (offline, self-hosted, CLI, native, privacy, real-time, mobile, API/SDK), each with an evidence-derived estimate, `claimedBy/sampled` counts, confidence, up to two real competitors already claiming it, and a one-click verify re-scan query.
+- Wedge panel renders ranked sub-lanes with a single “Build here” badge, withheld when the sample is too thin; MCP `crowding_check` output includes the same lanes for agents.
+- Add three regression tests (ranking + badge, failed-source exclusion + idea-dimension skip, no-evidence/thin-sample honesty).
+
 ## 1.5.11 — 2026-09-27
 
 - Filter clear relevance drift before scoring with auditable provenance and a conservative recall floor.

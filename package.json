@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.5.11",
+  "version": "1.5.12",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
@@ -18,6 +18,7 @@
     "calibrate": "tsx scripts/calibrate.ts",
     "mcp:stdio": "node bin/simultaneity-mcp.mjs",
     "gate": "node scripts/release-gate.mjs",
+    "sublanes:live": "tsx scripts/sublane-live.ts",
     "llm:torture": "tsx scripts/llm-torture.ts",
     "redis:loopback": "tsx scripts/upstash-rest-emulator.ts",
     "keys:check": "node scripts/receipt-keygen.mjs --check docs/evidence/receipt-public-key.pem",
