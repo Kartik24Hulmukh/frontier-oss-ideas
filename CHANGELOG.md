@@ -1,3 +1,15 @@
+## [1.6.2] - 2026-09-27
+
+### Added
+- Frozen proof links (`/c/[token]`) now unfurl with an OG image rendered from the re-verified capsule (score, verdict, scan date). Tampered or invalid tokens get a neutral card, never a score.
+- New `tests/proof-og.test.ts` covers the happy path plus tampered, malformed, unknown-alias and junk-encoding inputs.
+
+### Fixed
+- Sub-lane tie-breaking is now fully evidence-derived: equal score/claim ties order by sample size before id (no label-derived ordering).
+
+### Evidence
+- Live Melious gateway drill re-run for 1.6.2: 13/13 gates passed across all four models (`docs/evidence/gateway-1.6.2.json`).
+
 ## 1.6.1 — 2026-09-28
 
 - Phase 3 works in production today: `POST /api/export` **always** mints a storage-free, self-verifying proof link (`/c/v1.<digest16>.<payload>`). Previously 1.6.0 returned 503/422 wherever managed Redis or pinned receipt keys weren't provisioned, and that is the current live state. When both are present, the 1.6.0 write-once `si_` alias is added and preferred.
