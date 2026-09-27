@@ -213,7 +213,7 @@ export default function Home() {
                 {data.receipt ? ` · receipt ${data.receipt.digest.slice(0, 12)}… (${data.receipt.algorithm})` : ''}
               </p>
             ) : null}
-            <WedgePanel wedges={data.wedges} />
+            <WedgePanel wedges={data.wedges} subLanes={data.subLanes} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">

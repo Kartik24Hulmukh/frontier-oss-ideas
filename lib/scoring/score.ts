@@ -7,6 +7,7 @@ import type {
 } from '@/lib/types'
 import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { computeWedges } from './wedge'
+import { expandSubLanes } from './wedge-expansion'
 import { buildCapsule } from './capsule'
 
 const clamp = (n: number, min = 0, max = 100) => Math.min(max, Math.max(min, n))
@@ -284,6 +285,7 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
 
   const { verdict, verdictDetail } = verdictFor(score)
   const wedges = computeWedges(query, score, verdict, sources, breakdown)
+  const subLanes = expandSubLanes(displayQuery(query), score, verdict, sources)
   const searchedAt = new Date().toISOString()
   const display = displayQuery(query)
   const normalizedQuery = normalizeQuery(query)
@@ -299,6 +301,7 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
     breakdown,
     sources,
     wedges,
+    subLanes,
     timeline: {
       earliest: allDates[0] ?? null,
       latest: allDates[allDates.length - 1] ?? null,

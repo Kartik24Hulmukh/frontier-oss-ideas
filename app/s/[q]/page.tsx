@@ -34,7 +34,7 @@ export default async function SharedScan({ params }: Props) {
     <PageShell eyebrow="Shared scan · re-computed live" title={`Simultaneity ${result.score}: \u201c${result.query}\u201d`}>
       <ScoreDisplay result={result} />
       <MatrixPanel result={result} />
-      <WedgePanel wedges={result.wedges} />
+      <WedgePanel wedges={result.wedges} subLanes={result.subLanes} />
       <p className="font-mono text-xs text-muted-foreground">
         Scanned {new Date(result.searchedAt).toUTCString()} · receipt {result.receipt?.digest.slice(0, 16)}… ·{' '}
         <a className="underline" href={`/?q=${encodeURIComponent(result.query)}`}>Open full evidence</a> ·{' '}

@@ -1,0 +1,52 @@
+{
+  "query": "AI code review",
+  "score": 86,
+  "verdict": "Saturated",
+  "sources": [
+    "github:ok:14",
+    "hackernews:ok:14",
+    "arxiv:ok:8",
+    "openalex:ok:9",
+    "npm:ok:10",
+    "pypi:ok:1",
+    "huggingface:ok:10"
+  ],
+  "subLanes": [
+    {
+      "id": "mobile",
+      "label": "Mobile / edge",
+      "estimatedScore": 2,
+      "claimedBy": 0,
+      "sampled": 66,
+      "confidence": "medium",
+      "recommendation": "Build a mobile or edge surface for users away from a desktop: 0 of 66 sampled builders claim it.",
+      "verifyQuery": "AI code review mobile",
+      "examples": [],
+      "buildHere": true
+    },
+    {
+      "id": "privacy",
+      "label": "Privacy / compliance",
+      "estimatedScore": 2,
+      "claimedBy": 0,
+      "sampled": 66,
+      "confidence": "medium",
+      "recommendation": "Build a compliance-grade variant for regulated buyers: 0 of 66 sampled builders claim it.",
+      "verifyQuery": "AI code review privacy compliance",
+      "examples": [],
+      "buildHere": false
+    },
+    {
+      "id": "realtime",
+      "label": "Real-time / streaming",
+      "estimatedScore": 2,
+      "claimedBy": 0,
+      "sampled": 66,
+      "confidence": "medium",
+      "recommendation": "Build a real-time streaming variant where batch tools dominate: 0 of 66 sampled builders claim it.",
+      "verifyQuery": "AI code review real-time",
+      "examples": [],
+      "buildHere": false
+    }
+  ]
+}
