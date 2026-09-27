@@ -1,0 +1,115 @@
+{
+  "version": "1.5.4",
+  "at": "2026-09-27T19:07:03.217Z",
+  "hedgeAfterMs": 150,
+  "passed": 3,
+  "total": 3,
+  "results": [
+    {
+      "profile": "quality",
+      "injectedHang": "glm-5.3",
+      "ok": true,
+      "model": "kimi-k3",
+      "totalMs": 1463,
+      "hedgeDispatchedAfterMs": 150,
+      "hedgeAttemptLatencyMs": 1310,
+      "attempts": [
+        {
+          "model": "kimi-k3",
+          "outcome": "ok",
+          "status": 200,
+          "latencyMs": 1310,
+          "hedged": true
+        },
+        {
+          "model": "glm-5.3",
+          "outcome": "hedge_cancelled",
+          "latencyMs": 1311,
+          "hedged": true
+        }
+      ],
+      "textPreview": "ready"
+    },
+    {
+      "profile": "fast",
+      "injectedHang": "glm-5.3-flash",
+      "ok": true,
+      "model": "qwen3.8-27b",
+      "totalMs": 673,
+      "hedgeDispatchedAfterMs": 150,
+      "hedgeAttemptLatencyMs": 523,
+      "attempts": [
+        {
+          "model": "qwen3.8-27b",
+          "outcome": "ok",
+          "status": 200,
+          "latencyMs": 523,
+          "hedged": true
+        },
+        {
+          "model": "glm-5.3-flash",
+          "outcome": "hedge_cancelled",
+          "latencyMs": 523,
+          "hedged": true
+        }
+      ],
+      "textPreview": "ready"
+    },
+    {
+      "profile": "reasoning",
+      "injectedHang": "kimi-k3",
+      "ok": true,
+      "model": "glm-5.3",
+      "totalMs": 444,
+      "hedgeDispatchedAfterMs": 150,
+      "hedgeAttemptLatencyMs": 294,
+      "attempts": [
+        {
+          "model": "glm-5.3",
+          "outcome": "ok",
+          "status": 200,
+          "latencyMs": 294,
+          "hedged": true
+        },
+        {
+          "model": "kimi-k3",
+          "outcome": "hedge_cancelled",
+          "latencyMs": 294,
+          "hedged": true
+        }
+      ],
+      "textPreview": "ready"
+    },
+    {
+      "profile": "fast",
+      "injectedHang": null,
+      "ok": true,
+      "model": "qwen3.8-27b",
+      "totalMs": 861,
+      "hedgeDispatchedAfterMs": 150,
+      "hedgeAttemptLatencyMs": 709,
+      "attempts": [
+        {
+          "model": "glm-5.3-flash",
+          "outcome": "empty",
+          "status": 200,
+          "latencyMs": 760
+        },
+        {
+          "model": "qwen3.8-27b",
+          "outcome": "ok",
+          "status": 200,
+          "latencyMs": 709,
+          "hedged": true
+        },
+        {
+          "model": "glm-5.3",
+          "outcome": "hedge_cancelled",
+          "latencyMs": 101,
+          "hedged": true
+        }
+      ],
+      "textPreview": "ready"
+    }
+  ]
+}

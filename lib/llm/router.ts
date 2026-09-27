@@ -39,7 +39,7 @@ export const ROUTES: Record<RouteProfile, ModelId[]> = {
 
 export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string }
 
-export type AttemptOutcome = 'ok' | 'circuit_open' | 'rate_limited' | 'server_error' | 'timeout' | 'network_error' | 'bad_request' | 'auth_error' | 'model_unavailable' | 'empty'
+export type AttemptOutcome = 'ok' | 'circuit_open' | 'rate_limited' | 'server_error' | 'timeout' | 'network_error' | 'bad_request' | 'auth_error' | 'model_unavailable' | 'empty' | 'hedge_cancelled'
 
 export interface Attempt {
   model: ModelId
@@ -48,6 +48,8 @@ export interface Attempt {
   latencyMs: number
   /** Time from previous attempt finishing to this attempt being dispatched. */
   failoverMs?: number
+  /** True when dispatched while an earlier attempt was still in flight. */
+  hedged?: boolean
 }
 
 export interface RouteResult {
@@ -156,6 +158,8 @@ export interface RouterOptions {
   deadlineMs?: number
   sharedBudget?: boolean
   timeouts?: Partial<Record<ModelId, number>>
+  /** Stall hedge: if the newest in-flight attempt has not settled after this many ms, dispatch the next model in parallel (max 2 in flight). First non-empty answer wins; the loser is aborted. Undefined = strictly sequential. */
+  hedgeAfterMs?: number
 }
 
 export interface CompleteRequest {
@@ -182,6 +186,8 @@ function classify(status: number): AttemptOutcome {
   return 'bad_request'
 }
 
+interface Settled { id: ModelId; outcome: AttemptOutcome; status?: number; retryAfter?: number; text?: string; pt?: number; ct?: number; dispatch: number; failoverMs?: number; hedged: boolean; end: number }
+
 export class ModelRouter {
   readonly budget: TokenBudget
   private breakers = new Map<ModelId, CircuitBreaker>()
@@ -192,6 +198,7 @@ export class ModelRouter {
   private sharedBudget: boolean
   private deadlineMs: number
   private timeouts: Partial<Record<ModelId, number>>
+  private hedgeAfterMs?: number
 
   constructor(opts: RouterOptions = {}) {
     this.fetcher = opts.fetcher ?? fetch
@@ -201,6 +208,7 @@ export class ModelRouter {
     this.baseUrl = (opts.baseUrl ?? 'https://api.melious.ai/v1').replace(/\/$/, '')
     this.deadlineMs = opts.deadlineMs ?? 28_000
     this.timeouts = opts.timeouts ?? {}
+    this.hedgeAfterMs = opts.hedgeAfterMs !== undefined && Number.isFinite(opts.hedgeAfterMs) && opts.hedgeAfterMs >= 0 ? opts.hedgeAfterMs : undefined
     this.budget = new TokenBudget(opts.budget ?? { perRequestTokens: 6000, windowTokens: 400_000, windowMs: 3_600_000 }, this.now)
     const bc = opts.breaker ?? { failureThreshold: 2, cooldownMs: 30_000, maxCooldownMs: 300_000 }
     for (const id of Object.keys(MODELS) as ModelId[]) this.breakers.set(id, new CircuitBreaker(bc, this.now))
@@ -232,79 +240,125 @@ export class ModelRouter {
     }
     let requestCharged = 0
     let lastEnd: number | undefined
-    for (const id of chain) {
-      const spec = MODELS[id]
-      const maxOut = Math.max(16, Math.min(req.maxOutputTokens ?? spec.maxOutputTokens, spec.maxOutputTokens))
-      const reservation = promptTokens + maxOut
-      const breaker = this.breakers.get(id)!
-      if (!breaker.allow()) {
-        const t = this.now()
-        attempts.push({ model: id, outcome: 'circuit_open', latencyMs: 0, failoverMs: lastEnd === undefined ? undefined : t - lastEnd })
-        lastEnd = t
-        continue
-      }
-      const remaining = this.deadlineMs - (this.now() - started)
-      if (remaining <= 50) { breaker.releaseProbe(); return fail('deadline_exceeded') }
-      if (requestCharged + reservation > this.budget.config.perRequestTokens || !this.budget.reserve(reservation)) { breaker.releaseProbe(); return fail('budget_exceeded') }
-      requestCharged += reservation
-      const dispatch = this.now()
-      const failoverMs = lastEnd === undefined ? undefined : dispatch - lastEnd
-      const timeoutMs = Math.min(this.timeouts[id] ?? spec.timeoutMs, remaining)
-      let outcome: AttemptOutcome = 'network_error'
-      let status: number | undefined
-      let retryAfter: number | undefined
-      // Ref'd timer (AbortSignal.timeout is unref'd and cannot keep a hung call observable).
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(Object.assign(new Error('attempt timeout'), { name: 'TimeoutError' })), timeoutMs)
-      try {
-        const res = await this.fetcher(this.baseUrl + '/chat/completions', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + this.apiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: id, messages: req.messages, max_tokens: maxOut, temperature: req.temperature ?? 0.2 }),
-          signal: controller.signal,
-        })
-        status = res.status
-        if (res.ok) {
-          const json = (await res.json()) as { choices?: Array<{ message?: { content?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }
-          const text = (json.choices?.[0]?.message?.content ?? '').trim()
-          const pt = json.usage?.prompt_tokens, ct = json.usage?.completion_tokens
-          const actual = typeof pt === 'number' && typeof ct === 'number' ? pt + ct : promptTokens + estimateTokens(text)
-          this.budget.settle(reservation, actual)
-          if (text) {
-            breaker.success()
-            const end = this.now()
-            attempts.push({ model: id, outcome: 'ok', status, latencyMs: end - dispatch, failoverMs })
-            usage.promptTokens = pt ?? promptTokens
-            usage.completionTokens = ct ?? estimateTokens(text)
-            usage.totalTokens = usage.promptTokens + usage.completionTokens
-            usage.estimated = !(typeof pt === 'number' && typeof ct === 'number')
-            return { ok: true, text, model: id, attempts, usage, maxFailoverMs: Math.max(0, ...attempts.map((a) => a.failoverMs ?? 0)) }
-          }
-          outcome = 'empty'
-        } else {
-          outcome = classify(res.status)
-          retryAfter = parseRetryAfter(res.headers.get('retry-after'))
-          await res.body?.cancel().catch(() => undefined)
-          this.budget.settle(reservation, 0)
+    let lastDispatch = started
+    let next = 0
+    let terminal: RouteResult['error'] | undefined
+    let hedgeBlocked = this.hedgeAfterMs === undefined
+    const inflight = new Map<ModelId, { controller: AbortController; promise: Promise<Settled> }>()
+    const perRequest = this.budget.config.perRequestTokens
+    const maxOf = (id: ModelId) => Math.max(16, Math.min(req.maxOutputTokens ?? MODELS[id].maxOutputTokens, MODELS[id].maxOutputTokens))
+    // Dispatch the next eligible model. A hedge never ends the request: if it cannot
+    // be afforded it is simply not sent and the in-flight attempt keeps running.
+    const launch = (hedge: boolean): boolean => {
+      while (next < chain.length) {
+        const id = chain[next]
+        const breaker = this.breakers.get(id)!
+        if (!breaker.allow()) {
+          next++
+          const t = this.now()
+          attempts.push({ model: id, outcome: 'circuit_open', latencyMs: 0, failoverMs: lastEnd === undefined ? undefined : t - lastEnd })
+          lastEnd = t
+          continue
         }
-      } catch (error) {
-        this.budget.settle(reservation, 0)
-        const name = (error as { name?: string })?.name
-        outcome = name === 'TimeoutError' || name === 'AbortError' || controller.signal.aborted ? 'timeout' : 'network_error'
-      } finally {
-        clearTimeout(timer)
+        const reservation = promptTokens + maxOf(id)
+        const remaining = this.deadlineMs - (this.now() - started)
+        if (remaining <= 50) { breaker.releaseProbe(); if (!hedge) terminal = 'deadline_exceeded'; hedgeBlocked = true; return false }
+        if (requestCharged + reservation > perRequest || !this.budget.reserve(reservation)) { breaker.releaseProbe(); if (!hedge) terminal = 'budget_exceeded'; hedgeBlocked = true; return false }
+        next++
+        requestCharged += reservation
+        const dispatch = this.now()
+        lastDispatch = dispatch
+        const failoverMs = hedge ? undefined : lastEnd === undefined ? undefined : dispatch - lastEnd
+        const controller = new AbortController()
+        const timeoutMs = Math.min(this.timeouts[id] ?? MODELS[id].timeoutMs, remaining)
+        inflight.set(id, { controller, promise: this.attempt(id, maxOf(id), req, promptTokens, reservation, timeoutMs, controller, dispatch, failoverMs, hedge && inflight.size > 0) })
+        return true
       }
-      const end = this.now()
-      attempts.push({ model: id, outcome, status, latencyMs: end - dispatch, failoverMs })
-      lastEnd = end
-      if (outcome === 'auth_error') { breaker.releaseProbe(); return fail('auth_error') }
+      return false
+    }
+    const cancelLosers = () => {
+      for (const [id, f] of inflight) {
+        f.controller.abort(Object.assign(new Error('hedge lost'), { name: 'AbortError' }))
+        this.breakers.get(id)!.releaseProbe()
+        attempts.push({ model: id, outcome: 'hedge_cancelled', latencyMs: this.now() - lastDispatch, hedged: true })
+      }
+      inflight.clear()
+    }
+    launch(false)
+    while (inflight.size > 0) {
+      const races: Array<Promise<Settled | 'hedge'>> = [...inflight.values()].map((f) => f.promise)
+      let hedgeTimer: ReturnType<typeof setTimeout> | undefined
+      if (!hedgeBlocked && inflight.size < 2 && next < chain.length) {
+        const wait = Math.max(0, this.hedgeAfterMs! - (this.now() - lastDispatch))
+        races.push(new Promise((resolve) => { hedgeTimer = setTimeout(() => resolve('hedge'), wait) }))
+      }
+      const settled = await Promise.race(races)
+      if (hedgeTimer) clearTimeout(hedgeTimer)
+      if (settled === 'hedge') { if (!launch(true)) hedgeBlocked = true; continue }
+      inflight.delete(settled.id)
+      const breaker = this.breakers.get(settled.id)!
+      const attempt: Attempt = { model: settled.id, outcome: settled.outcome, status: settled.status, latencyMs: settled.end - settled.dispatch, failoverMs: settled.failoverMs }
+      if (settled.hedged) attempt.hedged = true
+      if (settled.outcome === 'ok' && settled.text) {
+        breaker.success()
+        attempts.push(attempt)
+        cancelLosers()
+        usage.promptTokens = settled.pt ?? promptTokens
+        usage.completionTokens = settled.ct ?? estimateTokens(settled.text)
+        usage.totalTokens = usage.promptTokens + usage.completionTokens
+        usage.estimated = !(typeof settled.pt === 'number' && typeof settled.ct === 'number')
+        return { ok: true, text: settled.text, model: settled.id, attempts, usage, maxFailoverMs: Math.max(0, ...attempts.map((a) => a.failoverMs ?? 0)) }
+      }
+      attempts.push(attempt)
+      lastEnd = settled.end
+      const outcome = settled.outcome
+      if (outcome === 'auth_error') { breaker.releaseProbe(); cancelLosers(); return fail('auth_error') }
       if (outcome === 'bad_request') breaker.releaseProbe()
-      if (outcome === 'rate_limited') breaker.failure(retryAfter, true)
+      if (outcome === 'rate_limited') breaker.failure(settled.retryAfter, true)
       else if (outcome === 'model_unavailable') breaker.failure(300_000, true)
       else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure()
-      // bad_request: request-specific; do not trip the breaker, try next model.
+      // Failover never sleeps: a settled failure dispatches the next model at once.
+      if (inflight.size === 0) launch(false)
+      else if (inflight.size < 2 && !hedgeBlocked) launch(true)
     }
-    return fail('all_models_failed')
+    return fail(terminal ?? 'all_models_failed')
+  }
+
+  private async attempt(id: ModelId, maxOut: number, req: CompleteRequest, promptTokens: number, reservation: number, timeoutMs: number, controller: AbortController, dispatch: number, failoverMs: number | undefined, hedged: boolean): Promise<Settled> {
+    let outcome: AttemptOutcome = 'network_error'
+    let status: number | undefined
+    let retryAfter: number | undefined
+    // Ref'd timer (AbortSignal.timeout is unref'd and cannot keep a hung call observable).
+    const timer = setTimeout(() => controller.abort(Object.assign(new Error('attempt timeout'), { name: 'TimeoutError' })), timeoutMs)
+    try {
+      const res = await this.fetcher(this.baseUrl + '/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + this.apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: id, messages: req.messages, max_tokens: maxOut, temperature: req.temperature ?? 0.2 }),
+        signal: controller.signal,
+      })
+      status = res.status
+      if (res.ok) {
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+        const text = (json.choices?.[0]?.message?.content ?? '').trim()
+        const pt = json.usage?.prompt_tokens, ct = json.usage?.completion_tokens
+        this.budget.settle(reservation, typeof pt === 'number' && typeof ct === 'number' ? pt + ct : promptTokens + estimateTokens(text))
+        if (text) return { id, outcome: 'ok', status, text, pt, ct, dispatch, failoverMs, hedged, end: this.now() }
+        outcome = 'empty'
+      } else {
+        outcome = classify(res.status)
+        retryAfter = parseRetryAfter(res.headers.get('retry-after'))
+        await res.body?.cancel().catch(() => undefined)
+        this.budget.settle(reservation, 0)
+      }
+    } catch (error) {
+      this.budget.settle(reservation, 0)
+      const name = (error as { name?: string })?.name
+      outcome = name === 'TimeoutError' || name === 'AbortError' || controller.signal.aborted ? 'timeout' : 'network_error'
+    } finally {
+      clearTimeout(timer)
+    }
+    return { id, outcome, status, retryAfter, dispatch, failoverMs, hedged, end: this.now() }
   }
 }
 
@@ -315,6 +369,7 @@ export function getRouter(): ModelRouter {
     const num = (v: string | undefined, d: number) => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : d }
     shared = new ModelRouter({
       sharedBudget: true,
+      hedgeAfterMs: process.env.LLM_HEDGE_AFTER_MS ? num(process.env.LLM_HEDGE_AFTER_MS, 2500) : undefined,
       apiKey: process.env.MELIOUS_API_KEY || undefined,
       baseUrl: process.env.MELIOUS_BASE_URL || undefined,
       budget: {
