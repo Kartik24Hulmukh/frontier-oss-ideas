@@ -160,4 +160,6 @@ export interface ScanReceipt {
   signature: string | null
   publicKey: string | null
   issuedAt: string
+  /** SHA-256 fingerprint of the signing SPKI; absent on legacy/hash-only receipts. */
+  keyId?: string
 }

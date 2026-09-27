@@ -99,6 +99,9 @@ describe('public trust boundaries', () => {
     assert.equal(trustedReceipt(capsule, receipt, other), false)
     assert.equal(trustedReceipt({ ...capsule, score: 99 }, receipt, pub), false)
     assert.equal(trustedReceipt(capsule, { ...receipt, issuedAt: 'tomorrow' }, pub), false)
+    assert.match(receipt.keyId ?? '', /^[a-f0-9]{64}$/)
+    assert.equal(trustedReceipt(capsule, receipt, undefined, JSON.stringify([other, pub])), true)
+    assert.equal(trustedReceipt(capsule, { ...receipt, keyId: '0'.repeat(64) }, pub), false)
   })
   it('neutralizes spreadsheet formulas without dropping user text', () => {
     for (const idea of ['=HYPERLINK("https://bad")', '+SUM(1,2)', '-1+2', '@SUM(A1)', '  =1+1', '\t=1+1']) {

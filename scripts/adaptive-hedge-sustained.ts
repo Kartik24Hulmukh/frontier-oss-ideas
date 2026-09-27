@@ -1,4 +1,4 @@
-// Sustained-traffic adaptive-hedge drill against the real Melious gateway (1.5.6).
+// Sustained-traffic adaptive-hedge drill against the real Melious gateway (1.5.7).
 // Closes the 1.5.5 honest limit: in the 1.5.5 drill two profiles never accumulated enough
 // primary-model successes inside three warm-up calls to learn a p90, so the cold-start
 // ceiling applied and the learned path was only exercised with seeded latencies. This drill
@@ -8,7 +8,7 @@
 //  3. an injected hang under the learned threshold recovers via a fired hedge,
 //  4. health reports per-model provenance (samples, learned, delayMs) so an operator can
 //     see whether a delay is learned or still the cold-start fallback.
-// Usage: MELIOUS_API_KEY=... tsx scripts/adaptive-hedge-sustained.ts > docs/evidence/adaptive-hedge-sustained-1.5.6.json
+// Usage: MELIOUS_API_KEY=... tsx scripts/adaptive-hedge-sustained.ts > docs/evidence/adaptive-hedge-sustained-1.5.7.json
 import { ModelRouter, ROUTES, type RouteProfile } from '../lib/llm/router'
 
 const apiKey = process.env.MELIOUS_API_KEY
@@ -28,7 +28,7 @@ function router(hang: string | null) {
 }
 
 async function main() {
-  const out: Record<string, unknown> = { version: '1.5.6', at: new Date().toISOString(), policy, maxCallsPerProfile: MAX_CALLS }
+  const out: Record<string, unknown> = { version: '1.5.7', at: new Date().toISOString(), policy, maxCallsPerProfile: MAX_CALLS }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phases: any[] = []
   for (const profile of ['quality', 'fast', 'reasoning'] as RouteProfile[]) {

@@ -1,4 +1,4 @@
-# 1.5.6 - learned hedging proven on sustained real traffic; hedge provenance in health (2026-09-27)
+# 1.5.7 - learned hedging proven on sustained real traffic; hedge provenance in health (2026-09-27)
 
 The 1.5.5 ship record stated an honest limit: in its live drill two profiles never accumulated enough
 primary-model successes to learn a p90, so the cold-start ceiling applied and the learned path was only
