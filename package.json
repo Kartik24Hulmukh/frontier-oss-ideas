@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
@@ -20,7 +20,8 @@
     "gate": "node scripts/release-gate.mjs",
     "llm:torture": "tsx scripts/llm-torture.ts",
     "redis:loopback": "tsx scripts/upstash-rest-emulator.ts",
-    "keys:check": "node scripts/receipt-keygen.mjs --check docs/evidence/receipt-public-key.pem"
+    "keys:check": "node scripts/receipt-keygen.mjs --check docs/evidence/receipt-public-key.pem",
+    "llm:hedge-live": "tsx scripts/adaptive-hedge-live.ts"
   },
   "dependencies": {
     "next": "16.3.6",

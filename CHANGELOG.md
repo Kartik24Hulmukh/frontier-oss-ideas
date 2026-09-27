@@ -1,3 +1,27 @@
+# 1.5.5 - adaptive stall hedging: the hedge delay tunes itself (2026-09-27)
+
+1.5.4 shipped stall hedging behind one hand-set constant, `LLM_HEDGE_AFTER_MS`. Its own ship record named the
+limitation: in the no-fault control run the hedge fired anyway, because the primary was simply slower than the
+constant. A constant is wrong for every model, every prompt size and every hour of the day - too low and it
+burns tokens on healthy traffic, too high and it never helps.
+
+- **Adaptive mode (`LLM_HEDGE_MODE=adaptive`, `lib/llm/hedge-policy.ts`).** The router keeps a bounded ring of
+  each model's recent successful latencies and hedges at `clamp(p90 * multiplier, minMs, maxMs)`, recomputed per
+  model at dispatch. No operator constant is required.
+- **Cold start is conservative.** Until `minSamples` clean successes exist, the static fallback (or the ceiling)
+  applies, so a fresh process never hedges aggressively on a model it has never measured.
+- **Only clean successes teach the model.** Timeouts, 429s, 5xx and cancelled hedges never enter the latency
+  memory, so one bad minute cannot drag the threshold down and start a hedging storm.
+- **Spend governor.** A rolling window caps the fraction of requests allowed to hedge (`LLM_HEDGE_MAX_RATE`,
+  default 0.2). A gateway-wide slowdown can no longer double the token bill; hedging simply stops.
+- **Observability.** `/api/health` now reports `llm.hedging`: mode, learned delay per model, hedge count and
+  hedge rate over the window.
+- **Behaviour preserved.** With neither `LLM_HEDGE_MODE` nor `LLM_HEDGE_AFTER_MS` set, routing is strictly
+  sequential exactly as in 1.5.3/1.5.4. Existing hedge, budget, breaker and auth semantics are unchanged.
+- **Verification:** `tsc --noEmit` clean; full suite 108 pass / 0 fail / 1 skipped (real-Redis, CI-only),
+  including 5 new adaptive-hedge tests. Live drill against the real Melious gateway:
+  `docs/evidence/adaptive-hedge-live-1.5.5.json` (`scripts/adaptive-hedge-live.ts`).
+
 # 1.5.4 — stall hedging for hung model gateways (2026-09-27)
 
 - **Premortem:** a hung Melious model holds the analyst answer hostage until its 10–25 s attempt timeout. 1.5.2 measured 801 ms to *detect* an injected hang and 3,589 ms to a successful answer, and one run failed recovery outright. Sub-200 ms recovery was not established.
