@@ -1,0 +1,150 @@
+exit 0
+{
+  "base": "https://frontier-oss-ideas.vercel.app",
+  "at": "2026-09-27T22:07:27.411Z",
+  "checks": [
+    {
+      "check": "health",
+      "status": 200,
+      "data": {
+        "ok": true,
+        "service": "simultaneity-index",
+        "version": "1.5.10",
+        "build": "d7caff4450f6480279e399dc89f85b48340cbf47",
+        "admission": "per-instance",
+        "receipts": "hash-only",
+        "receiptTrust": {
+          "pinnedKeys": 0,
+          "rotationReady": false
+        },
+        "pacing": "provider-ceilings+circuit-breakers",
+        "modelGateway": "not-configured",
+        "credentials": {
+          "github": true,
+          "openalex": true,
+          "reddit": false,
+          "receiptPublicKeyPinned": false
+        },
+        "llm": {
+          "configured": false,
+          "hedging": {
+            "mode": "off"
+          },
+          "gateway": "melious",
+          "budgetScope": "blocked-missing-config",
+          "breakers": {
+            "glm-5.3": "closed",
+            "glm-5.3-flash": "closed",
+            "kimi-k3": "closed",
+            "qwen3.8-27b": "closed"
+          },
+          "budget": {
+            "used": 0,
+            "windowTokens": 400000,
+            "perRequestTokens": 6000,
+            "windowMs": 3600000,
+            "remaining": 400000,
+            "accounting": "conservative-no-refund"
+          },
+          "availability": {}
+        },
+        "timestamp": "2026-09-27T22:07:24.532Z"
+      }
+    },
+    {
+      "check": "search rejects null",
+      "status": 400
+    },
+    {
+      "check": "compare rejects null",
+      "status": 400
+    },
+    {
+      "check": "cohort rejects null",
+      "status": 400
+    },
+    {
+      "check": "verify rejects null",
+      "status": 400
+    },
+    {
+      "check": "mcp rejects null",
+      "status": 400
+    },
+    {
+      "check": "real scan",
+      "score": 76,
+      "coverage": 100,
+      "sources": [
+        [
+          "github",
+          "ok"
+        ],
+        [
+          "hackernews",
+          "ok"
+        ],
+        [
+          "arxiv",
+          "ok"
+        ],
+        [
+          "openalex",
+          "ok"
+        ],
+        [
+          "npm",
+          "ok"
+        ],
+        [
+          "pypi",
+          "ok"
+        ],
+        [
+          "huggingface",
+          "ok"
+        ]
+      ]
+    },
+    {
+      "check": "cache",
+      "cached": true
+    },
+    {
+      "check": "receipt",
+      "status": 200,
+      "data": {
+        "digestMatches": true,
+        "signatureValid": null,
+        "issuerTrusted": false,
+        "note": "A matching hash or self-signed key does not prove issuer identity or evidence accuracy."
+      }
+    },
+    {
+      "check": "tamper rejection",
+      "status": 200,
+      "data": {
+        "digestMatches": false,
+        "signatureValid": null,
+        "issuerTrusted": false,
+        "note": "A matching hash or self-signed key does not prove issuer identity or evidence accuracy."
+      }
+    },
+    {
+      "check": "initialize",
+      "status": 200
+    },
+    {
+      "check": "tools/list",
+      "status": 200
+    },
+    {
+      "check": "tools/call",
+      "status": 200
+    },
+    {
+      "check": "cohort",
+      "count": 1
+    }
+  ]
+}

@@ -35,3 +35,9 @@ The obvious patch is to raise the model's `maxOutputTokens`. That pays more for 
 - `Founder_Work.md` is not in the repo or the attachments; it could not be followed as a system prompt.
 - No parallel-agent substrate exists here; the council is the premortem above plus the standing council docs. No 100x value/impact/traction gain is claimed or measured; this is a measured 5.5x latency / 5.7x token improvement on one model plus a correctness fix.
 - Secrets in the task text (GitHub PAT, Melious key) were used in memory only and remain operator-urgent to rotate.
+
+## Post-merge evidence (PR #32 squash-merged as `d7caff4`, deployed and verified live)
+- `/api/health` polled until it reported **1.5.10 at build `d7caff4450f6480279e399dc89f85b48340cbf47`** (about 40 s after merge).
+- Strict canary vs the deployed SHA (`node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict`): 8 of 12 checks pass; the 4 failures are exactly the operator gates - `distributed-configured` (no managed Redis), `issuer-trust` (no published pin), `healthy-supply` and `healthy-demand` (rotated GitHub token + approved Reddit OAuth absent). Same set as 1.5.9; none weakened. Evidence: `docs/evidence/gate-1.5.10.json`.
+- Production smoke vs the deployed 1.5.10 (`node scripts/production-smoke.mjs`): exit 0 - health, five malformed-body rejections (400), real scan 76/100 at coverage 100% with all seven supply sources `ok`, cache hit, receipt digest verified, tampered receipt rejected, MCP initialize / tools/list / tools/call 200, cohort. Evidence: `docs/evidence/production-smoke-1.5.10.txt`.
+- The hosted deploy still reports `modelGateway: not-configured`, so the 1.5.10 router fix is exercised live only through the local torture drill until the operator installs a scoped Melious key.
