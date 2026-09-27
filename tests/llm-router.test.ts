@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ModelRouter, TokenBudget, CircuitBreaker, ROUTES } from '../lib/llm/router'
+import { ModelRouter, TokenBudget, CircuitBreaker, ROUTES, classifyEmpty, reasoningTokensOf } from '../lib/llm/router'
 import { validateCitations, evidenceTable, analystMessages, analystMemo } from '../lib/llm/analyst'
 import { computeCrowding } from '../lib/scoring/score'
 
@@ -200,4 +200,51 @@ test('gateway refusals surface as availability provenance in health', async () =
   assert.equal(avail[ROUTES.quality[0]].refusals, 1)
   assert.equal(typeof avail[ROUTES.quality[0]].lastRefusalAt, 'string')
   assert.ok(!avail[ROUTES.quality[1]])
+})
+
+// 1.5.10: reasoning starvation. Observed live on Melious: a thinking model returned
+// finish_reason=length with content="" and reasoning_tokens === completion_tokens.
+const starved = (n: number) => new Response(JSON.stringify({ choices: [{ message: { content: '', reasoning_content: 'thinking...' }, finish_reason: 'length' }], usage: { prompt_tokens: 24, completion_tokens: n, total_tokens: 24 + n, completion_tokens_details: { reasoning_tokens: n } } }), { status: 200 })
+
+test('reasoning starvation is classified distinctly, fails over with zero sleep, and is surfaced in health provenance', async () => {
+  const bodies: Array<Record<string, unknown>> = []
+  const { f, calls } = fakeFetch((m) => (m === ROUTES.fast[0] ? starved(400) : ok('answer')))
+  const spy = (async (url: string, init: RequestInit) => { bodies.push(JSON.parse(String(init.body))); return f(url, init) }) as unknown as typeof fetch
+  const r = new ModelRouter({ apiKey: 'k', fetcher: spy })
+  const res = await r.complete({ messages: msgs, profile: 'fast', maxOutputTokens: 400 })
+  assert.equal(res.ok, true)
+  assert.equal(res.model, ROUTES.fast[1])
+  assert.equal(res.attempts[0].outcome, 'reasoning_exhausted')
+  assert.equal(res.attempts[0].reasoningTokens, 400)
+  assert.equal(res.usage.reasoningTokens, 400, 'billed hidden reasoning is accounted, never hidden')
+  assert.ok(res.maxFailoverMs < 200)
+  assert.deepEqual(calls, [ROUTES.fast[0], ROUTES.fast[1]])
+  // Default request shape disables hidden reasoning on the wire; callers can opt in.
+  assert.equal(bodies[0].reasoning_effort, 'none')
+  const avail = r.health().availability as Record<string, { refusals: number; reasoningExhausted?: number }>
+  assert.equal(avail[ROUTES.fast[0]].reasoningExhausted, 1)
+  assert.equal(avail[ROUTES.fast[0]].refusals, 0)
+  const explicit = await r.complete({ messages: msgs, profile: 'quality', reasoningEffort: 'high' })
+  assert.equal(explicit.ok, true)
+  assert.equal(bodies[bodies.length - 1].reasoning_effort, 'high')
+})
+
+test('classifyEmpty separates starvation from a genuinely empty answer and reads both usage shapes', () => {
+  assert.equal(classifyEmpty({ choices: [{ message: { content: '' }, finish_reason: 'length' }], usage: { completion_tokens: 60, completion_tokens_details: { reasoning_tokens: 60 } } }), 'reasoning_exhausted')
+  assert.equal(classifyEmpty({ choices: [{ message: { content: '' }, finish_reason: 'stop' }], usage: { completion_tokens: 10, reasoning_tokens: 10 } }), 'reasoning_exhausted')
+  assert.equal(classifyEmpty({ choices: [{ message: { content: '' }, finish_reason: 'stop' }], usage: { completion_tokens: 0 } }), 'empty')
+  assert.equal(classifyEmpty({ choices: [{ message: { content: '' }, finish_reason: 'length' }], usage: { completion_tokens: 12 } }), 'empty', 'no reasoning billed means no starvation claim')
+  assert.equal(reasoningTokensOf({ usage: { reasoning_tokens: -3 } }), 0)
+  assert.equal(reasoningTokensOf({ usage: { completion_tokens_details: { reasoning_tokens: 7 }, reasoning_tokens: 1 } }), 7)
+})
+
+test('two starvations open the breaker like any other retryable failure; the next request skips the model', async () => {
+  const { f, calls } = fakeFetch((m) => (m === ROUTES.fast[0] ? starved(120) : ok('answer')))
+  const r = new ModelRouter({ apiKey: 'k', fetcher: f })
+  await r.complete({ messages: msgs, profile: 'fast' })
+  await r.complete({ messages: msgs, profile: 'fast' })
+  const third = await r.complete({ messages: msgs, profile: 'fast' })
+  assert.equal(third.attempts[0].outcome, 'circuit_open')
+  assert.equal(r.health().breakers[ROUTES.fast[0]], 'open')
+  assert.equal(calls.filter((c) => c === ROUTES.fast[0]).length, 2)
 })

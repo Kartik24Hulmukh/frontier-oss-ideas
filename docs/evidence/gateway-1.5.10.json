@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "gateway": "melious",
+  "checkedAt": "2026-09-27T22:02:14.954Z",
+  "passed": true,
+  "checks": [
+    {
+      "name": "live-glm-5.3",
+      "passed": true,
+      "detail": {
+        "model": "glm-5.3",
+        "ms": 686,
+        "tokens": 64
+      }
+    },
+    {
+      "name": "live-glm-5.3-flash",
+      "passed": true,
+      "detail": {
+        "model": "glm-5.3-flash",
+        "ms": 723,
+        "tokens": 75
+      }
+    },
+    {
+      "name": "live-kimi-k3",
+      "passed": true,
+      "detail": {
+        "model": "kimi-k3",
+        "ms": 1240,
+        "tokens": 115
+      }
+    },
+    {
+      "name": "live-qwen3.8-27b",
+      "passed": true,
+      "detail": {
+        "model": "qwen3.8-27b",
+        "ms": 801,
+        "tokens": 74
+      }
+    },
+    {
+      "name": "failover-429-quality",
+      "passed": true,
+      "detail": {
+        "served": "kimi-k3",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-429-fast",
+      "passed": true,
+      "detail": {
+        "served": "qwen3.8-27b",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-429-reasoning",
+      "passed": true,
+      "detail": {
+        "served": "glm-5.3",
+        "failoverMs": 0,
+        "attempts": [
+          "rate_limited",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-5xx-cascade",
+      "passed": true,
+      "detail": {
+        "served": "qwen3.8-27b",
+        "failoverMs": 0,
+        "attempts": [
+          "server_error",
+          "timeout",
+          "ok"
+        ]
+      }
+    },
+    {
+      "name": "failover-gateway-timeout",
+      "passed": true,
+      "detail": {
+        "served": "qwen3.8-27b",
+        "failoverMs": 0,
+        "timeoutAttemptMs": 801,
+        "attempts": [
+          {
+            "model": "glm-5.3-flash",
+            "outcome": "timeout",
+            "latencyMs": 801
+          },
+          {
+            "model": "qwen3.8-27b",
+            "outcome": "ok",
+            "latencyMs": 761,
+            "failoverMs": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "breaker-short-circuit",
+      "passed": true,
+      "detail": {
+        "attempts": [
+          "kimi-k3:circuit_open",
+          "glm-5.3:ok"
+        ]
+      }
+    },
+    {
+      "name": "budget-per-request-ceiling",
+      "passed": true,
+      "detail": {
+        "error": "budget_exceeded"
+      }
+    },
+    {
+      "name": "budget-window-ceiling",
+      "passed": true,
+      "detail": {
+        "results": [
+          {
+            "ok": true,
+            "error": null,
+            "model": "glm-5.3-flash",
+            "totalTokens": 77,
+            "reasoningTokens": 4,
+            "attempts": [
+              "glm-5.3-flash:ok:200"
+            ]
+          },
+          {
+            "ok": false,
+            "error": "budget_exceeded",
+            "model": null,
+            "totalTokens": 0,
+            "reasoningTokens": 0,
+            "attempts": []
+          },
+          {
+            "ok": false,
+            "error": "budget_exceeded",
+            "model": null,
+            "totalTokens": 0,
+            "reasoningTokens": 0,
+            "attempts": []
+          }
+        ],
+        "budget": {
+          "used": 489,
+          "windowTokens": 900,
+          "perRequestTokens": 2000,
+          "windowMs": 60000,
+          "remaining": 411,
+          "accounting": "conservative-no-refund"
+        }
+      }
+    },
+    {
+      "name": "auth-error-stops-chain",
+      "passed": true,
+      "detail": {
+        "attempts": [
+          "glm-5.3:401"
+        ]
+      }
+    }
+  ]
+}

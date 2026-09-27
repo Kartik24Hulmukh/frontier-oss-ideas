@@ -40,7 +40,7 @@ export const ROUTES: Record<RouteProfile, ModelId[]> = {
 
 export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string }
 
-export type AttemptOutcome = 'ok' | 'circuit_open' | 'rate_limited' | 'server_error' | 'timeout' | 'network_error' | 'bad_request' | 'auth_error' | 'model_unavailable' | 'empty' | 'hedge_cancelled'
+export type AttemptOutcome = 'ok' | 'circuit_open' | 'rate_limited' | 'server_error' | 'timeout' | 'network_error' | 'bad_request' | 'auth_error' | 'model_unavailable' | 'empty' | 'reasoning_exhausted' | 'hedge_cancelled'
 
 export interface Attempt {
   model: ModelId
@@ -51,6 +51,8 @@ export interface Attempt {
   failoverMs?: number
   /** True when dispatched while an earlier attempt was still in flight. */
   hedged?: boolean
+  /** Hidden reasoning tokens the gateway billed for this attempt (0 when not reported). */
+  reasoningTokens?: number
 }
 
 export interface RouteResult {
@@ -58,7 +60,7 @@ export interface RouteResult {
   text?: string
   model?: ModelId
   attempts: Attempt[]
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number; estimated: boolean }
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number; estimated: boolean; reasoningTokens: number }
   error?: 'budget_exceeded' | 'all_models_failed' | 'auth_error' | 'not_configured' | 'deadline_exceeded' | 'budget_unavailable'
   maxFailoverMs: number
 }
@@ -167,11 +169,20 @@ export interface RouterOptions {
   hedgePolicy?: Partial<HedgePolicy>
 }
 
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high'
+
 export interface CompleteRequest {
   messages: ChatMessage[]
   profile?: RouteProfile
   maxOutputTokens?: number
   temperature?: number
+  /**
+   * Hidden-reasoning budget sent as OpenAI-style `reasoning_effort`. Default 'none':
+   * thinking models ([redacted] 3.8 27B on Melious) otherwise spend the WHOLE completion
+   * ceiling on reasoning and return empty content (finish_reason=length), which is
+   * billed, unverifiable and useless to a citation-checked memo.
+   */
+  reasoningEffort?: ReasoningEffort
 }
 
 export function parseRetryAfter(value: string | null, now: () => number = Date.now): number | undefined {
@@ -191,7 +202,32 @@ function classify(status: number): AttemptOutcome {
   return 'bad_request'
 }
 
-interface Settled { id: ModelId; outcome: AttemptOutcome; status?: number; retryAfter?: number; text?: string; pt?: number; ct?: number; dispatch: number; failoverMs?: number; hedged: boolean; end: number }
+interface Settled { id: ModelId; outcome: AttemptOutcome; status?: number; retryAfter?: number; text?: string; pt?: number; ct?: number; rt?: number; dispatch: number; failoverMs?: number; hedged: boolean; end: number }
+
+interface ChatCompletion {
+  choices?: Array<{ message?: { content?: string | null; reasoning_content?: string | null }; finish_reason?: string | null }>
+  usage?: { prompt_tokens?: number; completion_tokens?: number; reasoning_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } }
+}
+
+/** Reasoning tokens the gateway billed, from either usage shape. */
+export function reasoningTokensOf(json: ChatCompletion): number {
+  const u = json.usage
+  const n = u?.completion_tokens_details?.reasoning_tokens ?? u?.reasoning_tokens
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : 0
+}
+
+/**
+ * Empty content classification. A thinking model that hit `length` while every
+ * completion token went to hidden reasoning is `reasoning_exhausted`: the model is
+ * healthy but the request shape starved it. Anything else empty is `empty`.
+ */
+export function classifyEmpty(json: ChatCompletion): AttemptOutcome {
+  const choice = json.choices?.[0]
+  const reasoning = reasoningTokensOf(json)
+  const completion = json.usage?.completion_tokens
+  const starved = choice?.finish_reason === 'length' || (typeof completion === 'number' && completion > 0 && reasoning >= completion) || Boolean(choice?.message?.reasoning_content)
+  return starved && reasoning > 0 ? 'reasoning_exhausted' : 'empty'
+}
 
 export class ModelRouter {
   readonly budget: TokenBudget
@@ -208,6 +244,8 @@ export class ModelRouter {
   readonly hedgeController: HedgeController
   /** Bounded memory of gateway refusals (404 / model_unavailable) per model. */
   private refusals = new Map<ModelId, number[]>()
+  /** Bounded memory of reasoning starvation (billed reasoning, empty content) per model. */
+  private starvations = new Map<ModelId, number[]>()
 
   constructor(opts: RouterOptions = {}) {
     this.fetcher = opts.fetcher ?? fetch
@@ -241,14 +279,27 @@ export class ModelRouter {
     this.refusals.set(id, ring)
   }
 
-  /** Refusal provenance for /api/health: which primaries the gateway actually serves. No key material. */
+  /** Record a reasoning starvation: the gateway billed reasoning tokens and returned no content. */
+  noteStarvation(id: ModelId) {
+    const ring = this.starvations.get(id) ?? []
+    ring.push(this.now())
+    if (ring.length > 32) ring.shift()
+    this.starvations.set(id, ring)
+  }
+
+  /** Refusal + starvation provenance for /api/health: which primaries the gateway actually serves usefully. No key material. */
   availabilitySnapshot(windowMs = 300_000) {
     const cutoff = this.now() - windowMs
-    const out: Record<string, { refusals: number; lastRefusalAt: string | null }> = {}
+    const out: Record<string, { refusals: number; lastRefusalAt: string | null; reasoningExhausted?: number; lastReasoningExhaustedAt?: string }> = {}
     for (const [id, ring] of this.refusals) {
       const recent = ring.filter((t) => t > cutoff)
       this.refusals.set(id, recent)
       if (recent.length) out[id] = { refusals: recent.length, lastRefusalAt: new Date(recent[recent.length - 1]).toISOString() }
+    }
+    for (const [id, ring] of this.starvations) {
+      const recent = ring.filter((t) => t > cutoff)
+      this.starvations.set(id, recent)
+      if (recent.length) out[id] = { ...(out[id] ?? { refusals: 0, lastRefusalAt: null }), reasoningExhausted: recent.length, lastReasoningExhaustedAt: new Date(recent[recent.length - 1]).toISOString() }
     }
     return out
   }
@@ -264,7 +315,7 @@ export class ModelRouter {
 
   async complete(req: CompleteRequest): Promise<RouteResult> {
     const attempts: Attempt[] = []
-    const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimated: true }
+    const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimated: true, reasoningTokens: 0 }
     const fail = (error: RouteResult['error']): RouteResult => ({ ok: false, attempts, usage, error, maxFailoverMs: Math.max(0, ...attempts.map((a) => a.failoverMs ?? 0)) })
     if (!this.apiKey) return fail('not_configured')
     const chain = ROUTES[req.profile ?? 'quality']
@@ -345,6 +396,7 @@ export class ModelRouter {
       const breaker = this.breakers.get(settled.id)!
       const attempt: Attempt = { model: settled.id, outcome: settled.outcome, status: settled.status, latencyMs: settled.end - settled.dispatch, failoverMs: settled.failoverMs }
       if (settled.hedged) attempt.hedged = true
+      if (settled.rt) { attempt.reasoningTokens = settled.rt; usage.reasoningTokens += settled.rt }
       // Only clean successes teach the model its normal speed.
       this.hedgeController.observe(settled.id, attempt.latencyMs, settled.outcome)
       if (settled.outcome === 'ok' && settled.text) {
@@ -364,6 +416,7 @@ export class ModelRouter {
       if (outcome === 'bad_request') breaker.releaseProbe()
       if (outcome === 'rate_limited') breaker.failure(settled.retryAfter, true)
       else if (outcome === 'model_unavailable') { breaker.failure(300_000, true); this.noteRefusal(settled.id) }
+      else if (outcome === 'reasoning_exhausted') { breaker.failure(); this.noteStarvation(settled.id) }
       else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure()
       // Failover never sleeps: a settled failure dispatches the next model at once.
       if (inflight.size === 0) launch(false)
@@ -382,17 +435,18 @@ export class ModelRouter {
       const res = await this.fetcher(this.baseUrl + '/chat/completions', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + this.apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: id, messages: req.messages, max_tokens: maxOut, temperature: req.temperature ?? 0.2 }),
+        body: JSON.stringify({ model: id, messages: req.messages, max_tokens: maxOut, temperature: req.temperature ?? 0.2, reasoning_effort: req.reasoningEffort ?? 'none' }),
         signal: controller.signal,
       })
       status = res.status
       if (res.ok) {
-        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+        const json = (await res.json()) as ChatCompletion
         const text = (json.choices?.[0]?.message?.content ?? '').trim()
-        const pt = json.usage?.prompt_tokens, ct = json.usage?.completion_tokens
+        const pt = json.usage?.prompt_tokens, ct = json.usage?.completion_tokens, rt = reasoningTokensOf(json)
         this.budget.settle(reservation, typeof pt === 'number' && typeof ct === 'number' ? pt + ct : promptTokens + estimateTokens(text))
-        if (text) return { id, outcome: 'ok', status, text, pt, ct, dispatch, failoverMs, hedged, end: this.now() }
-        outcome = 'empty'
+        if (text) return { id, outcome: 'ok', status, text, pt, ct, rt, dispatch, failoverMs, hedged, end: this.now() }
+        outcome = classifyEmpty(json)
+        return { id, outcome, status, rt, dispatch, failoverMs, hedged, end: this.now() }
       } else {
         outcome = classify(res.status)
         retryAfter = parseRetryAfter(res.headers.get('retry-after'), this.now)
