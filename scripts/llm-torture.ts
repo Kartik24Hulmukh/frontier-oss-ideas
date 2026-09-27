@@ -73,7 +73,13 @@ async function main() {
     const w = new ModelRouter({ apiKey: key, budget: { perRequestTokens: 2000, windowTokens: 900, windowMs: 60_000 } })
     // Concurrent requests: reservations stack, so the window ceiling rejects before overspend.
     const [first, second, third] = await Promise.all([1, 2, 3].map(() => w.complete({ messages, profile: 'fast', maxOutputTokens: 400 })))
-    record('budget-window-ceiling', [first, second, third].some((x) => x.ok) && [first, second, third].some((x) => x.error === 'budget_exceeded'), { first: first.usage.totalTokens, second: second.error ?? 'ok', third: third.error ?? 'ok', budget: w.budget.snapshot() })
+    const trio = [first, second, third]
+    const snap = w.budget.snapshot()
+    // Invariant: at least one answer, at least one refusal, and the window is never oversold.
+    record('budget-window-ceiling', trio.some((x) => x.ok) && trio.some((x) => x.error === 'budget_exceeded') && snap.used <= snap.windowTokens, {
+      results: trio.map((x) => ({ ok: x.ok, error: x.error ?? null, model: x.model ?? null, totalTokens: x.usage.totalTokens, reasoningTokens: x.usage.reasoningTokens, attempts: x.attempts.map((a) => `${a.model}:${a.outcome}${a.status ? ':' + a.status : ''}`) })),
+      budget: snap,
+    })
   }
   // 7. Invalid key stops the chain after one call.
   {
