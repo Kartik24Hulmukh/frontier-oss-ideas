@@ -106,3 +106,66 @@ test('analyst memo only keeps citations to real evidence and treats evidence as 
   assert.equal(memo.invalidCitations, 1)
   assert.equal(memo.citations[0].url, 'https://github.com/a/b')
 })
+
+// ---- 1.5.4 stall hedging: a hung gateway no longer holds the answer hostage for its full timeout
+function hangUntilAbort(init: RequestInit): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))
+  })
+}
+
+test('hedge: a hung primary is hedged after hedgeAfterMs and the hedge answer wins long before the primary timeout', async () => {
+  let aborted = false
+  const f = (async (_url: string, init: RequestInit) => {
+    const model = JSON.parse(String(init.body)).model as string
+    if (model === ROUTES.quality[0]) { init.signal?.addEventListener('abort', () => { aborted = true }); return hangUntilAbort(init) }
+    return ok('hedged answer')
+  }) as unknown as typeof fetch
+  const r = new ModelRouter({ apiKey: 'k', fetcher: f, hedgeAfterMs: 50, timeouts: { [ROUTES.quality[0]]: 5000 } as never })
+  const t0 = Date.now()
+  const res = await r.complete({ messages: msgs, profile: 'quality' })
+  const elapsed = Date.now() - t0
+  assert.equal(res.ok, true)
+  assert.equal(res.model, ROUTES.quality[1])
+  assert.ok(elapsed < 1000, `hedged recovery took ${elapsed}ms`)
+  assert.equal(aborted, true, 'losing hung attempt must be aborted')
+  const hedged = res.attempts.find((a) => a.model === ROUTES.quality[1])!
+  assert.equal(hedged.hedged, true)
+  assert.equal(res.attempts.find((a) => a.model === ROUTES.quality[0])!.outcome, 'hedge_cancelled')
+  // The cancelled loser is not blamed: its breaker stays closed.
+  assert.equal(r.health().breakers[ROUTES.quality[0]], 'closed')
+})
+
+test('hedge: when the primary answers first the hedge is cancelled and the primary wins', async () => {
+  const f = (async (_url: string, init: RequestInit) => {
+    const model = JSON.parse(String(init.body)).model as string
+    if (model === ROUTES.quality[0]) { await new Promise((r) => setTimeout(r, 80)); return ok('primary') }
+    return hangUntilAbort(init)
+  }) as unknown as typeof fetch
+  const res = await new ModelRouter({ apiKey: 'k', fetcher: f, hedgeAfterMs: 20 }).complete({ messages: msgs, profile: 'quality' })
+  assert.equal(res.ok, true)
+  assert.equal(res.text, 'primary')
+  assert.equal(res.attempts.filter((a) => a.outcome === 'hedge_cancelled').length, 1)
+})
+
+test('hedge: never exceeds the per-request token ceiling; unaffordable hedge is skipped, not fatal', async () => {
+  const f = (async (_url: string, init: RequestInit) => {
+    const model = JSON.parse(String(init.body)).model as string
+    if (model === ROUTES.quality[0]) { await new Promise((r) => setTimeout(r, 120)); return ok('primary only') }
+    return ok('should not be called')
+  }) as unknown as typeof fetch
+  const calls: string[] = []
+  const spy = (async (u: string, i: RequestInit) => { calls.push(JSON.parse(String(i.body)).model); return f(u, i) }) as unknown as typeof fetch
+  const res = await new ModelRouter({ apiKey: 'k', fetcher: spy, hedgeAfterMs: 10, budget: { perRequestTokens: 1300, windowTokens: 100000, windowMs: 60000 } }).complete({ messages: msgs, profile: 'quality' })
+  assert.equal(res.ok, true)
+  assert.equal(res.text, 'primary only')
+  assert.deepEqual(calls, [ROUTES.quality[0]])
+})
+
+test('hedge: a fast failure while a hedge is in flight still fails over with zero sleep and auth errors stop everything', async () => {
+  const { f, calls } = fakeFetch((m) => (m === ROUTES.fast[0] ? status(401) : ok('x')))
+  const res = await new ModelRouter({ apiKey: 'k', fetcher: f, hedgeAfterMs: 5 }).complete({ messages: msgs, profile: 'fast' })
+  assert.equal(res.ok, false)
+  assert.equal(res.error, 'auth_error')
+  assert.deepEqual(calls, [ROUTES.fast[0]])
+})

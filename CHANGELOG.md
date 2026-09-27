@@ -1,3 +1,12 @@
+# 1.5.4 — stall hedging for hung model gateways (2026-09-27)
+
+- **Premortem:** a hung Melious model holds the analyst answer hostage until its 10–25 s attempt timeout. 1.5.2 measured 801 ms to *detect* an injected hang and 3,589 ms to a successful answer, and one run failed recovery outright. Sub-200 ms recovery was not established.
+- **Fix:** `ModelRouter` gains an opt-in stall hedge (`hedgeAfterMs`, env `LLM_HEDGE_AFTER_MS`). If the newest in-flight attempt has not settled after the hedge delay, the next eligible model is dispatched in parallel (max two in flight). The first non-empty answer wins; the loser is aborted, its half-open probe released and its breaker **not** blamed. A settled failure still dispatches the next model with zero sleep; 401/403 still stops everything.
+- **Cost guard:** every hedge must fit inside the existing per-request token ceiling and the rolling window reservation. An unaffordable hedge is skipped, never fatal. Unset `LLM_HEDGE_AFTER_MS` = strictly sequential 1.5.3 behaviour.
+- **Tests:** four new router tests (hung primary hedged and aborted; primary wins and hedge cancelled; ceiling blocks hedge; auth error during hedge).
+- **Live drill (`scripts/hedge-live.ts`, real gateway, hang injected into each profile's first model, hedge 150 ms):** 3/3 recovered; backup dispatched 150 ms after the hung call; end-to-end answers in 444–1,463 ms. Evidence: `docs/evidence/hedge-live-1.5.4.json`.
+- **Honest limits:** hedging trades tokens for latency — in the no-fault control run the hedge also fired because the primary took longer than 150 ms. Production should use a hedge delay near the observed p90 of the primary (suggested 2,500 ms) rather than 150 ms. The hosted analyst remains disabled (no gateway secret installed), so this is verified in tests and a live drill, not in hosted traffic.
+
 # 1.5.3 — true rolling-window admission (2026-09-26)
 
 ### Fixed
