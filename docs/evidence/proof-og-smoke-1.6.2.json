@@ -1,0 +1,21 @@
+{
+  "healthVersion": "1.6.2",
+  "searchStatus": 200,
+  "score": 76,
+  "verdict": "Saturated",
+  "exportStatus": 200,
+  "tokenChars": 4646,
+  "viewStatus": 200,
+  "viewIntact": true,
+  "tamperedExport": 422,
+  "ogValid": {
+    "status": 200,
+    "type": "image/png",
+    "bytes": 48835
+  },
+  "ogTampered": {
+    "status": 200,
+    "type": "image/png",
+    "bytes": 33787
+  }
+}
