@@ -174,12 +174,12 @@ export interface CompleteRequest {
   temperature?: number
 }
 
-function parseRetryAfter(value: string | null): number | undefined {
+export function parseRetryAfter(value: string | null, now: () => number = Date.now): number | undefined {
   if (!value) return undefined
   const s = Number(value)
   if (Number.isFinite(s) && s >= 0) return Math.min(s * 1000, 600_000)
   const d = Date.parse(value)
-  return Number.isFinite(d) ? Math.max(0, Math.min(d - Date.now(), 600_000)) : undefined
+  return Number.isFinite(d) ? Math.max(0, Math.min(d - now(), 600_000)) : undefined
 }
 
 function classify(status: number): AttemptOutcome {
@@ -206,6 +206,8 @@ export class ModelRouter {
   private hedgeAfterMs?: number
   private hedgeMode: 'static' | 'adaptive'
   readonly hedgeController: HedgeController
+  /** Bounded memory of gateway refusals (404 / model_unavailable) per model. */
+  private refusals = new Map<ModelId, number[]>()
 
   constructor(opts: RouterOptions = {}) {
     this.fetcher = opts.fetcher ?? fetch
@@ -228,7 +230,27 @@ export class ModelRouter {
   health() {
     const breakers = Object.fromEntries([...this.breakers].map(([id, b]) => [id, b.snapshot().state]))
     const hedging = this.hedgingEnabled() ? { mode: this.hedgeMode, staticAfterMs: this.hedgeAfterMs ?? null, ...this.hedgeController.snapshot() } : { mode: 'off' as const }
-    return { configured: this.configured(), hedging, gateway: 'melious', budgetScope: this.sharedBudget ? sharedBudgetMode() : 'per-instance', breakers, budget: this.budget.snapshot() }
+    return { configured: this.configured(), hedging, gateway: 'melious', budgetScope: this.sharedBudget ? sharedBudgetMode() : 'per-instance', breakers, budget: this.budget.snapshot(), availability: this.availabilitySnapshot() }
+  }
+
+  /** Record a gateway refusal; only refusals teach availability, never latency. */
+  noteRefusal(id: ModelId) {
+    const ring = this.refusals.get(id) ?? []
+    ring.push(this.now())
+    if (ring.length > 32) ring.shift()
+    this.refusals.set(id, ring)
+  }
+
+  /** Refusal provenance for /api/health: which primaries the gateway actually serves. No key material. */
+  availabilitySnapshot(windowMs = 300_000) {
+    const cutoff = this.now() - windowMs
+    const out: Record<string, { refusals: number; lastRefusalAt: string | null }> = {}
+    for (const [id, ring] of this.refusals) {
+      const recent = ring.filter((t) => t > cutoff)
+      this.refusals.set(id, recent)
+      if (recent.length) out[id] = { refusals: recent.length, lastRefusalAt: new Date(recent[recent.length - 1]).toISOString() }
+    }
+    return out
   }
 
   /** Hedging is on when a static delay is configured or adaptive mode is selected. */
@@ -266,7 +288,7 @@ export class ModelRouter {
     // Spend governor: a gateway-wide slowdown must not double the token bill.
     this.hedgeController.noteRequest()
     let hedgeBlocked = !this.hedgingEnabled() || !this.hedgeController.allowHedge()
-    const inflight = new Map<ModelId, { controller: AbortController; promise: Promise<Settled> }>()
+    const inflight = new Map<ModelId, { controller: AbortController; dispatch: number; promise: Promise<Settled> }>()
     const perRequest = this.budget.config.perRequestTokens
     const maxOf = (id: ModelId) => Math.max(16, Math.min(req.maxOutputTokens ?? MODELS[id].maxOutputTokens, MODELS[id].maxOutputTokens))
     // Dispatch the next eligible model. A hedge never ends the request: if it cannot
@@ -295,7 +317,7 @@ export class ModelRouter {
         const failoverMs = hedge ? undefined : lastEnd === undefined ? undefined : dispatch - lastEnd
         const controller = new AbortController()
         const timeoutMs = Math.min(this.timeouts[id] ?? MODELS[id].timeoutMs, remaining)
-        inflight.set(id, { controller, promise: this.attempt(id, maxOf(id), req, promptTokens, reservation, timeoutMs, controller, dispatch, failoverMs, hedge && inflight.size > 0) })
+        inflight.set(id, { controller, dispatch, promise: this.attempt(id, maxOf(id), req, promptTokens, reservation, timeoutMs, controller, dispatch, failoverMs, hedge && inflight.size > 0) })
         return true
       }
       return false
@@ -304,7 +326,7 @@ export class ModelRouter {
       for (const [id, f] of inflight) {
         f.controller.abort(Object.assign(new Error('hedge lost'), { name: 'AbortError' }))
         this.breakers.get(id)!.releaseProbe()
-        attempts.push({ model: id, outcome: 'hedge_cancelled', latencyMs: this.now() - lastDispatch, hedged: true })
+        attempts.push({ model: id, outcome: 'hedge_cancelled', latencyMs: this.now() - f.dispatch, hedged: true })
       }
       inflight.clear()
     }
@@ -341,7 +363,7 @@ export class ModelRouter {
       if (outcome === 'auth_error') { breaker.releaseProbe(); cancelLosers(); return fail('auth_error') }
       if (outcome === 'bad_request') breaker.releaseProbe()
       if (outcome === 'rate_limited') breaker.failure(settled.retryAfter, true)
-      else if (outcome === 'model_unavailable') breaker.failure(300_000, true)
+      else if (outcome === 'model_unavailable') { breaker.failure(300_000, true); this.noteRefusal(settled.id) }
       else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure()
       // Failover never sleeps: a settled failure dispatches the next model at once.
       if (inflight.size === 0) launch(false)
@@ -373,7 +395,7 @@ export class ModelRouter {
         outcome = 'empty'
       } else {
         outcome = classify(res.status)
-        retryAfter = parseRetryAfter(res.headers.get('retry-after'))
+        retryAfter = parseRetryAfter(res.headers.get('retry-after'), this.now)
         await res.body?.cancel().catch(() => undefined)
         this.budget.settle(reservation, 0)
       }
