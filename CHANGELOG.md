@@ -1,3 +1,6 @@
+## 1.6.0 — 2026-09-28
+- Immutable, receipt-verified evidence capsule export and content-addressed viewer (`/api/export`, `/c/[token]`).
+
 ## 1.5.12 — 2026-09-27
 
 - Sub-lane expansion: every scan now returns `subLanes`, the three least-claimed positioning dimensions (offline, self-hosted, CLI, native, privacy, real-time, mobile, API/SDK), each with an evidence-derived estimate, `claimedBy/sampled` counts, confidence, up to two real competitors already claiming it, and a one-click verify re-scan query.
