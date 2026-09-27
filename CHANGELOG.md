@@ -1,3 +1,10 @@
+## 1.6.1 — 2026-09-28
+
+- Phase 3 works in production today: `POST /api/export` **always** mints a storage-free, self-verifying proof link (`/c/v1.<digest16>.<payload>`). Previously 1.6.0 returned 503/422 wherever managed Redis or pinned receipt keys weren't provisioned, and that is the current live state. When both are present, the 1.6.0 write-once `si_` alias is added and preferred.
+- `/c/[token]` renders both link kinds through one verifier. Every view re-verifies and shows Verified / Intact / Hash-only / TAMPERED. Malformed links render nothing. Only http(s) evidence links are rendered as anchors. Inflate is capped against zip bombs.
+- Home page: consent-gated **Proof link** button.
+- 4 new tests; see `docs/RELEASE_1_6_1.md`.
+
 ## 1.6.0 — 2026-09-28
 - Immutable, receipt-verified evidence capsule export and content-addressed viewer (`/api/export`, `/c/[token]`).
 

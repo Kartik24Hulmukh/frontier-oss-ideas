@@ -79,6 +79,25 @@ export default function Home() {
     }
   }
 
+  const [proofState, setProofState] = useState<'idle' | 'loading' | 'copied'>('idle')
+  async function copyProofLink() {
+    if (!data) return
+    if (!window.confirm('A proof link embeds this exact scan (including your idea) in a public URL. It is frozen and tamper-evident. Continue?')) return
+    setProofState('loading')
+    try {
+      const response = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsule: data.capsule, receipt: data.receipt }) })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Could not create a proof link.')
+      const url = `${window.location.origin}${payload.path}`
+      try { await navigator.clipboard.writeText(url) } catch { window.prompt('Copy this proof link', url) }
+      setProofState('copied')
+      window.setTimeout(() => setProofState('idle'), 1800)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not create a proof link.')
+      setProofState('idle')
+    }
+  }
+
   async function copyCapsule() {
     if (!data) return
     try {
@@ -238,6 +257,14 @@ export default function Home() {
                   className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest transition-colors hover:border-foreground"
                 >
                   {shared ? 'Link copied' : 'Share scan'}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyProofLink}
+                  disabled={proofState === 'loading'}
+                  className="min-h-11 rounded-md border border-border bg-card px-4 font-mono text-xs uppercase tracking-widest transition-colors hover:border-foreground"
+                >
+                  {proofState === 'copied' ? 'Proof link copied' : proofState === 'loading' ? 'Minting…' : 'Proof link'}
                 </button>
                 <button
                   type="button"
