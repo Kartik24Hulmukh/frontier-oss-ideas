@@ -36,6 +36,33 @@ function loadKey(pem = process.env.RECEIPT_PRIVATE_KEY) {
   }
 }
 
+function keyId(key: ReturnType<typeof createPublicKey>): string {
+  return createHash('sha256').update(key.export({ type: 'spki', format: 'der' })).digest('hex')
+}
+
+function trustedKeys(single = process.env.RECEIPT_PUBLIC_KEY, keyring = process.env.RECEIPT_PUBLIC_KEYS): ReturnType<typeof createPublicKey>[] {
+  const values: string[] = []
+  if (single) values.push(single)
+  if (keyring) {
+    try {
+      const parsed = JSON.parse(keyring)
+      if (Array.isArray(parsed)) values.push(...parsed.filter((v): v is string => typeof v === 'string'))
+    } catch { /* malformed keyring fails closed; the single pin can still work */ }
+  }
+  const unique = new Map<string, ReturnType<typeof createPublicKey>>()
+  for (const pem of values.slice(0, 10)) {
+    try {
+      const key = createPublicKey(pem.replace(/\\n/g, '\n'))
+      if (key.asymmetricKeyType === 'ed25519') unique.set(keyId(key), key)
+    } catch { /* skip malformed pins */ }
+  }
+  return [...unique.values()]
+}
+
+export function trustedKeyCount(single = process.env.RECEIPT_PUBLIC_KEY, keyring = process.env.RECEIPT_PUBLIC_KEYS): number {
+  return trustedKeys(single, keyring).length
+}
+
 export function issueReceipt(capsule: EvidenceCapsule, pem?: string): ScanReceipt {
   const digest = digestCapsule(capsule)
   const key = loadKey(pem)
@@ -44,7 +71,7 @@ export function issueReceipt(capsule: EvidenceCapsule, pem?: string): ScanReceip
   }
   const signature = sign(null, Buffer.from(digest, 'hex'), key).toString('base64')
   const publicKey = createPublicKey(key).export({ type: 'spki', format: 'pem' }).toString()
-  return { algorithm: 'ed25519+sha256', digest, signature, publicKey, issuedAt: capsule.searchedAt }
+  return { algorithm: 'ed25519+sha256', digest, signature, publicKey, issuedAt: capsule.searchedAt, keyId: keyId(createPublicKey(key)) }
 }
 
 export function verifyReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt): { digestMatches: boolean; signatureValid: boolean | null } {
@@ -58,14 +85,23 @@ export function verifyReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt): {
   }
 }
 
-/** Pin trust to a deployment-controlled key, never to a key supplied in a receipt. */
-export function trustedReceipt(capsule: EvidenceCapsule, receipt: ScanReceipt, trustedPem = process.env.RECEIPT_PUBLIC_KEY): boolean {
+/** Pin trust to a deployment-controlled keyring, never only to the key supplied in a receipt.
+ * RECEIPT_PUBLIC_KEY remains the active pin; RECEIPT_PUBLIC_KEYS is a JSON array
+ * of active/retired public PEMs, allowing verification across safe rotations.
+ */
+export function trustedReceipt(
+  capsule: EvidenceCapsule,
+  receipt: ScanReceipt,
+  trustedPem = process.env.RECEIPT_PUBLIC_KEY,
+  keyring = trustedPem === process.env.RECEIPT_PUBLIC_KEY ? process.env.RECEIPT_PUBLIC_KEYS : undefined,
+): boolean {
   try {
-    const trusted = trustedPem ? createPublicKey(trustedPem.replace(/\\n/g, '\n')) : null
-    if (!trusted || !receipt.publicKey || receipt.algorithm !== 'ed25519+sha256' || receipt.issuedAt !== capsule.searchedAt) return false
-    if (trusted.asymmetricKeyType !== 'ed25519') return false
+    if (!receipt.publicKey || receipt.algorithm !== 'ed25519+sha256' || receipt.issuedAt !== capsule.searchedAt) return false
     const supplied = createPublicKey(receipt.publicKey)
-    if (!trusted.export({ type: 'spki', format: 'der' }).equals(supplied.export({ type: 'spki', format: 'der' }))) return false
+    if (supplied.asymmetricKeyType !== 'ed25519') return false
+    const id = keyId(supplied)
+    if (receipt.keyId && receipt.keyId !== id) return false
+    if (!trustedKeys(trustedPem, keyring).some((trusted) => keyId(trusted) === id)) return false
     const checked = verifyReceipt(capsule, receipt)
     return checked.digestMatches && checked.signatureValid === true
   } catch { return false }
