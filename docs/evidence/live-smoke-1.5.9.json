@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-27T21:45:01.074375+00:00",
+  "command": "pnpm tsx scripts/live-smoke.ts \"AI code review agent\"",
+  "exitCode": 0,
+  "head": {
+    "idea": "AI code review agent",
+    "ms": 2237,
+    "score": 76,
+    "verdict": "Saturated",
+    "confidence": 85,
+    "coverage": 100,
+    "quadrant": "Gold Rush",
+    "demand": 68,
+    "trend": "unknown",
+    "expansions": [
+      "AI code review agent",
+      "ai pull request review agent"
+    ],
+    "duplicatesCollapsed": 1,
+    "supply": "github:100 hackernews:100 arxiv:6 openalex:60 npm:100 pypi:8 huggingface:0",
+    "demandSources": "reddit:80 stackoverflow:42 askhn:79",
+    "errors": [],
+    "receipt": "89cee40c68f4bb26"
+  },
+  "cacheLine": [
+    "cache hit: true in 0 ms"
+  ],
+  "mcpExcerptFirstLines": [
+    "Simultaneity 76/100 \u2014 Saturated (confidence 85%, coverage 100%).",
+    "Battlefield: Gold Rush (demand 68/100). Enter only with a non-copyable asset: proprietary data, a distribution channel, deep workflow integration, or a compliance-grade niche.",
+    "Strong crowding signals were observed across public artifacts. This does not establish independent invention or unique competitor counts. Verify relevance before considering an infrastructure or interoperability wedge.",
+    "Source caveats (coverage is not primary-source health):"
+  ]
+}

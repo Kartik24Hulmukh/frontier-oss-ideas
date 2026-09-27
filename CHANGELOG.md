@@ -1,3 +1,11 @@
+## 1.5.9 - verification pass: no defects found; evidence retained for launch gates
+- Reviewed both 1.5.8 ship records, the full repo (code, docs, evidence, tests, CI) and live `/api/health`.
+- Re-ran the full local pipeline: `tsc --noEmit` clean; suite 112 passed / 0 failed / 1 skipped; `next build` clean (19 routes + middleware).
+- Re-ran the live Melious torture drill: ALL 13 GATES PASSED - all four models answer directly, 429/5xx/hung-gateway failover 0ms, breaker short-circuit, per-request and rolling-window budget ceilings, auth-error chain stop. Evidence: `docs/evidence/gateway-1.5.8-recheck.json`.
+- End-to-end scan + MCP verified against live upstreams (coverage 100%, receipt stable, cache hit in 0ms). Evidence: `docs/evidence/live-smoke-1.5.9.json`.
+- Strict canary re-run against the deployed SHA: 9/12; the three failures are exactly the operator gates (managed Redis, issuer pin, rotated GitHub token + approved Reddit OAuth). None weakened. Evidence: `docs/evidence/gate-1.5.8-recheck.json`.
+- No code defect found this pass; the version bump marks the verification state and the retained evidence.
+
 ## 1.5.8 — router telemetry integrity + gateway refusal provenance
 - Fixed: `hedge_cancelled` attempt latency is measured from that attempt's own dispatch, not the previous dispatch.
 - Fixed: `parseRetryAfter` uses the router's injectable clock for HTTP-date `Retry-After` headers.
