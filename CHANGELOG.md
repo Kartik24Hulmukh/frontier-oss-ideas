@@ -1,3 +1,22 @@
+# 1.5.7 - learned hedging proven on sustained real traffic; hedge provenance in health (2026-09-27)
+
+The 1.5.5 ship record stated an honest limit: in its live drill two profiles never accumulated enough
+primary-model successes to learn a p90, so the cold-start ceiling applied and the learned path was only
+exercised with seeded latencies. It also gave operators no way to tell, from `/api/health`, whether a
+reported hedge delay was learned from traffic or still the cold-start fallback.
+
+- **Sustained-traffic live drill (`scripts/adaptive-hedge-sustained.ts`, `pnpm llm:hedge-sustained`).**
+  Drives real Melious traffic per profile until the primary itself has learned (>= minSamples clean primary
+  successes), asserts the learned threshold is strictly below the cold-start ceiling, that sustained healthy
+  traffic is never hedged, and that an injected hang recovers via a fired hedge that inherits only genuinely
+  observed primary latencies. Evidence: `docs/evidence/adaptive-hedge-sustained-1.5.6.json`.
+- **Hedge provenance in health (`lib/llm/hedge-policy.ts`).** `snapshot()` now reports, per model,
+  `{ samples, learned, delayMs }` - `delayMs` is `null` while the model is cold, so an operator watching
+  `/api/health -> llm.hedging.models` can distinguish a learned delay from the fallback instead of guessing.
+  `learnedDelayMs` is retained unchanged for compatibility.
+- **No routing change.** Hedging remains off by default; sequential routing, token caps, breaker semantics
+  and 401/403 chain-stop are untouched.
+
 # 1.5.5 - adaptive stall hedging: the hedge delay tunes itself (2026-09-27)
 
 1.5.4 shipped stall hedging behind one hand-set constant, `LLM_HEDGE_AFTER_MS`. Its own ship record named the
