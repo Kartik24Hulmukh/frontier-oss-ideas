@@ -169,3 +169,35 @@ test('hedge: a fast failure while a hedge is in flight still fails over with zer
   assert.equal(res.error, 'auth_error')
   assert.deepEqual(calls, [ROUTES.fast[0]])
 })
+
+import { parseRetryAfter } from '../lib/llm/router'
+
+test('hedge_cancelled latency is measured from that attempt s own dispatch', async () => {
+  const { f } = fakeFetch((m) => (m === ROUTES.quality[0] ? new Promise<Response>(() => {}) : ok('hedged win')))
+  const r = new ModelRouter({ apiKey: 'k', fetcher: f, hedgeAfterMs: 100, timeouts: { [ROUTES.quality[0]]: 5000 } })
+  const res = await r.complete({ messages: msgs, profile: 'quality', maxOutputTokens: 64 })
+  assert.equal(res.ok, true)
+  const cancelled = res.attempts.find((a) => a.outcome === 'hedge_cancelled')
+  assert.ok(cancelled, 'primary must be cancelled after the hedge wins')
+  assert.ok(cancelled!.latencyMs >= 90, `cancelled latency ${cancelled!.latencyMs}ms must span the primary s own in-flight time`)
+})
+
+test('parseRetryAfter honours an injected clock for HTTP-date headers', () => {
+  const fixed = () => 1_700_000_000_000
+  assert.equal(parseRetryAfter('30', fixed), 30_000)
+  assert.equal(parseRetryAfter(new Date(1_700_000_060_000).toUTCString(), fixed), 60_000)
+  assert.equal(parseRetryAfter(new Date(1_699_999_940_000).toUTCString(), fixed), 0)
+  assert.equal(parseRetryAfter(null, fixed), undefined)
+})
+
+test('gateway refusals surface as availability provenance in health', async () => {
+  const { f } = fakeFetch((m) => (m === ROUTES.quality[0] ? status(404) : ok('served')))
+  const r = new ModelRouter({ apiKey: 'k', fetcher: f })
+  const res = await r.complete({ messages: msgs, profile: 'quality' })
+  assert.equal(res.ok, true)
+  const avail = r.health().availability
+  assert.ok(avail[ROUTES.quality[0]], 'refused primary must appear in availability')
+  assert.equal(avail[ROUTES.quality[0]].refusals, 1)
+  assert.equal(typeof avail[ROUTES.quality[0]].lastRefusalAt, 'string')
+  assert.ok(!avail[ROUTES.quality[1]])
+})

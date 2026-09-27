@@ -1,3 +1,9 @@
+## 1.5.8 — router telemetry integrity + gateway refusal provenance
+- Fixed: `hedge_cancelled` attempt latency is measured from that attempt's own dispatch, not the previous dispatch.
+- Fixed: `parseRetryAfter` uses the router's injectable clock for HTTP-date `Retry-After` headers.
+- Added: bounded per-model refusal memory; `/api/health` exposes `llm.availability` (refusals, lastRefusalAt) so `learned:false` primaries are explainable.
+- Tests: +3 (hedge-cancel provenance, clock-injected Retry-After, refusal availability). Live torture: all gates passed (docs/evidence/gateway-1.5.8.json).
+
 # 1.5.7 - learned hedging proven on sustained real traffic; hedge provenance in health (2026-09-27)
 
 The 1.5.5 ship record stated an honest limit: in its live drill two profiles never accumulated enough
