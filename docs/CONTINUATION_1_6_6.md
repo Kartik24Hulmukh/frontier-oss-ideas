@@ -79,3 +79,13 @@ repair and is explicitly a local beta smoke, not external-client certification.
 
 First increment merged through PR #44 after CI and security checks passed, as
 `1cf8463cc3e74056a08b1e85898a04ffe7e9504b`. Production gates still block certification.
+
+## Third increment — constrained CI/build portability (2 Oct 2026)
+
+**Problem:** `next build` defaulted to 25 workers and failed with `EAGAIN` on constrained CI/container; `pnpm verify` failed when `pnpm` was not installed.
+
+**Fix:** `next.config.mjs` caps workers at `cpus: 2` via `experimental.cpus`; `package.json` `verify` now uses `npm run typecheck && npm test && npm run build` (portable, pnpm-free) while remaining compatible with `pnpm install`.
+
+**Verification (fresh, this workspace):** `npm ci` 0 vulns, `npm run typecheck` passed, `npm test` 373/373 passed 1 skipped + 10/10 JS gate, `npm run build` passed with 2 workers (`EAGAIN` no longer reproduces), `npm run verify` passed end-to-end. Evidence `docs/evidence/local-beta-constrained-1.6.6.json` is local beta only — strict production gate remains blocked as documented above. No gateway credentials were exercised; Melious torture remains `syntheticCompletions:false`.
+
+Commit is on `fix/constrained-build-verification` for maintainer review via protected PR process.
