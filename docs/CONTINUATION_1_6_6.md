@@ -42,7 +42,7 @@ frameworks; no speculative dependency was added.
 ## Verification
 - Dependency install succeeded; dependency audit: 0 vulnerabilities.
 - Typecheck passed; production build passed.
-- TypeScript suite: 372 passed, 0 failed, 1 skipped (real Redis unprovisioned).
+- TypeScript suite: 373 passed, 0 failed, 1 skipped (real Redis unprovisioned).
 - JavaScript release gate: 10 passed, 0 failed.
 - Beta local HTTP gate: 6/6 passed.
 - Strict live HTTP gate: 8/12 passed; failed distributed configuration,
@@ -69,3 +69,13 @@ routing, abort behavior, credential rotation/rejection, and seven-provider cover
 
 Push/PR/merge must use the repository review process; green beta tests do not waive
 strict release blockers. The accompanying delivery record records actual Git results.
+
+## Second increment — HTTP journey and MCP version
+A 16-check local HTTP journey passed: six public pages, MCP initialize/discovery,
+real scan, export, proof page, OG image, tampered export rejection and malformed
+search inputs. It found stale MCP `serverInfo.version` (1.3.1); now derives from
+package.json with a regression test. Initial journey evidence predates this version
+repair and is explicitly a local beta smoke, not external-client certification.
+
+First increment merged through PR #44 after CI and security checks passed, as
+`1cf8463cc3e74056a08b1e85898a04ffe7e9504b`. Production gates still block certification.

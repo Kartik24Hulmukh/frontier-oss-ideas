@@ -1,0 +1,50 @@
+
+> simultaneity-index@1.6.6 build
+> next build
+
+▲ Next.js 16.3.6 (Turbopack)
+✓ Running next.config.mjs took 12ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1626ms
+  Running TypeScript ...
+  Finished TypeScript in 2.4s ...
+  Collecting page data using 25 workers ...
+  Generating static pages using 25 workers (0/11) ...
+  Generating static pages using 25 workers (2/11) 
+  Generating static pages using 25 workers (5/11) 
+  Generating static pages using 25 workers (8/11) 
+✓ Generating static pages using 25 workers (11/11) in 810ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /agents
+├ ƒ /api/analyst
+├ ƒ /api/badge
+├ ƒ /api/cohort
+├ ƒ /api/compare
+├ ƒ /api/export
+├ ƒ /api/health
+├ ƒ /api/mcp
+├ ƒ /api/search
+├ ƒ /api/verify
+├ ƒ /c/[token]
+├ ƒ /c/[token]/opengraph-image
+├ ○ /funds
+├ ○ /methodology
+├ ○ /pricing
+├ ○ /privacy
+├ ƒ /pulse
+├ ○ /robots.txt
+├ ƒ /s/[q]
+├ ƒ /s/[q]/opengraph-image
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
