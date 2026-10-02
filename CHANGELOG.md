@@ -1,3 +1,10 @@
+## 1.6.3 — Integrity is not issuer authentication
+- Reject invalid signatures without hash-only downgrade; suppress rejected evidence in page, metadata and OG.
+- Runtime validation of rendered proof fields; enforce decoded size ceiling at mint time.
+- Explicit issuer-authentication labels on all proof surfaces and no-referrer proof privacy headers.
+- Deterministic rolling-window emulator regression; rendered page and pixel-equivalent OG rejection tests.
+- Local production smoke passed; live strict gate and gateway drill remain red. See [release scope](docs/RELEASE_1_6_3.md).
+
 ## [1.6.2] - 2026-09-27
 
 ### Added

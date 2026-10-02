@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { encodeShare as encodeShareSafe, decodeShare } from '@/lib/share'
+import { encodeShare as encodeShareSafe, decodeShare, shareIntegrityValid, shareTrustLabel } from '@/lib/share'
 import { loadShare } from '@/lib/shares'
 
 export const runtime = 'nodejs'
@@ -27,16 +27,16 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   let token = ''
   try { token = decodeURIComponent((await params).token) } catch { return new ImageResponse(FALLBACK, size) }
   try {
-    let capsule
+    let share
     if (token.startsWith('si_')) {
       const record = await loadShare(token).catch(() => null)
       if (!record) return new ImageResponse(FALLBACK, size)
-      capsule = decodeShare(encodeShareSafe(record.capsule, record.receipt)).capsule
+      share = decodeShare(encodeShareSafe(record.capsule, record.receipt))
     } else {
-      const share = decodeShare(token)
-      if (!(share.digestMatches && share.bindingOk)) return new ImageResponse(FALLBACK, size)
-      capsule = share.capsule
+      share = decodeShare(token)
     }
+    if (!shareIntegrityValid(share)) return new ImageResponse(FALLBACK, size)
+    const capsule = share.capsule
     const tone = TONE[capsule.verdict] ?? '#555555'
     const query = capsule.query.length > 70 ? capsule.query.slice(0, 70) + '...' : capsule.query
     return new ImageResponse(
@@ -48,9 +48,10 @@ export default async function Image({ params }: { params: Promise<{ token: strin
             <div style={{ display: 'flex', fontSize: 160, fontWeight: 800, color: tone, lineHeight: 1 }}>{capsule.score}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 16 }}>
               <div style={{ display: 'flex', fontSize: 48, fontWeight: 700, color: tone }}>{capsule.verdict}</div>
-              <div style={{ display: 'flex', fontSize: 26, color: '#444' }}>{`Scanned ${new Date(capsule.searchedAt).toISOString().slice(0, 10)} · tamper-evident · stored nowhere`}</div>
+              <div style={{ display: 'flex', fontSize: 26, color: '#444' }}>{`Scanned ${new Date(capsule.searchedAt).toISOString().slice(0, 10)}`}</div>
             </div>
           </div>
+          <div style={{ display: 'flex', fontSize: 20, color: '#666' }}>{shareTrustLabel(share)}</div>
         </div>
       ),
       size,

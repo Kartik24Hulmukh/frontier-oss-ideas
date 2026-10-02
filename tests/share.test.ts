@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { generateKeyPairSync } from 'node:crypto'
 import { deflateRawSync } from 'node:zlib'
-import { decodeShare, encodeShare, safeHref, ShareError, SHARE_TOKEN_MAX_CHARS } from '../lib/share'
+import { decodeShare, encodeShare, safeHref, ShareError, SHARE_TOKEN_MAX_CHARS, shareIntegrityValid, shareTrustLabel } from '../lib/share'
 import { issueReceipt } from '../lib/scoring/receipt'
 import { POST } from '../app/api/export/route'
 import type { EvidenceCapsule } from '../lib/types'
@@ -79,4 +79,51 @@ test('/api/export adds the 1.6.0 write-once si_ alias for pinned receipts and st
     assert.equal(j.proofPath, `/c/${j.token}`)
     assert.equal(decodeShare(j.token).issuerTrusted, true)
   } finally { process.env = old }
+})
+
+function rawToken(c: EvidenceCapsule, receipt: unknown): string {
+  return `v1.${issueReceipt(c).digest.slice(0, 16)}.${deflateRawSync(Buffer.from(JSON.stringify({ capsule: c, receipt }))).toString('base64url')}`
+}
+
+test('broken signatures cannot downgrade to hash-only and export rejects them', async () => {
+  const receipt = { ...issueReceipt(capsule, pem), signature: Buffer.alloc(64).toString('base64') }
+  const decoded = decodeShare(rawToken(capsule, receipt))
+  assert.equal(decoded.digestMatches, true)
+  assert.equal(decoded.signatureValid, false)
+  assert.equal(shareIntegrityValid(decoded), false)
+  assert.match(shareTrustLabel(decoded), /Invalid proof/)
+  assert.throws(() => encodeShare(capsule, receipt), ShareError)
+  const res = await POST(new Request('http://localhost/api/export', { method: 'POST', body: JSON.stringify({ capsule, receipt }) }))
+  assert.equal(res.status, 422)
+})
+
+test('hash-only proofs explicitly disclaim authenticated origin; self-signing is not issuer trust', () => {
+  const hash = decodeShare(encodeShare(capsule, issueReceipt(capsule)))
+  assert.equal(shareIntegrityValid(hash), true)
+  assert.match(shareTrustLabel(hash), /origin and scan claims not authenticated/)
+  const signed = decodeShare(encodeShare(capsule, issueReceipt(capsule, pem)))
+  assert.match(shareTrustLabel(signed), /Untrusted issuer/)
+})
+
+test('decoded and encoded capsule schemas reject render-crashing nested data', () => {
+  for (const patch of [{ evidenceLinks: [null] }, { evidenceLinks: [{ source: 'github', title: {}, url: 'https://example.org' }] }, { sourceSummary: [null] }, { score: -1 }, { score: 101 }, { searchedAt: 'not a date' }, { verdict: {} }, { disclaimer: {} }, { quadrant: {} }]) {
+    const bad = { ...capsule, ...patch } as EvidenceCapsule
+    const receipt = issueReceipt(bad)
+    assert.throws(() => encodeShare(bad, receipt), ShareError)
+    assert.throws(() => decodeShare(rawToken(bad, receipt)), ShareError)
+  }
+})
+
+test('timestamp mismatch and malformed receipt algorithms fail closed', () => {
+  const receipt = { ...issueReceipt(capsule), issuedAt: '2026-01-01T00:00:00Z' }
+  assert.throws(() => encodeShare(capsule, receipt), ShareError)
+  assert.equal(shareIntegrityValid(decodeShare(rawToken(capsule, receipt))), false)
+  for (const patch of [{ algorithm: 'unknown' }, { publicKey: {} }, { signature: 'not-null' }]) {
+    assert.throws(() => decodeShare(rawToken(capsule, { ...issueReceipt(capsule), ...patch })), ShareError)
+  }
+})
+
+test('minting cannot create a compressed proof that its own decoder rejects for size', () => {
+  const large = { ...capsule, disclaimer: 'a'.repeat(262144) }
+  assert.throws(() => encodeShare(large, issueReceipt(large)), (e: unknown) => e instanceof ShareError && e.code === 'too_large')
 })

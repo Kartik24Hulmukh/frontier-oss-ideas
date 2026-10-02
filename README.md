@@ -1,3 +1,5 @@
+> **1.6.3 trust repair:** Proof pages and OG distinguish authenticated issuers from user-supplied checksums. Invalid signatures and tampered evidence never render score claims. [Release + verified limits](docs/RELEASE_1_6_3.md). Strict production and live gateway gates are not green.
+
 > **1.5.2 provenance hardening:** demand mirror provenance survives signed exports; partial-source notices remain visible; strict canaries reject degraded demand and can pin the deployed commit. [Release scope](docs/RELEASE_1_5_2.md). Still public research beta.
 
 > **1.5.1 verification hardening:** Redis-server-time admission, real-Lua concurrency tests in CI, truthful version/config health, and explicit issuer pins. [Release scope](docs/RELEASE_1_5_1.md). Public research beta; strict production gates remain blocking.
@@ -16,7 +18,7 @@
 - **Cohort screening for funds** — `POST /api/cohort` + `/funds` (novelty ranking, idea-twin collisions, CSV).
 - **Verifiable receipts** — SHA-256 (Ed25519 with `RECEIPT_PRIVATE_KEY`), check with `POST /api/verify`.
 - **Retention** — watchlist with deltas, share links `/s/<idea>`, `/pulse` leaderboard.
-- **Trust** — query expansion + cross-source dedup, public `/methodology`, live gold-set calibration: **Spearman ρ 0.83, 81% pairwise ordinal agreement, 19/20 within one band** (`docs/CALIBRATION.md`, `pnpm calibrate`).
+- **Trust** — query expansion + cross-source dedup, public `/methodology`, live gold-set calibration: **Historical author-labelled sample: Spearman ρ 0.83, 81% pairwise ordinal agreement, 19/20 within one band — not independent validation** (`docs/CALIBRATION.md`, `pnpm calibrate`).
 - **Production hardening** — scan cache, in-flight coalescing, per-IP rate limits; 26 tests; `pnpm verify` green.
 
 ```bash

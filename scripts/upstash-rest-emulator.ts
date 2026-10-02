@@ -31,24 +31,24 @@ export interface Emulator {
   close(): Promise<void>
 }
 
-export function createStore() {
+export function createStore(now = Date.now) {
   const store = new Map<string, Entry>()
   const live = (k: string): Entry | undefined => {
     const e = store.get(k)
     if (!e) return undefined
-    if (e.expiresAt !== undefined && e.expiresAt <= Date.now()) {
+    if (e.expiresAt !== undefined && e.expiresAt <= now()) {
       store.delete(k)
       return undefined
     }
     return e
   }
-  return { store, live }
+  return { store, live, now }
 }
 
 /** Rolling-window admission script (KEYS: per-key, global; ARGV: cost, perKey, global, ttlSeconds, windowMs, nonce). */
 function evalAdmission(ctx: ReturnType<typeof createStore>, keys: string[], argv: string[]): number {
   const [cost, perKey, globalCap, ttl, windowMs] = argv.map(Number)
-  const now = Date.now() // server-side time: app clock skew cannot widen the window
+  const now = ctx.now() // server-side time: app clock skew cannot widen the window
   const cutoff = now - windowMs
   const a = ctx.live(keys[0]), b = ctx.live(keys[1])
   const za = (a?.zset ?? []).filter((m) => m.score > cutoff)
@@ -74,7 +74,7 @@ function evalReserve(ctx: ReturnType<typeof createStore>, keys: string[], argv: 
   const tokens = Number(argv[0])
   const limit = Number(argv[1])
   const window = Number(argv[2]) + Number(argv[3])
-  const now = Date.now() // server-side time: app clock skew cannot widen the budget
+  const now = ctx.now() // server-side time: app clock skew cannot widen the budget
   const e = ctx.live(keys[0]) ?? { zset: [] }
   const zset = (e.zset ?? []).filter((m) => m.score > now - window)
   const used = zset.reduce((s, m) => s + Number(m.member.split(':')[0]), 0)

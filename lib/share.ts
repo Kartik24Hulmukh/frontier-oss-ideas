@@ -30,13 +30,38 @@ export interface DecodedShare {
   bindingOk: boolean
 }
 
+const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+const text = (v: unknown): v is string => typeof v === 'string'
+const bounded = (v: unknown, max = 100): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max
+const date = (v: unknown): v is string => text(v) && Number.isFinite(Date.parse(v))
+const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface']
 function isCapsule(v: unknown): v is EvidenceCapsule {
-  const c = v as EvidenceCapsule
-  return !!c && typeof c === 'object' && !Array.isArray(c) && typeof c.query === 'string' && typeof c.score === 'number' && typeof c.searchedAt === 'string' && typeof c.verdict === 'string' && Array.isArray(c.evidenceLinks)
+  if (!object(v)) return false
+  return ['1.0', '1.1', '1.2'].includes(String(v.version)) && text(v.query) &&
+    bounded(v.score) && bounded(v.confidence) && date(v.searchedAt) && text(v.disclaimer) &&
+    ['Open lane', 'Early movers', 'Crowded', 'Saturated'].includes(String(v.verdict)) &&
+    Array.isArray(v.evidenceLinks) && v.evidenceLinks.every(e => object(e) && text(e.source) && sources.includes(e.source) && text(e.title) && text(e.url)) &&
+    (v.sourceSummary === undefined || (Array.isArray(v.sourceSummary) && v.sourceSummary.every(s => object(s) && text(s.source) && sources.includes(s.source) && ['ok', 'error', 'rate_limited'].includes(String(s.status)) && bounded(s.totalCount, Number.MAX_SAFE_INTEGER)))) &&
+    (v.demandScore === undefined || v.demandScore === null || bounded(v.demandScore)) &&
+    (v.quadrant === undefined || v.quadrant === null || ['Blue Ocean', 'Gold Rush', 'Ghost Town', 'Bloodbath'].includes(String(v.quadrant)))
 }
 function isReceipt(v: unknown): v is ScanReceipt {
-  const r = v as ScanReceipt
-  return !!r && typeof r === 'object' && typeof r.digest === 'string' && /^[a-f0-9]{64}$/.test(r.digest) && typeof r.issuedAt === 'string'
+  if (!object(v) || !text(v.digest) || !/^[a-f0-9]{64}$/.test(v.digest) || !date(v.issuedAt)) return false
+  if (v.algorithm === 'sha256') return v.signature === null && v.publicKey === null
+  return v.algorithm === 'ed25519+sha256' && text(v.signature) && v.signature.length > 0 && text(v.publicKey) && v.publicKey.length > 0 &&
+    (v.keyId === undefined || (text(v.keyId) && /^[a-f0-9]{64}$/.test(v.keyId)))
+}
+
+/** One acceptance policy for page, metadata, export and OG. Integrity is NOT issuer authentication. */
+export function shareIntegrityValid(share: DecodedShare): boolean {
+  return share.digestMatches && share.bindingOk && share.receipt.issuedAt === share.capsule.searchedAt &&
+    (share.receipt.algorithm === 'sha256' ? share.signatureValid === null : share.signatureValid === true)
+}
+export function shareTrustLabel(share: DecodedShare): string {
+  if (!shareIntegrityValid(share)) return 'Invalid proof — evidence or signature verification failed'
+  if (share.issuerTrusted) return 'Verified — signed by a pinned Simultaneity issuer'
+  if (share.signatureValid === true) return 'Untrusted issuer — signature valid; origin not authenticated'
+  return 'Hash-only — checksum matches; origin and scan claims not authenticated'
 }
 
 /** Mint a proof token. Refuses capsules whose receipt digest does not match (no laundering of edited evidence). */
@@ -44,7 +69,11 @@ export function encodeShare(capsule: EvidenceCapsule, receipt: ScanReceipt): str
   if (!isCapsule(capsule) || !isReceipt(receipt)) throw new ShareError('malformed', 'Body must include a capsule and receipt.')
   const digest = digestCapsule(capsule)
   if (digest !== receipt.digest) throw new ShareError('digest_mismatch', 'Capsule does not match its receipt digest; refusing to mint a proof link.')
-  const payload = deflateRawSync(Buffer.from(canonicalJson({ capsule, receipt })), { level: 9 }).toString('base64url')
+  const checked = verifyReceipt(capsule, receipt)
+  if (receipt.issuedAt !== capsule.searchedAt || (receipt.algorithm === 'ed25519+sha256' && checked.signatureValid !== true)) throw new ShareError('digest_mismatch', 'Receipt signature or scan timestamp is invalid.')
+  const raw = Buffer.from(canonicalJson({ capsule, receipt }))
+  if (raw.length > INFLATE_MAX_BYTES) throw new ShareError('too_large', 'Evidence capsule exceeds the decoded size limit.')
+  const payload = deflateRawSync(raw, { level: 9 }).toString('base64url')
   const token = `v1.${digest.slice(0, 16)}.${payload}`
   if (token.length > SHARE_TOKEN_MAX_CHARS) throw new ShareError('too_large', 'Evidence capsule is too large for a self-contained link; download the JSON instead.')
   return token
