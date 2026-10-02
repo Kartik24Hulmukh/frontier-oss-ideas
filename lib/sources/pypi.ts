@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 /** Best-effort PyPI adapter: JSON for exact-ish names + HTML search parse. */
@@ -16,7 +17,8 @@ export async function searchPypi(
     const items: EvidenceItem[] = []
     await Promise.all(candidates.slice(0, 3).map(async (name) => {
       try {
-        const res = await fetchWithTimeout(
+        const res = await pacedFetch(
+          'pypi',
           'https://pypi.org/pypi/' + encodeURIComponent(name) + '/json',
           { timeoutMs: ctx.timeoutMs ?? 5000 },
         )
@@ -38,7 +40,8 @@ export async function searchPypi(
     }))
     let searchAvailable = false
     try {
-      const searchRes = await fetchWithTimeout(
+      const searchRes = await pacedFetch(
+        'pypi',
         'https://pypi.org/search/?q=' + encodeURIComponent(query),
         {
           headers: { Accept: 'text/html' },
@@ -80,7 +83,8 @@ export async function searchPypi(
       items: unique.slice(0, 10),
       ...(!searchAvailable ? { notice: 'PyPI search unavailable or challenged; exact-name evidence only, not ecosystem-wide search.' } : {}),
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('pypi', label, e.message, e.status === 429)
     return errorResult('pypi', label, 'PyPI request failed or timed out.')
   }
 }

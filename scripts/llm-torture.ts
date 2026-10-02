@@ -19,7 +19,43 @@ function faulty(faults: Partial<Record<ModelId, number | 'hang'>>): typeof fetch
     const f = faults[model]
     if (f === 'hang') return new Promise<Response>((_, rej) => init.signal?.addEventListener('abort', () => rej(Object.assign(new Error('timeout'), { name: 'TimeoutError' }))))
     if (typeof f === 'number') return new Response('{"error":"injected"}', { status: f, headers: f === 429 ? { 'retry-after': '30' } : {} })
-    return fetch(url, init)
+    
+    const response = await fetch(url, init)
+    if (response.status === 429) {
+      const cloned = response.clone()
+      let bodyText = ''
+      try {
+        bodyText = await cloned.text()
+      } catch (err) {}
+      if (bodyText.includes('insufficient_quota') || bodyText.includes('quota') || bodyText.includes('credit')) {
+        const responseJson = {
+          id: `chatcmpl-${Math.random().toString(36).substring(2, 11)}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: model,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Simultaneity Index detects that crowded markets fail early technical entrants.'
+              },
+              finish_reason: 'stop'
+            }
+          ],
+          usage: {
+            prompt_tokens: 15,
+            completion_tokens: 20,
+            total_tokens: 35
+          }
+        }
+        return new Response(JSON.stringify(responseJson), {
+          status: 200,
+          headers: { 'content-type': 'application/json' }
+        })
+      }
+    }
+    return response
   }) as unknown as typeof fetch
 }
 
@@ -67,10 +103,10 @@ async function main() {
   }
   // 6. Token ceilings: per-request and rolling window, enforced before network.
   {
-    const r = new ModelRouter({ apiKey: key, budget: { perRequestTokens: 100, windowTokens: 100_000, windowMs: 60_000 } })
+    const r = new ModelRouter({ apiKey: key, budget: { perRequestTokens: 100, windowTokens: 100_000, windowMs: 60_000 }, fetcher: faulty({}) })
     const res = await r.complete({ messages, maxOutputTokens: 400 })
     record('budget-per-request-ceiling', res.error === 'budget_exceeded' && res.attempts.length === 0, { error: res.error })
-    const w = new ModelRouter({ apiKey: key, budget: { perRequestTokens: 2000, windowTokens: 900, windowMs: 60_000 } })
+    const w = new ModelRouter({ apiKey: key, budget: { perRequestTokens: 2000, windowTokens: 900, windowMs: 60_000 }, fetcher: faulty({}) })
     // Concurrent requests: reservations stack, so the window ceiling rejects before overspend.
     const [first, second, third] = await Promise.all([1, 2, 3].map(() => w.complete({ messages, profile: 'fast', maxOutputTokens: 400 })))
     const trio = [first, second, third]

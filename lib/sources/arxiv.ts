@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 function extractTag(xml: string, tag: string): string | null {
@@ -17,7 +18,7 @@ export async function searchArxiv(
       'https://export.arxiv.org/api/query?search_query=all:' +
       encodeURIComponent(phrase) +
       '&max_results=10&sortBy=relevance'
-    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs })
+    const res = await pacedFetch('arxiv', url, { timeoutMs: ctx.timeoutMs })
     if (!res.ok) return errorResult('arxiv', label, 'arXiv returned ' + res.status + '.')
     const xml = await res.text()
     const totalMatch = xml.match(/<opensearch:totalResults[^>]*>(\d+)</)
@@ -38,7 +39,8 @@ export async function searchArxiv(
       }
     })
     return { source: 'arxiv', label, status: 'ok', totalCount, items }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('arxiv', label, e.message, e.status === 429)
     return errorResult('arxiv', label, 'arXiv request failed or timed out.')
   }
 }

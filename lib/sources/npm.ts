@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 export async function searchNpm(
@@ -11,7 +12,7 @@ export async function searchNpm(
       'https://registry.npmjs.org/-/v1/search?text=' +
       encodeURIComponent(query) +
       '&size=10'
-    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs })
+    const res = await pacedFetch('npm', url, { timeoutMs: ctx.timeoutMs })
     if (!res.ok) return errorResult('npm', label, 'npm registry returned ' + res.status + '.')
     const data = await res.json()
     const items: EvidenceItem[] = (data.objects ?? []).map(
@@ -38,7 +39,8 @@ export async function searchNpm(
       totalCount: data.total ?? items.length,
       items,
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('npm', label, e.message, e.status === 429)
     return errorResult('npm', label, 'npm registry request failed or timed out.')
   }
 }

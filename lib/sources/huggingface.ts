@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 export async function searchHuggingFace(
@@ -14,11 +15,11 @@ export async function searchHuggingFace(
       'https://huggingface.co/api/datasets?search=' + q + '&limit=4&sort=downloads&direction=-1'
 
     const [modelsRes, datasetsRes] = await Promise.all([
-      fetchWithTimeout(modelsUrl, {
+      pacedFetch('huggingface', modelsUrl, {
         headers: { 'User-Agent': 'simultaneity-index/1.0' },
         timeoutMs: ctx.timeoutMs,
       }),
-      fetchWithTimeout(datasetsUrl, {
+      pacedFetch('huggingface', datasetsUrl, {
         headers: { 'User-Agent': 'simultaneity-index/1.0' },
         timeoutMs: ctx.timeoutMs,
       }),
@@ -81,7 +82,8 @@ export async function searchHuggingFace(
       items: items.slice(0, 10),
       ...(!modelsRes.ok || !datasetsRes.ok ? { notice: `Partial Hugging Face evidence: ${!modelsRes.ok ? 'models' : 'datasets'} endpoint unavailable.` } : {}),
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('huggingface', label, e.message, e.status === 429)
     return errorResult('huggingface', label, 'Hugging Face request failed or timed out.')
   }
 }

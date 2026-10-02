@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 export async function searchHackerNews(
@@ -9,7 +10,7 @@ export async function searchHackerNews(
   try {
     const q = encodeURIComponent(query)
     const url = 'https://hn.algolia.com/api/v1/search?query=' + q + '&tags=story&hitsPerPage=10'
-    const res = await fetchWithTimeout(url, { timeoutMs: ctx.timeoutMs })
+    const res = await pacedFetch('hackernews', url, { timeoutMs: ctx.timeoutMs })
     if (!res.ok) return errorResult('hackernews', label, 'Hacker News returned ' + res.status + '.')
     const data = await res.json()
     const items: EvidenceItem[] = (data.hits ?? []).map(
@@ -40,7 +41,8 @@ export async function searchHackerNews(
       totalCount: data.nbHits ?? items.length,
       items,
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('hackernews', label, e.message, e.status === 429)
     return errorResult('hackernews', label, 'Hacker News request failed or timed out.')
   }
 }

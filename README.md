@@ -1,4 +1,4 @@
-> **1.6.5 source observations:** Health reports only fresh successful HTTP observations; errors, stale observations and invalid provider ceilings cannot silently look healthy. Recovery probes survive local quota refusal. [Release scope](docs/RELEASE_1_6_5.md). Full launch gates remain blocked.
+> **1.6.6 source observations:** Health reports only fresh successful HTTP observations; errors, stale observations and invalid provider ceilings cannot silently look healthy. Recovery probes survive local quota refusal. [Release scope](docs/RELEASE_1_6_5.md). Full launch gates remain blocked.
 
 > **1.6.3 trust repair:** Proof pages and OG distinguish authenticated issuers from user-supplied checksums. Invalid signatures and tampered evidence never render score claims. [Release + verified limits](docs/RELEASE_1_6_3.md). Strict production and live gateway gates are not green.
 

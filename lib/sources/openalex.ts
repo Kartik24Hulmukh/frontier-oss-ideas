@@ -1,4 +1,5 @@
-import { errorResult, fetchWithTimeout } from '@/lib/core/fetch'
+import { errorResult } from '@/lib/core/fetch'
+import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
 
 export async function searchOpenAlex(
@@ -14,7 +15,8 @@ export async function searchOpenAlex(
     if (ctx.openAlexApiKey) parameters.set('api_key', ctx.openAlexApiKey)
     if (ctx.openAlexMailto) parameters.set('mailto', ctx.openAlexMailto)
 
-    const response = await fetchWithTimeout(
+    const response = await pacedFetch(
+      'openalex',
       `https://api.openalex.org/works?${parameters.toString()}`,
       {
         headers: {
@@ -70,7 +72,8 @@ export async function searchOpenAlex(
       totalCount: data.meta?.count ?? items.length,
       items,
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof UpstreamError) return errorResult('openalex', label, e.message, e.status === 429)
     return errorResult('openalex', label, 'OpenAlex request failed or timed out.')
   }
 }
