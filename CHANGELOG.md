@@ -1,3 +1,8 @@
+## 1.6.7 — 2 October 2026
+
+- **Constrained-build portability (from #46):** `npm run verify` works with npm-only installs; Next build capped at two workers (`experimental.cpus`) to survive constrained process limits (`EAGAIN`).
+- **Fresh live gateway evidence:** `llm:torture` run live against the Melious gateway; all four models returned upstream `429` (credit exhaustion). Failures are preserved in `docs/evidence/melious-torture-live-2026-10-02.json`; budget ceilings and auth chain-stop gates pass; no completion is ever synthesized. Live model availability remains unproven.
+
 ## 1.6.6 continuation — verification truthfulness
 - Removed quota-to-synthetic-success interception from live verification; retain historical evidence with an explicit invalidity annotation.
 - Added failure-only injection and response-preservation regression tests.
