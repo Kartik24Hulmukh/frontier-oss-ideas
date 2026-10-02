@@ -20,7 +20,7 @@ This is a focused security increment, not certification of every file or complet
 | Matching checksum looks like official proof | Page, metadata and OG explicitly say origin and scan claims are not authenticated; pinned issuer alone gets “Verified” | Label and rendered page tests |
 | Nested malformed JSON crashes React | Runtime schema for rendered capsule fields and receipt structure before acceptance | Malformed nested-array/object/range/date tests |
 | Compressible huge capsule mints a link its own decoder rejects | Same 256 KiB decoded size ceiling before compression and during inflation | Compressible-payload regression test |
-| Proof URL leaks through same-origin referrers | Proof-specific no-referrer metadata and response headers; noindex/nofollow/noarchive header | Metadata assertion; deployment header check still required |
+| Proof URL leaks through same-origin referrers | Proof-specific no-referrer metadata and response headers; noindex/nofollow/noarchive header | Metadata assertion; production headers confirmed no-referrer + noindex/nofollow/noarchive |
 | Timing tests fail under build/CI load | Inject server clock into loopback emulator; rolling-window boundary test advances deterministic time | Full suite |
 | OG test only asserts 200, misses forged score | Compare rejected OG PNG bytes to the neutral image | Pixel-equivalent fallback test |
 
@@ -61,3 +61,12 @@ node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app --strict --e
 # Scoped rotated key in environment only:
 npm run llm:torture -- --output gateway.json
 ```
+
+## Post-merge production verification
+PR [#39](https://github.com/Kartik24Hulmukh/frontier-oss-ideas/pull/39) squash-merged as `38bace6f25b05866665e45b831e0b28795eb81da`. Production health reports **1.6.3 @ 38bace6**. GitGuardian, verify and Vercel passed before merge.
+
+GitHub CI logs explicitly show the real Redis/Lua concurrency, rollover, global and rolling-ceiling test passed (job `110861239455`, run `37014290835`). This upgrades the local-only skipped-test limitation; it is still not a managed production Redis load/outage test.
+
+The seven-check synthetic production HTTP smoke passed, including export → viewer → OG, tamper rejection and invalid-signature suppression. Proof response headers confirmed `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow, noarchive`.
+
+Strict gate on the exact merged production SHA is still **red**: distributed admission, pinned issuer, healthy supply and healthy demand. Deployment is successful; commercial readiness is not. Raw post-merge results retained in `docs/evidence/proof-integrity-production-1.6.3.json`, `proof-privacy-production-1.6.3.json` and `gate-production-1.6.3.json`.
