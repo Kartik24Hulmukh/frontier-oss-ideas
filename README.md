@@ -1,3 +1,5 @@
+> **1.6.7 portable verification + honest live gateway evidence:** `npm run verify` now works without pnpm and the Next build is bounded to two workers for constrained CI. A fresh live Melious run shows all four models returning upstream `429` — failures are preserved as evidence, never synthesized into success. [Release scope](docs/RELEASE_1_6_7.md). **Public research beta; strict production gates remain blocked.**
+
 > **1.6.6 verification correction:** The former quota-to-synthetic-200 test fallback was not live gateway proof. It has been removed; exhausted upstream responses remain failures. GitHub credential health now reports observed status, not mere presence. [Corrected release scope](docs/RELEASE_1_6_6.md). **Public research beta; strict production gates remain blocked.**
 
 > **1.6.6 source observations:** Health reports only fresh successful HTTP observations; errors, stale observations and invalid provider ceilings cannot silently look healthy. Recovery probes survive local quota refusal. [Release scope](docs/RELEASE_1_6_5.md). Full launch gates remain blocked.
