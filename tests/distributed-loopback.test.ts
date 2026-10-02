@@ -75,13 +75,14 @@ test('production refuses a loopback limiter outright', async () => {
   setNodeEnv('test')
 })
 
-test('admission is a rolling window: a boundary cannot admit two quotas back to back', async () => {
-  const ctx = createStore()
+test('admission is a rolling window: a boundary cannot admit two quotas back to back', () => {
+  let now = 1000
+  const ctx = createStore(() => now)
   const run = (cost: number, nonce: string) => execCommand(ctx, ['EVAL', ADMISSION_LUA, 2, 'k', 'g', cost, 4, 100, 60, 150, nonce])
   assert.deepEqual(run(4, 'a'), { result: 1 })
   assert.deepEqual(run(1, 'b'), { result: 0 })
-  await new Promise((r) => setTimeout(r, 80))
+  now += 80
   assert.deepEqual(run(1, 'c'), { result: 0 }, 'half a window must not refill the quota')
-  await new Promise((r) => setTimeout(r, 90))
+  now += 90
   assert.deepEqual(run(4, 'd'), { result: 1 }, 'a fully elapsed window releases exactly the elapsed admissions')
 })

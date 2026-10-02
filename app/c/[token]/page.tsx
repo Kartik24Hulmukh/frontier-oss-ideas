@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { PageShell } from '@/components/page-shell'
 import { notFound } from 'next/navigation'
-import { encodeShare as encodeShareSafe, decodeShare, safeHref, type DecodedShare } from '@/lib/share'
+import { encodeShare as encodeShareSafe, decodeShare, safeHref, shareIntegrityValid, shareTrustLabel, type DecodedShare } from '@/lib/share'
 import { loadShare } from '@/lib/shares'
 
 export const dynamic = 'force-dynamic'
@@ -13,10 +13,14 @@ async function load(token: string): Promise<{ ok: true; share: DecodedShare } | 
     // 1.6.0 write-once alias: re-derive the proof from the stored record so both link kinds share one verified renderer.
     const record = await loadShare(token).catch(() => null)
     if (!record) notFound()
-    return { ok: true, share: decodeShare(encodeShareSafe(record.capsule, record.receipt)) }
+    try {
+      const share = decodeShare(encodeShareSafe(record.capsule, record.receipt))
+      return shareIntegrityValid(share) ? { ok: true, share } : { ok: false, error: 'Evidence or signature verification failed.' }
+    } catch { return { ok: false, error: 'Invalid stored proof.' } }
   }
   try {
-    return { ok: true, share: decodeShare(decodeURIComponent(token)) }
+    const share = decodeShare(decodeURIComponent(token))
+    return shareIntegrityValid(share) ? { ok: true, share } : { ok: false, error: 'Evidence or signature verification failed.' }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Invalid proof link.' }
   }
@@ -24,12 +28,12 @@ async function load(token: string): Promise<{ ok: true; share: DecodedShare } | 
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const loaded = await load((await params).token)
-  if (!loaded.ok) return { title: 'Invalid proof link \u2014 Simultaneity Index', robots: { index: false } }
+  if (!loaded.ok) return { title: 'Invalid proof link \u2014 Simultaneity Index', robots: { index: false, follow: false }, referrer: 'no-referrer' }
   const c = loaded.share.capsule
   return {
     title: `Proof: Simultaneity ${c.score} for \u201c${c.query.slice(0, 80)}\u201d \u2014 Simultaneity Index`,
-    description: `Frozen, tamper-evident scan snapshot from ${c.searchedAt}. Verdict: ${c.verdict}.`,
-    robots: { index: false },
+    description: `${shareTrustLabel(loaded.share)}. Snapshot from ${c.searchedAt}. Verdict: ${c.verdict}.`,
+    robots: { index: false, follow: false }, referrer: 'no-referrer',
   }
 }
 
@@ -43,15 +47,8 @@ export default async function ProofView({ params }: Props) {
       </PageShell>
     )
   }
-  const { capsule: c, receipt: r, digestMatches, signatureValid, issuerTrusted, bindingOk } = loaded.share
-  const intact = digestMatches && bindingOk
-  const status = !intact
-    ? { label: 'TAMPERED \u2014 evidence does not match its receipt', cls: 'border-red-600 text-red-700' }
-    : issuerTrusted
-      ? { label: 'Verified \u2014 intact and signed by the pinned Simultaneity issuer key', cls: 'border-green-600 text-green-700' }
-      : signatureValid
-        ? { label: 'Intact \u2014 signature valid, but the signing key is not this deployment\u2019s pinned issuer', cls: 'border-amber-600 text-amber-700' }
-        : { label: 'Intact (hash-only) \u2014 unchanged since minted; issuer identity not proven', cls: 'border-amber-600 text-amber-700' }
+  const { capsule: c, receipt: r, issuerTrusted } = loaded.share
+  const status = { label: shareTrustLabel(loaded.share), cls: issuerTrusted ? 'border-green-600 text-green-700' : 'border-amber-600 text-amber-700' }
   return (
     <PageShell eyebrow="Proof link \u00b7 frozen snapshot" title={`Simultaneity ${c.score}: \u201c${c.query}\u201d`}>
       <div className={`rounded-lg border-2 p-4 font-mono text-xs uppercase tracking-widest ${status.cls}`} data-testid="proof-status">{status.label}</div>
@@ -76,7 +73,7 @@ export default async function ProofView({ params }: Props) {
         </ul>
       </section>
       <p className="font-mono text-xs leading-5 text-muted-foreground">
-        Scanned {new Date(c.searchedAt).toUTCString()} \u00b7 {r.algorithm} \u00b7 digest {r.digest.slice(0, 16)}\u2026 \u00b7 stored nowhere: this URL is the evidence \u00b7{' '}
+        Scanned {new Date(c.searchedAt).toUTCString()} \u00b7 {r.algorithm} \u00b7 digest {r.digest.slice(0, 16)}\u2026 \u00b7 content-addressed snapshot; the self-contained URL contains the evidence \u00b7{' '}
         <a className="underline" href={`/s/${encodeURIComponent(c.query)}`}>Re-scan live now</a> \u00b7{' '}
         <a className="underline" href="/">Scan your own idea</a>
       </p>
