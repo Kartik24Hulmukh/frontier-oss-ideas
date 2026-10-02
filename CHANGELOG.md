@@ -1,3 +1,10 @@
+## 1.6.4 - 2026-10-02
+
+- Operational source health: `/api/health` now reports `sources` (per-instance provider breaker state closed/open/half-open, consecutive failures, retry delay, request/failure counts, last status and timestamps). No URLs, queries or credentials are exposed.
+- `CircuitBreaker.snapshot()` is read-only and never consumes the half-open probe.
+- Network errors and timeouts now count toward the provider breaker (previously only 429/5xx did), so a dead upstream is shed fast instead of burning the scan deadline.
+- 3 new regression tests (130 pass, 1 real-Redis skipped; 10 gate tests pass; typecheck clean).
+
 ## 1.6.3 — Integrity is not issuer authentication
 - Reject invalid signatures without hash-only downgrade; suppress rejected evidence in page, metadata and OG.
 - Runtime validation of rendered proof fields; enforce decoded size ceiling at mint time.
