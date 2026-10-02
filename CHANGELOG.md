@@ -1,3 +1,11 @@
+## 1.6.5 - 2026-10-02
+
+- Source health no longer reports HTTP 401/403/404 or the first retryable failure as healthy. Only fresh 2xx observations establish health; observations expire after five minutes.
+- Health exposes provider observation age, status and ceiling-configuration validity without request URLs or secrets.
+- Invalid/nonfinite/nonpositive/fractional provider ceilings fail closed before dispatch.
+- Quota refusal releases an undispatched half-open probe, preventing permanent recovery deadlock.
+- Six new regression tests include 100 mocked status/provider scenarios. Per-instance observations are not global source coverage or launch certification.
+
 ## 1.6.4 - 2026-10-02
 
 - Operational source health: `/api/health` now reports `sources` (per-instance provider breaker state closed/open/half-open, consecutive failures, retry delay, request/failure counts, last status and timestamps). No URLs, queries or credentials are exposed.

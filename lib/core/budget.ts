@@ -77,6 +77,12 @@ export class CircuitBreaker {
     return false
   }
 
+  /** Release a reserved half-open probe when no upstream request was dispatched. */
+  releaseProbe(key: string): void {
+    const s = this.states.get(key)
+    if (s) s.halfOpen = false
+  }
+
   onSuccess(key: string): void {
     this.states.delete(key)
   }
