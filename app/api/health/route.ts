@@ -2,6 +2,7 @@ import { version } from '@/package.json'
 import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 import { sharedRouter } from '@/lib/llm/analyst'
 import { trustedKeyCount } from '@/lib/scoring/receipt'
+import { sourceHealth } from '@/lib/core/pace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,7 @@ export async function GET() {
         receiptPublicKeyPinned: Boolean(process.env.RECEIPT_PUBLIC_KEY),
       },
       llm: sharedRouter().health(),
+      sources: sourceHealth(),
       timestamp: new Date().toISOString(),
     },
     {

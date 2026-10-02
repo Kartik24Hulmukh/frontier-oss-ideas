@@ -89,6 +89,16 @@ export class CircuitBreaker {
     this.states.set(key, s)
   }
 
+  /** Read-only view for operator health surfaces. Never mutates half-open state. */
+  snapshot(key: string, now = Date.now()): { state: 'closed' | 'open' | 'half-open'; failures: number; retryInMs: number } {
+    const s = this.states.get(key)
+    if (!s) return { state: 'closed', failures: 0, retryInMs: 0 }
+    if (s.failures < this.threshold) return { state: 'closed', failures: s.failures, retryInMs: 0 }
+    const elapsed = now - s.openedAt
+    if (elapsed >= this.cooldownMs) return { state: 'half-open', failures: s.failures, retryInMs: 0 }
+    return { state: 'open', failures: s.failures, retryInMs: this.cooldownMs - elapsed }
+  }
+
   isOpen(key: string, now = Date.now()): boolean {
     return !this.canRequestPeek(key, now)
   }
