@@ -1,0 +1,6 @@
+Local verification on 2026-10-02, candidate 1.6.5 (source changes in release PR).
+Typecheck: passed
+TypeScript tests: 136 passed, 0 failed, 1 real-Redis skipped
+JavaScript tests: 10 passed
+Next production build: passed
+No credentialed provider calls in local tests.

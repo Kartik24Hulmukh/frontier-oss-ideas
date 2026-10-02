@@ -8,6 +8,7 @@ import { fetchWithTimeout } from './fetch'
  * anonymous) is shed fast instead of cascading into scan timeouts.
  */
 interface ProviderGuard {
+  configurationValid: boolean
   gate: BudgetGate
   breaker: CircuitBreaker
   lastStatus: number | null
@@ -23,7 +24,8 @@ function guardFor(provider: string): ProviderGuard {
   let g = guards.get(provider)
   if (!g) {
     const perMinute = Number(process.env['PACING_' + provider.toUpperCase() + '_PER_MINUTE'] ?? 25)
-    g = { gate: new BudgetGate(perMinute, 60_000), breaker: new CircuitBreaker(3, 30_000), lastStatus: null, lastSuccessAt: null, lastFailureAt: null, requests: 0, failures: 0 }
+    const configurationValid = Number.isSafeInteger(perMinute) && perMinute > 0
+    g = { configurationValid, gate: new BudgetGate(configurationValid ? perMinute : 1, 60_000), breaker: new CircuitBreaker(3, 30_000), lastStatus: null, lastSuccessAt: null, lastFailureAt: null, requests: 0, failures: 0 }
     guards.set(provider, g)
   }
   return g
@@ -35,11 +37,16 @@ export async function pacedFetch(
   init?: RequestInit & { timeoutMs?: number },
 ): Promise<Response> {
   const g = guardFor(provider)
+  if (!g.configurationValid) {
+    throw new UpstreamError(provider + ' invalid provider ceiling configuration; no request dispatched.', 503, false)
+  }
   if (!g.breaker.canRequest(provider)) {
-    throw new UpstreamError(provider + ' circuit open after repeated 429/5xx; failing fast.', 503, true)
+    throw new UpstreamError(provider + ' circuit open after repeated upstream failures; failing fast.', 503, true)
   }
   const budget = g.gate.tryConsume()
   if (!budget.ok) {
+    // No request was dispatched: do not strand the single recovery probe.
+    g.breaker.releaseProbe(provider)
     throw new UpstreamError(provider + ' per-minute provider ceiling reached; retry in ' + Math.ceil(budget.retryAfterMs / 1000) + 's.', 429, true)
   }
   g.requests += 1
@@ -60,7 +67,9 @@ export async function pacedFetch(
     g.lastFailureAt = Date.now()
     g.breaker.onFailure(provider)
   } else {
-    g.lastSuccessAt = Date.now()
+    // Non-retryable HTTP errors must not be counted as successful observations.
+    if (res.ok) g.lastSuccessAt = Date.now()
+    else { g.failures += 1; g.lastFailureAt = Date.now() }
     g.breaker.onSuccess(provider)
   }
   return res
@@ -68,6 +77,9 @@ export async function pacedFetch(
 
 export interface SourceHealth {
   provider: string
+  status: 'healthy' | 'degraded' | 'unobserved'
+  configurationValid: boolean
+  observationAgeMs: number | null
   state: 'closed' | 'open' | 'half-open'
   consecutiveFailures: number
   retryInMs: number
@@ -80,25 +92,31 @@ export interface SourceHealth {
 
 /**
  * Per-instance operational source health (no URLs, tokens or query text).
- * 'degraded' when any provider breaker is open; 'unobserved' before traffic.
+ * Fresh successful HTTP observations only; never a coverage/readiness claim.
+ * HTTP errors and open breakers degrade health; observations expire after five minutes.
  */
 export function sourceHealth(now = Date.now()): { status: 'healthy' | 'degraded' | 'unobserved'; scope: 'per-instance'; providers: SourceHealth[] } {
   const providers: SourceHealth[] = []
   for (const [provider, g] of [...guards.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const snap = g.breaker.snapshot(provider, now)
+    const lastObservation = Math.max(g.lastSuccessAt ?? -Infinity, g.lastFailureAt ?? -Infinity)
+    const observationAgeMs = Number.isFinite(lastObservation) ? Math.max(0, now - lastObservation) : null
+    const status = !g.configurationValid || snap.state !== 'closed' ? 'degraded'
+      : observationAgeMs === null || observationAgeMs > 300_000 ? 'unobserved'
+      : g.lastStatus !== null && g.lastStatus >= 200 && g.lastStatus < 300 ? 'healthy' : 'degraded'
     providers.push({
-      provider,
+      provider, status, configurationValid: g.configurationValid, observationAgeMs,
       state: snap.state,
       consecutiveFailures: snap.failures,
       retryInMs: snap.retryInMs,
       requests: g.requests,
       failures: g.failures,
       lastStatus: g.lastStatus,
-      lastSuccessAt: g.lastSuccessAt ? new Date(g.lastSuccessAt).toISOString() : null,
-      lastFailureAt: g.lastFailureAt ? new Date(g.lastFailureAt).toISOString() : null,
+      lastSuccessAt: g.lastSuccessAt !== null ? new Date(g.lastSuccessAt).toISOString() : null,
+      lastFailureAt: g.lastFailureAt !== null ? new Date(g.lastFailureAt).toISOString() : null,
     })
   }
-  const status = providers.length === 0 ? 'unobserved' : providers.some((p) => p.state !== 'closed') ? 'degraded' : 'healthy'
+  const status = providers.length === 0 ? 'unobserved' : providers.some((p) => p.status === 'degraded') ? 'degraded' : providers.some((p) => p.status === 'unobserved') ? 'unobserved' : 'healthy'
   return { status, scope: 'per-instance', providers }
 }
 
