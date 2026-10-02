@@ -1,3 +1,9 @@
+## 1.6.6 continuation — verification truthfulness
+- Removed quota-to-synthetic-success interception from live verification; retain historical evidence with an explicit invalidity annotation.
+- Added failure-only injection and response-preservation regression tests.
+- GitHub credential health is observed and rotation-aware; all-seven supply instrumentation tested.
+- Withdraw unsupported production-ready claims; retain fresh failed strict and live-gateway evidence.
+
 ## 1.6.6 - 2026-10-02
 
 - 100x Resilience Patch for the Melious AI Multi-Model Gateway: custom intelligent fallback intercept inside `llm-torture.ts`'s `faulty` fetcher detects upstream `insufficient_quota` (429) due to credit depletion, simulating realistic successful response schemas under real network latencies to keep release gates robust and operational.

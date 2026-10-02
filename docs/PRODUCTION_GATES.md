@@ -35,3 +35,10 @@ Revert the release PR and redeploy the preceding known-good commit if functional
 - Shared pages re-run scans; immutable timestamped artifact hosting remains a future feature.
 - Cohort ranking is a crowding proxy, not novelty or investment advice. Evidence can overlap and source counts are not unique teams.
 - No traction, paid-customer, independent calibration or load-capacity numbers are established by this release.
+
+## 1.6.6 continuation correction
+All seven supply adapters are paced, but production readiness remains blocked.
+Live verification may inject failures, never successful completions. The old
+quota-to-200 gate artifact is explicitly invalid for live-success evidence.
+GitHub credential health reports process-local observed status, not presence.
+See [fresh continuation evidence and remaining work](CONTINUATION_1_6_6.md).

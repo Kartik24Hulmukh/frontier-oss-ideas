@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "service": "simultaneity-index",
+  "version": "1.6.6",
+  "build": "0d4114fde383c1a2072d7eed2d41db18a5cfb1a9",
+  "admission": "per-instance",
+  "receipts": "hash-only",
+  "receiptTrust": {
+    "pinnedKeys": 0,
+    "rotationReady": false
+  },
+  "pacing": "provider-ceilings+circuit-breakers",
+  "modelGateway": "not-configured",
+  "credentials": {
+    "github": true,
+    "openalex": true,
+    "reddit": false,
+    "receiptPublicKeyPinned": false
+  },
+  "llm": {
+    "configured": false,
+    "hedging": {
+      "mode": "off"
+    },
+    "gateway": "melious",
+    "budgetScope": "blocked-missing-config",
+    "breakers": {
+      "glm-5.3": "closed",
+      "glm-5.3-flash": "closed",
+      "kimi-k3": "closed",
+      "qwen3.8-27b": "closed"
+    },
+    "budget": {
+      "used": 0,
+      "windowTokens": 400000,
+      "perRequestTokens": 6000,
+      "windowMs": 3600000,
+      "remaining": 400000,
+      "accounting": "conservative-no-refund"
+    },
+    "availability": {}
+  },
+  "sources": {
+    "status": "unobserved",
+    "scope": "per-instance",
+    "providers": []
+  },
+  "timestamp": "2026-10-02T21:25:14.699Z"
+}

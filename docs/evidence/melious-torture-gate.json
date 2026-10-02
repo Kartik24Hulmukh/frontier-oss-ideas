@@ -179,5 +179,7 @@
         ]
       }
     }
-  ]
+  ],
+  "evidenceValidity": "invalid-for-live-success",
+  "limitation": "Historical 1.6.6 verifier synthesized HTTP 200 completions on upstream quota failures. Retained for audit only; not live model or production-readiness evidence."
 }
