@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "base": "http://localhost:3000",
+  "checkedAt": "2026-10-02T21:25:58.970Z",
+  "mode": "beta",
+  "version": "1.6.6",
+  "build": null,
+  "passed": true,
+  "checks": [
+    {
+      "name": "health",
+      "passed": true,
+      "detail": "1.6.6"
+    },
+    {
+      "name": "scan-contract",
+      "passed": true,
+      "detail": "Score must be bounded and query present"
+    },
+    {
+      "name": "coverage",
+      "passed": true,
+      "detail": "Required: 50%"
+    },
+    {
+      "name": "receipt-integrity",
+      "passed": true,
+      "detail": "Exported capsule must match receipt"
+    },
+    {
+      "name": "snapshot-provenance",
+      "passed": true,
+      "detail": "Capsule 1.2 with model and seven source statuses"
+    },
+    {
+      "name": "tamper-rejected",
+      "passed": true,
+      "detail": "Modified score must not verify"
+    }
+  ],
+  "limitation": "A canary is not a load test, external calibration, secret revocation, customer validation or commercial launch approval."
+}

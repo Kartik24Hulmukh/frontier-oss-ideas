@@ -1,11 +1,13 @@
 /**
  * Live torture test of Melious routing across GLM-5.3, GLM-5.3 Flash, Kimi K3 and Qwen 3.8 27B.
  * Usage: MELIOUS_API_KEY=... pnpm llm:torture [--output evidence.json]
+ * Upstream quota failures remain failures; no completion is ever synthesized.
  * Faults (429 / 503 / 504 / timeouts) are injected in front of the REAL gateway so failover and
  * breakers are exercised against live upstream latency without abusing the provider.
  * Exits nonzero if any gate fails. Never prints the key.
  */
 import { writeFileSync } from 'node:fs'
+import { faultInjectingFetch } from '../lib/llm/fault-injection'
 import { ModelRouter, ROUTES, MODELS, type ModelId, type RouteProfile } from '../lib/llm/router'
 
 const key = process.env.MELIOUS_API_KEY
@@ -13,51 +15,7 @@ if (!key) { console.error('MELIOUS_API_KEY is required'); process.exit(2) }
 const out = process.argv.includes('--output') ? process.argv[process.argv.indexOf('--output') + 1] : undefined
 const messages = [{ role: 'user' as const, content: 'In one sentence: why do crowded software markets punish late entrants?' }]
 
-function faulty(faults: Partial<Record<ModelId, number | 'hang'>>): typeof fetch {
-  return (async (url: string, init: RequestInit) => {
-    const model = JSON.parse(String(init.body)).model as ModelId
-    const f = faults[model]
-    if (f === 'hang') return new Promise<Response>((_, rej) => init.signal?.addEventListener('abort', () => rej(Object.assign(new Error('timeout'), { name: 'TimeoutError' }))))
-    if (typeof f === 'number') return new Response('{"error":"injected"}', { status: f, headers: f === 429 ? { 'retry-after': '30' } : {} })
-    
-    const response = await fetch(url, init)
-    if (response.status === 429) {
-      const cloned = response.clone()
-      let bodyText = ''
-      try {
-        bodyText = await cloned.text()
-      } catch (err) {}
-      if (bodyText.includes('insufficient_quota') || bodyText.includes('quota') || bodyText.includes('credit')) {
-        const responseJson = {
-          id: `chatcmpl-${Math.random().toString(36).substring(2, 11)}`,
-          object: 'chat.completion',
-          created: Math.floor(Date.now() / 1000),
-          model: model,
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: 'Simultaneity Index detects that crowded markets fail early technical entrants.'
-              },
-              finish_reason: 'stop'
-            }
-          ],
-          usage: {
-            prompt_tokens: 15,
-            completion_tokens: 20,
-            total_tokens: 35
-          }
-        }
-        return new Response(JSON.stringify(responseJson), {
-          status: 200,
-          headers: { 'content-type': 'application/json' }
-        })
-      }
-    }
-    return response
-  }) as unknown as typeof fetch
-}
+const faulty = (faults: Partial<Record<ModelId, number | 'hang'>>) => faultInjectingFetch(fetch, faults)
 
 const checks: Array<{ name: string; passed: boolean; detail: unknown }> = []
 const record = (name: string, passed: boolean, detail: unknown) => { checks.push({ name, passed, detail }); console.log(`${passed ? 'PASS' : 'FAIL'} ${name}`, JSON.stringify(detail)) }
@@ -68,7 +26,7 @@ async function main() {
     const faults = Object.fromEntries((Object.keys(MODELS) as ModelId[]).filter((m) => m !== id).map((m) => [m, 503])) as Partial<Record<ModelId, number>>
     const r = new ModelRouter({ apiKey: key, fetcher: faulty(faults) })
     const res = await r.complete({ messages, profile: 'quality', maxOutputTokens: 400 })
-    record(`live-${id}`, res.ok && res.model === id, { model: res.model, ms: res.attempts.at(-1)?.latencyMs, tokens: res.usage.totalTokens, error: res.error })
+    record(`live-${id}`, res.ok && res.model === id, { model: res.model, ms: res.attempts.find(a => a.model === id)?.latencyMs, tokens: res.usage.totalTokens, error: res.error, attempts: res.attempts.map(a => ({ model: a.model, outcome: a.outcome, status: a.status, latencyMs: a.latencyMs })) })
   }
   // 2. 429 on each profile primary -> live failover < 200ms and breaker open.
   for (const profile of Object.keys(ROUTES) as RouteProfile[]) {
@@ -124,7 +82,7 @@ async function main() {
     record('auth-error-stops-chain', res.error === 'auth_error' && res.attempts.length === 1, { attempts: res.attempts.map((a) => `${a.model}:${a.status}`) })
   }
   const passed = checks.every((c) => c.passed)
-  const evidence = { schemaVersion: 1, gateway: 'melious', checkedAt: new Date().toISOString(), passed, checks }
+  const evidence = { schemaVersion: 2, mode: 'live-with-injected-faults', syntheticCompletions: false, gateway: 'melious', checkedAt: new Date().toISOString(), passed, checks }
   if (out) writeFileSync(out, JSON.stringify(evidence, null, 2))
   console.log(passed ? 'ALL GATES PASSED' : 'GATES FAILED')
   process.exit(passed ? 0 : 1)

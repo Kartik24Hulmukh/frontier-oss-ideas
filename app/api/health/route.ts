@@ -3,6 +3,7 @@ import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 import { sharedRouter } from '@/lib/llm/analyst'
 import { trustedKeyCount } from '@/lib/scoring/receipt'
 import { sourceHealth } from '@/lib/core/pace'
+import { githubCredentialStatus } from '@/lib/sources/github'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,9 +20,9 @@ export async function GET() {
       receiptTrust: { pinnedKeys: trustedKeyCount(), rotationReady: trustedKeyCount() > 1 },
       pacing: 'provider-ceilings+circuit-breakers',
       modelGateway: process.env.MELIOUS_API_KEY ? 'configured' : 'not-configured',
-      // Presence only (booleans) - never values. Lets operators spot missing deployment config.
+      // Presence for most credentials; GitHub is an observed, process-local status. Never values.
       credentials: {
-        github: Boolean(process.env.GITHUB_TOKEN),
+        github: githubCredentialStatus(),
         openalex: Boolean(process.env.OPENALEX_API_KEY),
         reddit: Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET),
         receiptPublicKeyPinned: Boolean(process.env.RECEIPT_PUBLIC_KEY),

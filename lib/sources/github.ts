@@ -1,6 +1,18 @@
+import { createHash } from 'node:crypto'
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+
+export type GitHubCredentialStatus = 'accepted' | 'rejected-anonymous-fallback' | 'absent-anonymous' | 'configured-unverified'
+let observation: { fingerprint: string; status: GitHubCredentialStatus } | undefined
+const fingerprint = (token: string) => createHash('sha256').update(token).digest('hex')
+
+/** Process-local observed HTTP status, not an active credential probe. Never expose tokens/hashes. */
+export function githubCredentialStatus(token = process.env.GITHUB_TOKEN): GitHubCredentialStatus {
+  if (!token) return 'absent-anonymous'
+  return observation?.fingerprint === fingerprint(token) ? observation.status : 'configured-unverified'
+}
+export function __resetGitHubCredentialForTests() { observation = undefined }
 
 export async function searchGitHub(
   query: string,
@@ -26,6 +38,7 @@ export async function searchGitHub(
     // search works anonymously, so degrade to the unauthenticated quota instead of
     // silently dropping a supply source (the root cause of 86% production coverage).
     if (res.status === 401 && headers.Authorization) {
+      observation = { fingerprint: fingerprint(ctx.githubToken!), status: 'rejected-anonymous-fallback' }
       delete headers.Authorization
       notice = 'GITHUB_TOKEN rejected (401); used anonymous GitHub search. Rotate the deployment token.'
       console.warn('[simultaneity] ' + notice)
@@ -48,6 +61,9 @@ export async function searchGitHub(
     }
     if (!res.ok) return errorResult('github', label, 'GitHub returned ' + res.status + '.')
 
+    if (headers.Authorization && ctx.githubToken) {
+      observation = { fingerprint: fingerprint(ctx.githubToken), status: 'accepted' }
+    }
     const data = await res.json()
     const items: EvidenceItem[] = (data.items ?? []).map(
       (repo: {
