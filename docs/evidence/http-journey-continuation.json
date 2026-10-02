@@ -1,0 +1,120 @@
+{
+  "base": "http://localhost:3000",
+  "passed": true,
+  "scope": "Local beta HTTP smoke only; no load, browser interaction, payment, or real external MCP-client certification",
+  "checks": [
+    {
+      "name": "page:/",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "page:/methodology",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "page:/agents",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "page:/funds",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "page:/privacy",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "page:/pricing",
+      "passed": true,
+      "detail": 200
+    },
+    {
+      "name": "mcp-initialize",
+      "passed": true,
+      "detail": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "protocolVersion": "2025-06-18",
+          "capabilities": {
+            "tools": {
+              "listChanged": false
+            }
+          },
+          "serverInfo": {
+            "name": "simultaneity-index",
+            "version": "1.3.1"
+          },
+          "instructions": "Call crowding_check with a one-line idea before scaffolding any new project."
+        }
+      }
+    },
+    {
+      "name": "mcp-tools-list",
+      "passed": true,
+      "detail": {
+        "names": [
+          "crowding_check"
+        ]
+      }
+    },
+    {
+      "name": "scan",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "score": 76,
+        "coverage": 100
+      }
+    },
+    {
+      "name": "export",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "hasProofPath": true
+      }
+    },
+    {
+      "name": "proof-page",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "checksumDisclosure": true
+      }
+    },
+    {
+      "name": "proof-og",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "contentType": "image/png"
+      }
+    },
+    {
+      "name": "tampered-export-rejected",
+      "passed": true,
+      "detail": 422
+    },
+    {
+      "name": "invalid-search",
+      "passed": true,
+      "detail": 400
+    },
+    {
+      "name": "invalid-search",
+      "passed": true,
+      "detail": 400
+    },
+    {
+      "name": "invalid-search",
+      "passed": true,
+      "detail": 400
+    }
+  ]
+}
