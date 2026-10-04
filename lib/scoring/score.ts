@@ -1,5 +1,6 @@
 import type {
   CrowdingResult,
+  EvidenceItem,
   ScoreBreakdown,
   SourceId,
   SourceResult,
@@ -48,6 +49,30 @@ function parseDownloads(meta: string | null): number {
   return match ? Number.parseInt(match[1].replace(/,/g, ''), 10) : 0
 }
 
+/**
+ * crowding-1.2: the relevance filter keeps up to two below-threshold items as an
+ * audit floor so sparse lanes stay inspectable. Those items must never count as
+ * scoring evidence, and raw query-match totals are attenuated by the share of
+ * sampled items that actually qualified. Raw counts stay visible in signals.
+ */
+function qualifiedItems(result: SourceResult): EvidenceItem[] {
+  const filter = result.relevanceFilter
+  if (!filter) return result.items
+  return result.items.filter((item) => (item.relevance ?? 1) >= filter.threshold)
+}
+
+function qualifiedTotal(result: SourceResult): number {
+  const filter = result.relevanceFilter
+  if (!filter || filter.before <= 0) return result.totalCount
+  return result.totalCount * (filter.qualified / filter.before)
+}
+
+function relevanceNote(result: SourceResult): string {
+  const filter = result.relevanceFilter
+  if (!filter || filter.qualified >= filter.before) return ''
+  return ` Scored on ${filter.qualified}/${filter.before} sampled items above relevance threshold ${filter.threshold}; the ${result.totalCount.toLocaleString()} raw match count is shown for audit only.`
+}
+
 function scoreGitHub(result: SourceResult): ScoreBreakdown {
   const weight = WEIGHTS.github
   if (result.status !== 'ok') {
@@ -60,20 +85,22 @@ function scoreGitHub(result: SourceResult): ScoreBreakdown {
       included: false,
     }
   }
-  const competitors = result.items.filter((i) => parseStars(i.meta) >= 50)
-  const recent = result.items.filter((i) => {
+  const items = qualifiedItems(result)
+  const competitors = items.filter((i) => parseStars(i.meta) >= 50)
+  const recent = items.filter((i) => {
     const m = monthsAgo(i.date)
     return m !== null && m <= 18
   })
   const score = clamp(
     competitors.length * 12 +
-      Math.min(result.totalCount, 200) / 10 +
+      Math.min(qualifiedTotal(result), 200) / 10 +
       recent.length * 4,
   )
   const signal =
-    competitors.length > 0
+    (competitors.length > 0
       ? `${competitors.length} repo(s) with 50+ stars in top results; ${result.totalCount.toLocaleString()} total matches; ${recent.length} created in last 18 months.`
-      : `${result.totalCount.toLocaleString()} matching repos; top results lack meaningful traction yet.`
+      : `${result.totalCount.toLocaleString()} matching repos; top results lack meaningful traction yet.`) +
+    relevanceNote(result)
   return {
     source: 'github',
     label: result.label,
@@ -96,17 +123,19 @@ function scoreHackerNews(result: SourceResult): ScoreBreakdown {
       included: false,
     }
   }
-  const launches = result.items.filter((i) => i.isLaunchSignal)
-  const highSignal = result.items.filter((i) => parsePoints(i.meta) >= 50)
+  const items = qualifiedItems(result)
+  const launches = items.filter((i) => i.isLaunchSignal)
+  const highSignal = items.filter((i) => parsePoints(i.meta) >= 50)
   const score = clamp(
     launches.length * 18 +
       highSignal.length * 8 +
-      Math.min(result.totalCount, 100) / 5,
+      Math.min(qualifiedTotal(result), 100) / 5,
   )
   const signal =
-    launches.length > 0
+    (launches.length > 0
       ? `${launches.length} Show HN launch signal(s); ${highSignal.length} stories with 50+ points.`
-      : `${result.totalCount.toLocaleString()} related stories; ${highSignal.length} high-engagement; no direct launches in top results.`
+      : `${result.totalCount.toLocaleString()} related stories; ${highSignal.length} high-engagement; no direct launches in top results.`) +
+    relevanceNote(result)
   return {
     source: 'hackernews',
     label: result.label,
@@ -129,15 +158,16 @@ function scoreAcademic(result: SourceResult, source: 'arxiv' | 'openalex'): Scor
       included: false,
     }
   }
-  const recent = result.items.filter((i) => {
+  const items = qualifiedItems(result)
+  const recent = items.filter((i) => {
     const m = monthsAgo(i.date)
     return m !== null && m <= 24
   })
-  const score = clamp(Math.min(result.totalCount, 50) * 1.2 + recent.length * 5)
+  const score = clamp(Math.min(qualifiedTotal(result), 50) * 1.2 + recent.length * 5)
   const signal =
-    result.totalCount > 0
+    (result.totalCount > 0
       ? `${result.totalCount.toLocaleString()} works; ${recent.length} in last 2 years — ${recent.length >= 3 ? 'active academic heat' : 'modest academic interest'}.`
-      : 'No academic matches for this phrasing.'
+      : 'No academic matches for this phrasing.') + relevanceNote(result)
   return {
     source,
     label: result.label,
@@ -160,17 +190,18 @@ function scorePackage(result: SourceResult, source: 'npm' | 'pypi' | 'crates'): 
       included: false,
     }
   }
-  const recentlyMaintained = result.items.filter((i) => {
+  const items = qualifiedItems(result)
+  const recentlyMaintained = items.filter((i) => {
     const m = monthsAgo(i.date)
     return m !== null && m <= 12
   })
   const score = clamp(
-    Math.min(result.totalCount, 100) / 2.5 + recentlyMaintained.length * 5 + result.items.length * 3,
+    Math.min(qualifiedTotal(result), 100) / 2.5 + recentlyMaintained.length * 5 + items.length * 3,
   )
   const signal =
-    result.items.length > 0
+    (items.length > 0
       ? `${result.totalCount.toLocaleString()} package signals; ${recentlyMaintained.length} recently maintained among top hits.`
-      : 'No matching packages found.'
+      : 'No matching packages found.') + relevanceNote(result)
   return {
     source,
     label: result.label,
@@ -193,12 +224,13 @@ function scoreHuggingFace(result: SourceResult): ScoreBreakdown {
       included: false,
     }
   }
-  const hot = result.items.filter((i) => parseDownloads(i.meta) >= 1000)
-  const score = clamp(result.items.length * 6 + hot.length * 8 + Math.min(result.totalCount, 40))
+  const items = qualifiedItems(result)
+  const hot = items.filter((i) => parseDownloads(i.meta) >= 1000)
+  const score = clamp(items.length * 6 + hot.length * 8 + Math.min(qualifiedTotal(result), 40))
   const signal =
-    result.items.length > 0
-      ? `${result.items.length} models/datasets; ${hot.length} with meaningful download traction — AI supply-side heat.`
-      : 'No Hugging Face models/datasets matched.'
+    (items.length > 0
+      ? `${items.length} models/datasets; ${hot.length} with meaningful download traction — AI supply-side heat.`
+      : 'No Hugging Face models/datasets matched.') + relevanceNote(result)
   return {
     source: 'huggingface',
     label: result.label,

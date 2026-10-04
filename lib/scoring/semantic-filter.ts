@@ -47,7 +47,10 @@ export function filterSourceByRelevance(source: SourceResult, query: string, thr
   // Conservative floor: evidence remains auditable and a niche query is not erased.
   ranked.slice().sort((a, b) => (b.item.relevance ?? 0) - (a.item.relevance ?? 0)).slice(0, 2).forEach((x) => keep.add(x.index))
   const items = ranked.filter((x) => keep.has(x.index)).map((x) => x.item)
-  return { ...source, items, relevanceFilter: { before: source.items.length, after: items.length, threshold } }
+  // Qualified = sampled items that truly cleared the threshold. Audit-floor
+  // items below it stay visible but must not count as scoring evidence.
+  const qualified = ranked.filter((x) => (x.item.relevance ?? 0) >= threshold).length
+  return { ...source, items, relevanceFilter: { before: source.items.length, after: items.length, qualified, threshold } }
 }
 
 export function filterSourcesByRelevance(sources: SourceResult[], query: string, threshold?: number): SourceResult[] {
