@@ -2,7 +2,7 @@
 import { pathToFileURL } from 'node:url'
 import { writeFile } from 'node:fs/promises'
 
-const supplyIds = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface']
+const supplyIds = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface', 'crates']
 const demandIds = ['reddit', 'stackoverflow', 'askhn']
 function exactSources(rows, ids, predicate = () => true) {
   return Array.isArray(rows) && rows.length === ids.length && ids.every(id => rows.filter(s => s?.source === id).length === 1) && rows.every(predicate)
@@ -17,12 +17,12 @@ export function evaluateGate(health, scan, verification, strict = false, expecte
   check('scan-contract', typeof scan?.query === 'string' && Number.isFinite(scan?.score) && scan.score >= 0 && scan.score <= 100, 'Score must be bounded and query present')
   check('coverage', Number.isFinite(scan?.coverage) && scan.coverage <= 100 && scan.coverage >= (strict ? 95 : 50), `Required: ${strict ? 95 : 50}%`)
   check('receipt-integrity', verification?.digestMatches === true, 'Exported capsule must match receipt')
-  check('snapshot-provenance', scan?.capsule?.version === '1.2' && Boolean(scan?.capsule?.modelVersion) && exactSources(scan?.capsule?.sourceSummary, supplyIds), 'Capsule 1.2 with model and seven source statuses')
+  check('snapshot-provenance', scan?.capsule?.version === '1.2' && Boolean(scan?.capsule?.modelVersion) && exactSources(scan?.capsule?.sourceSummary, supplyIds), 'Capsule 1.2 with model and eight source statuses')
   if (strict) {
     check('llm-distributed-budget', !health?.llm?.configured || health?.llm?.budgetScope === 'distributed-configured', 'Enabled AI analyst requires distributed token admission; runtime outage tests still required')
     check('distributed-configured', health?.admission === 'distributed-configured', 'Configuration only; concurrent/outage tests still required')
     check('issuer-trust', verification?.issuerTrusted === true && health?.credentials?.receiptPublicKeyPinned === true, 'Pinned issuer key required')
-    check('healthy-supply', exactSources(scan?.sources, supplyIds, healthy), 'Exactly seven healthy adapters without fallback')
+    check('healthy-supply', exactSources(scan?.sources, supplyIds, healthy), 'Exactly eight healthy adapters without fallback')
     check('healthy-demand', exactSources(scan?.demand?.sources, demandIds, s => healthy(s) && (s.source !== 'reddit' || s.provenance === 'primary')), 'Exactly three healthy demand adapters; no mirror or fallback notices')
     check('demand-provenance', exactSources(scan?.capsule?.demandSourceSummary, demandIds) && scan.capsule.demandSourceSummary.every(s => {
       const live = scan?.demand?.sources?.find(d => d.source === s.source)

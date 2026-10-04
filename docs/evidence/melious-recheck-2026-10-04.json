@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-04T11:17:00Z",
+  "endpoint": "https://api.melious.ai/v1/chat/completions",
+  "modelsEndpointStatus": 200,
+  "syntheticCompletions": false,
+  "results": [
+    { "model": "glm-5.3", "status": 429, "code": "insufficient_quota" },
+    { "model": "glm-5.3-flash", "status": 429, "code": "insufficient_quota" },
+    { "model": "kimi-k3", "status": 429, "code": "insufficient_quota" },
+    { "model": "qwen-3.8-27b", "status": 429, "code": "insufficient_quota" }
+  ],
+  "upstreamMessage": "Insufficient credits for request. Available: -0.027687 EUR",
+  "conclusion": "Authentication accepted; account has no credit. Live completion availability remains unproven; not a routing defect."
+}

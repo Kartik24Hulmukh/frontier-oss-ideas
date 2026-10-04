@@ -17,9 +17,10 @@ const WEIGHTS: Record<SourceId, number> = {
   hackernews: 0.18,
   arxiv: 0.1,
   openalex: 0.1,
-  npm: 0.1,
-  pypi: 0.1,
+  npm: 0.08,
+  pypi: 0.08,
   huggingface: 0.14,
+  crates: 0.04,
 }
 
 function monthsAgo(iso: string | null): number | null {
@@ -147,7 +148,7 @@ function scoreAcademic(result: SourceResult, source: 'arxiv' | 'openalex'): Scor
   }
 }
 
-function scorePackage(result: SourceResult, source: 'npm' | 'pypi'): ScoreBreakdown {
+function scorePackage(result: SourceResult, source: 'npm' | 'pypi' | 'crates'): ScoreBreakdown {
   const weight = WEIGHTS[source]
   if (result.status !== 'ok') {
     return {
@@ -222,6 +223,8 @@ function scoreOne(result: SourceResult): ScoreBreakdown {
       return scorePackage(result, 'npm')
     case 'pypi':
       return scorePackage(result, 'pypi')
+    case 'crates':
+      return scorePackage(result, 'crates')
     case 'huggingface':
       return scoreHuggingFace(result)
   }

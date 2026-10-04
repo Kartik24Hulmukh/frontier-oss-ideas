@@ -34,7 +34,7 @@ const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v ===
 const text = (v: unknown): v is string => typeof v === 'string'
 const bounded = (v: unknown, max = 100): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max
 const date = (v: unknown): v is string => text(v) && Number.isFinite(Date.parse(v))
-const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface']
+const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface', 'crates']
 function isCapsule(v: unknown): v is EvidenceCapsule {
   if (!object(v)) return false
   return ['1.0', '1.1', '1.2'].includes(String(v.version)) && text(v.query) &&

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { runAllSources, SOURCE_ORDER } from '../lib/sources'
 import { sourceHealth, __resetSourceHealthForTests } from '../lib/core/pace'
 
-test('all seven supply adapters dispatch through source health instrumentation', async () => {
+test('all eight supply adapters dispatch through source health instrumentation', async () => {
   const real = globalThis.fetch
   __resetSourceHealthForTests()
   globalThis.fetch = (async (url) => {

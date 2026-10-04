@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
