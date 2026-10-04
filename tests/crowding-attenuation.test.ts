@@ -131,8 +131,76 @@ describe('crowding-1.2 relevance attenuation', () => {
     assert.ok((gh?.subScore ?? 0) > 0)
   })
 
-  it('capsule is stamped crowding-1.2', () => {
+  it('capsule is stamped crowding-1.3', () => {
     const result = computeCrowding(QUERY, [irrelevantGitHub(10), ...fillers()])
-    assert.equal(result.capsule.modelVersion, 'crowding-1.2')
+    assert.equal(result.capsule.modelVersion, 'crowding-1.3')
+  })
+})
+
+describe('crowding-1.3 qualified-evidence logarithmic bound', () => {
+  function npmHits(total: number, qualifiedCount: number, sample = 20): SourceResult {
+    return {
+      source: 'npm',
+      label: 'npm',
+      status: 'ok',
+      totalCount: total,
+      items: Array.from({ length: sample }, (_, i) =>
+        i < qualifiedCount
+          ? { title: `ai-code-review-agent-${i}`, description: 'AI code review agent for pull requests', url: `https://npmjs.com/package/ai-code-review-agent-${i}`, date: now, meta: null }
+          : { title: `left-pad-variant-${i}`, description: 'string padding helpers', url: `https://npmjs.com/package/left-pad-variant-${i}`, date: now, meta: null },
+      ),
+    }
+  }
+  const others = () => fillers().filter((s) => s.source !== 'npm')
+
+  it('bounds a 2,000,000-hit npm total with 2/20 qualified far below linear attenuation', async () => {
+    const { qualifiedTotal } = await import('../lib/scoring/score')
+    const npm = filterSourceByRelevance(npmHits(2_000_000, 2), QUERY)
+    assert.equal(npm.relevanceFilter?.qualified, 2)
+    const eff = qualifiedTotal(npm)
+    assert.ok(eff < 20, `effective total ${eff} should be bounded (<20), linear would be 200000`)
+    const r = computeCrowding(QUERY, [emptyOk('github', 'GitHub'), ...others(), npm])
+    const npmRow = r.breakdown.find((b) => b.source === 'npm')!
+    assert.ok(npmRow.subScore <= 30, `npm subScore ${npmRow.subScore} must stay low`)
+    assert.ok(npmRow.signal.includes('2,000,000'), 'raw total remains visible for audit')
+  })
+
+  it('never exceeds linear attenuation and is monotonic in qualified evidence', async () => {
+    const { qualifiedTotal } = await import('../lib/scoring/score')
+    let prev = -1
+    for (let q = 0; q <= 20; q++) {
+      const src = filterSourceByRelevance(npmHits(50_000, q), QUERY)
+      const eff = qualifiedTotal(src)
+      const linear = src.totalCount * ((src.relevanceFilter?.qualified ?? 0) / (src.relevanceFilter?.before || 1))
+      assert.ok(eff <= linear + 1e-9)
+      assert.ok(eff >= prev, `monotonic at q=${q}`)
+      prev = eff
+    }
+  })
+
+  it('closes the empty-sample bypass: ok source with a huge total and no items scores 0', () => {
+    const empty: SourceResult = { source: 'npm', label: 'npm', status: 'ok', totalCount: 3_000_000, items: [] }
+    const filtered = filterSourceByRelevance(empty, QUERY)
+    assert.deepEqual(filtered.relevanceFilter, { before: 0, after: 0, qualified: 0, threshold: 0.18 })
+    const r = computeCrowding(QUERY, [emptyOk('github', 'GitHub'), ...others(), filtered])
+    assert.equal(r.breakdown.find((b) => b.source === 'npm')!.subScore, 0)
+  })
+
+  it('512-combination matrix: bounded score never exceeds the unfiltered score', () => {
+    let n = 0
+    for (const total of [0, 10, 1_000, 2_000_000]) for (const q of [0, 1, 5, 20]) for (const src of ['npm', 'openalex', 'github', 'crates'] as const) for (const sample of [1, 5, 10, 20]) for (const stale of [false, true]) {
+      const items = Array.from({ length: sample }, (_, i) => i < Math.min(q, sample)
+        ? { title: `ai code review agent ${i}`, description: 'AI code review agent', url: `https://x/${i}`, date: stale ? '2015-01-01T00:00:00Z' : now, meta: null }
+        : { title: `weather widget ${i}`, description: 'forecast', url: `https://y/${i}`, date: stale ? '2015-01-01T00:00:00Z' : now, meta: null })
+      const raw: SourceResult = { source: src, label: src, status: 'ok', totalCount: total, items }
+      const base = fillers().filter((s) => s.source !== src)
+      const withGh = src === 'github' ? base : base
+      const filtered = computeCrowding(QUERY, [...withGh, filterSourceByRelevance(raw, QUERY)])
+      const unfiltered = computeCrowding(QUERY, [...withGh, raw])
+      assert.ok(filtered.score <= unfiltered.score, `${src} total=${total} q=${q} sample=${sample}`)
+      assert.ok(filtered.score >= 0 && filtered.score <= 100)
+      n++
+    }
+    assert.equal(n, 512)
   })
 })
