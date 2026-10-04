@@ -1,0 +1,6 @@
+Melious gateway probe · failover budget 200ms · https://api.melious.ai/v1
+{"id":"glm-5.3","status":"http-429","ms":591}
+{"id":"glm-5.3-flash","status":"http-429","ms":2062}
+{"id":"kimi-k3","status":"http-429","ms":329}
+{"id":"qwen-3.8-27b","status":"http-429","ms":213}
+summary: 0/4 providers healthy before first success/chain end

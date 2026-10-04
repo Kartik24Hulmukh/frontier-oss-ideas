@@ -41,7 +41,14 @@ export function semanticRelevance(query: string, item: EvidenceItem): number {
 }
 
 export function filterSourceByRelevance(source: SourceResult, query: string, threshold = 0.18): SourceResult {
-  if (source.status !== 'ok' || source.items.length === 0) return source
+  if (source.status !== 'ok') return source
+  // crowding-1.3: an ok source with a raw total but no inspectable sample must
+  // not score its unseen total. Record an empty filter so the scorer counts 0.
+  if (source.items.length === 0) {
+    return source.totalCount > 0
+      ? { ...source, relevanceFilter: { before: 0, after: 0, qualified: 0, threshold } }
+      : source
+  }
   const ranked = source.items.map((item, index) => ({ item: { ...item, relevance: semanticRelevance(query, item) }, index }))
   const keep = new Set(ranked.filter((x) => (x.item.relevance ?? 0) >= threshold).map((x) => x.index))
   // Conservative floor: evidence remains auditable and a niche query is not erased.

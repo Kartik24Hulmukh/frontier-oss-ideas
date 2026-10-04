@@ -1,3 +1,11 @@
+## 1.6.10 — 4 October 2026
+
+- **Qualified-evidence logarithmic bound (`crowding-1.3`):** when the relevance filter rejects part of a source's sample, the effective raw total is `min(raw × qualified/sampled, qualified × (1 + log10(1 + raw/sampled)))`. A 2,000,000-hit npm source with 2/20 qualified samples now contributes an effective total below 20 instead of 200,000. Fully qualified and unfiltered sources are unchanged; raw totals remain visible for audit.
+- **Closed empty-sample bypass:** an `ok` source reporting a raw total but no inspectable items now carries an empty relevance filter and scores 0 for its unseen total.
+- **Methodology string** now lists all eight sources (crates.io was missing) and the model id; capsules stamped `crowding-1.3`.
+- **Tests:** 4 new crowding-1.3 tests including a 512-combination synthetic matrix (filtered score never exceeds unfiltered, always in [0,100]). Suite: 385 pass / 0 fail / 1 skipped (real Redis) + 10/10 release-gate tests; production build green; local HTTP smoke 14 checks passed.
+- **Live Melious evidence (honest):** all four models return HTTP 429 `insufficient_quota` (account balance negative). In-process failover 0–1 ms (<200 ms), breakers open after the 429 cascade, per-request ceiling enforced. See [docs/RELEASE_1_6_10.md](docs/RELEASE_1_6_10.md).
+
 ## 1.6.9 — 4 October 2026
 
 - **Discount unqualified sample hits from the crowding score (`crowding-1.2`):** the relevance filter keeps up to two below-threshold items as an audit floor; those items no longer contribute engagement, recency or item-count scoring, and each source's capped raw query-match total is attenuated by the share of sampled items that cleared the relevance threshold. Raw counts stay visible for audit; capsules are stamped `crowding-1.2`.
