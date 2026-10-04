@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-10-04T18:03:00Z",
+  "release": "1.6.9",
+  "gateway": "https://api.melious.ai/v1",
+  "auth": "bearer from $MELIOUS_API_KEY (env only; never logged)",
+  "modelsEndpoint": { "http": 200, "note": "catalog lists glm-5.3, glm-5.3-flash, kimi-k3; no qwen 3.8 27b id exposed" },
+  "completions": [
+    { "model": "glm-5.3",       "http": 429, "code": "insufficient_quota", "latencyMs": 736, "requiredEur": 0.004354, "availableEur": -0.027687 },
+    { "model": "glm-5.3-flash", "http": 429, "code": "insufficient_quota", "latencyMs": 344, "requiredEur": 0.000512, "availableEur": -0.027687 },
+    { "model": "kimi-k3",       "http": 429, "code": "insufficient_quota", "latencyMs": 351, "requiredEur": 0.015363, "availableEur": -0.027687 },
+    { "model": "qwen3-27b",     "http": 404, "code": "model_not_found",    "latencyMs": 328 }
+  ],
+  "probeHarness": "node scripts/model-gateway-probe.mjs → 0/4 providers healthy; breaker recorded http-429 for every provider (396/357/192/149 ms)",
+  "conclusion": "Account balance negative: live four-model routing cannot be exercised. Real 429s preserved; no synthetic success. Breaker/failover/budget behaviour verified only in-process (tests/llm-router.test.ts, tests/adaptive-hedge.test.ts, tests/shared-budget.test.ts). Operator must fund the gateway."
+}
