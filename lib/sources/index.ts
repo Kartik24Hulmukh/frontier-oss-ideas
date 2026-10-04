@@ -6,6 +6,7 @@ import { searchHuggingFace } from './huggingface'
 import { searchNpm } from './npm'
 import { searchOpenAlex } from './openalex'
 import { searchPypi } from './pypi'
+import { searchCrates } from './crates'
 
 export const SOURCE_ADAPTERS: Record<SourceId, SourceAdapter> = {
   github: searchGitHub,
@@ -15,6 +16,7 @@ export const SOURCE_ADAPTERS: Record<SourceId, SourceAdapter> = {
   npm: searchNpm,
   pypi: searchPypi,
   huggingface: searchHuggingFace,
+  crates: searchCrates,
 }
 
 export const SOURCE_ORDER: SourceId[] = [
@@ -25,6 +27,7 @@ export const SOURCE_ORDER: SourceId[] = [
   'npm',
   'pypi',
   'huggingface',
+  'crates',
 ]
 
 export async function runAllSources(
@@ -56,4 +59,5 @@ export {
   searchNpm,
   searchOpenAlex,
   searchPypi,
+  searchCrates,
 }

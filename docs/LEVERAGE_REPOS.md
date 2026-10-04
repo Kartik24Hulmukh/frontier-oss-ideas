@@ -17,7 +17,7 @@ Study these. Integrate via thin adapters. Do not fork-and-forget.
 | npm search | `registry.npmjs.org/-/v1/search` | JS package supply | Leverage |
 | PyPI | warehouse search / JSON API | Python/ML package supply | Leverage |
 | Hugging Face Hub | `huggingface.co/api/models` etc. | Models/datasets/spaces | Leverage |
-| crates.io | crates.io API | Rust systems supply | Optional P1 |
+| crates.io | crates.io API | Rust systems supply | **Integrated 1.6.8** |
 | Product Hunt API v2 | api.producthunt.com | Consumer launches | Optional key |
 | PatentsView / USPTO ODP | data.uspto.gov | True invention multiples | P2 |
 

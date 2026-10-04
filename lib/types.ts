@@ -6,6 +6,7 @@ export type SourceId =
   | 'npm'
   | 'pypi'
   | 'huggingface'
+  | 'crates'
 
 export type SourceStatus = 'ok' | 'error' | 'rate_limited'
 

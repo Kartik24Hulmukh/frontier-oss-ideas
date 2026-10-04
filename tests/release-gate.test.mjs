@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { evaluateGate } from '../scripts/release-gate.mjs'
-const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface'].map(source => ({ source, status: 'ok', totalCount: 0 }))
+const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface', 'crates'].map(source => ({ source, status: 'ok', totalCount: 0 }))
 const health = { ok: true, version: 'test', admission: 'distributed-configured', credentials: { receiptPublicKeyPinned: true } }
-const scan = { query: 'test idea', score: 50, coverage: 100, capsule: { version: '1.2', modelVersion: 'crowding-1.0', sourceSummary: sources }, sources, demand: { sources: ['reddit','stackoverflow','askhn'].map(source => ({ source, status: 'ok', totalCount: 0 })) } }
+const scan = { query: 'test idea', score: 50, coverage: 100, capsule: { version: '1.2', modelVersion: 'crowding-1.1', sourceSummary: sources }, sources, demand: { sources: ['reddit','stackoverflow','askhn'].map(source => ({ source, status: 'ok', totalCount: 0 })) } }
 scan.demand.sources[0].provenance = 'primary'
 scan.capsule.demandSourceSummary = scan.demand.sources.map(s => ({ ...s }))
 const verification = { digestMatches: true, issuerTrusted: true }

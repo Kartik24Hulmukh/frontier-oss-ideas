@@ -1,3 +1,8 @@
+## 1.6.8 — 4 October 2026
+
+- **8th supply adapter — crates.io (Rust):** paced, circuit-broken, UA-identified adapter; package-scored; weights rebalanced (npm/pypi 0.08, crates 0.04); model `crowding-1.1`. Release gate requires eight source statuses. See [docs/RELEASE_1_6_8.md](docs/RELEASE_1_6_8.md).
+- **Gateway re-check:** Melious still returns `429 insufficient_quota` for all four models (evidence: `docs/evidence/melious-recheck-2026-10-04.json`). No synthesized success.
+
 ## 1.6.7 — 2 October 2026
 
 - **Constrained-build portability (from #46):** `npm run verify` works with npm-only installs; Next build capped at two workers (`experimental.cpus`) to survive constrained process limits (`EAGAIN`).
