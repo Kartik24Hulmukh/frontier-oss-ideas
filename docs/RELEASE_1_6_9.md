@@ -33,3 +33,20 @@ An irrelevant query could look like a crowded lane: providers return huge query-
 ## Not claimed
 
 - Deployed strict canary, global (shared) admission control, pinned receipt issuer keys and live four-model gateway success remain operator-provisioning gates; this release does not claim them. Independent calibration of `crowding-1.2` (blinded reviewers, held-out lanes) is still required before any accuracy claim.
+
+## Production verification (post-merge, 2026-10-04)
+
+- PR #49 squash-merged to `main` as `a00c99e`; Vercel auto-deployed. `GET /api/health` → `version 1.6.9`, `build a00c99e…` (`docs/evidence/health-production-1.6.9.json`).
+- Standard canary `node scripts/release-gate.mjs https://frontier-oss-ideas.vercel.app` → **6/6 pass** (health, scan-contract, coverage, receipt-integrity, snapshot-provenance, tamper-rejected) — `docs/evidence/gate-production-1.6.9.json`.
+- Strict canary → **fails 4 operator gates**: `distributed-configured` (no managed Redis), `issuer-trust` (`pinnedKeys: 0`), `healthy-supply` (deployment `GITHUB_TOKEN` rejected with 401 → anonymous fallback; PyPI challenged), `healthy-demand` (Reddit OAuth absent) — `docs/evidence/gate-production-1.6.9-strict.json`. These need Vercel env changes, not code.
+- Live `crowding-1.2` journey (`docs/evidence/live-scan-production-1.6.9.json`, query "Rust WASM component model registry for edge functions"): crates.io returned 36 raw hits with 0/10 qualified → sub-score **0** with the raw count kept for audit; OpenAlex 56 works, 1/10 qualified → sub-score 12; capsule stamped `crowding-1.2`; receipt hash-only (issuer not pinned).
+- Melious gateway (`$MELIOUS_API_KEY` from env): `/v1/models` 200, every completion 429 `insufficient_quota` (balance −0.0277 EUR), `qwen3-27b` 404 — `docs/evidence/melious-recheck-1.6.9.json`, `docs/evidence/llm-torture-1.6.9.txt`. Failover 0 ms and breaker/budget ceilings verified in-process only.
+
+### Known limitation surfaced by the live run (next fix)
+npm reported 2,085,536 raw signals with 1/10 qualified; linear attenuation (×0.1) still leaves a ~208k effective total, so the npm sub-score was 48 despite a single relevant package. Attenuation is linear in `qualified/before`; a sub-linear or qualified-count-anchored cap for sources whose `totalCount` is a provider-wide keyword count (npm, OpenAlex) is the next `crowding-1.3` candidate. Overall verdict was still correct (score 20, Open lane).
+
+### Operator actions before any commercial launch
+1. Rotate the deployment `GITHUB_TOKEN` (prod reports 401) and the credentials pasted into task briefs.
+2. Provision Upstash Redis + `REQUIRE_DISTRIBUTED_LIMITS=true`; pin `RECEIPT_PUBLIC_KEY`.
+3. Fund the Melious account; re-run `node scripts/model-gateway-probe.mjs` and `npm run llm:torture`.
+4. Add Reddit OAuth; re-run the strict gate until 10/10.

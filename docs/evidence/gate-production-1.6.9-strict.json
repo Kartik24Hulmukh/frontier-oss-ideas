@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "base": "https://frontier-oss-ideas.vercel.app",
+  "checkedAt": "2026-10-04T18:06:20.732Z",
+  "mode": "strict-technical",
+  "version": "1.6.9",
+  "build": "a00c99e43a04f305772dcf2eea1d96478ba4323f",
+  "passed": false,
+  "checks": [
+    {
+      "name": "health",
+      "passed": true,
+      "detail": "1.6.9"
+    },
+    {
+      "name": "scan-contract",
+      "passed": true,
+      "detail": "Score must be bounded and query present"
+    },
+    {
+      "name": "coverage",
+      "passed": true,
+      "detail": "Required: 95%"
+    },
+    {
+      "name": "receipt-integrity",
+      "passed": true,
+      "detail": "Exported capsule must match receipt"
+    },
+    {
+      "name": "snapshot-provenance",
+      "passed": true,
+      "detail": "Capsule 1.2 with model and eight source statuses"
+    },
+    {
+      "name": "llm-distributed-budget",
+      "passed": true,
+      "detail": "Enabled AI analyst requires distributed token admission; runtime outage tests still required"
+    },
+    {
+      "name": "distributed-configured",
+      "passed": false,
+      "detail": "Configuration only; concurrent/outage tests still required"
+    },
+    {
+      "name": "issuer-trust",
+      "passed": false,
+      "detail": "Pinned issuer key required"
+    },
+    {
+      "name": "healthy-supply",
+      "passed": false,
+      "detail": "Exactly eight healthy adapters without fallback"
+    },
+    {
+      "name": "healthy-demand",
+      "passed": false,
+      "detail": "Exactly three healthy demand adapters; no mirror or fallback notices"
+    },
+    {
+      "name": "demand-provenance",
+      "passed": true,
+      "detail": "Receipt-covered demand metadata must match the scan, including mirror provenance and notices"
+    },
+    {
+      "name": "tamper-rejected",
+      "passed": true,
+      "detail": "Modified score must not verify"
+    }
+  ],
+  "limitation": "A canary is not a load test, external calibration, secret revocation, customer validation or commercial launch approval."
+}
+
