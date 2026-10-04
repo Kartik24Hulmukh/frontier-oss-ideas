@@ -31,7 +31,7 @@ export interface SourceResult {
   /** Non-fatal operator notice, e.g. credential fallback. Never contains secrets. */
   notice?: string
   /** Conservative pre-score relevance filtering; counts remain visible for audit. */
-  relevanceFilter?: { before: number; after: number; threshold: number }
+  relevanceFilter?: { before: number; after: number; qualified: number; threshold: number }
 }
 
 export interface ScoreBreakdown {

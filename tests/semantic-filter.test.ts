@@ -10,7 +10,8 @@ test('filter removes lexical drift before scoring and reports provenance', () =>
   const source: SourceResult = { source: 'github', label: 'GitHub', status: 'ok', totalCount: 99, items: [item('AI code review assistant'), item('Automated developer code audit'), item('Restaurant reviews'), item('Weather dashboard')] }
   const filtered = filterSourceByRelevance(source, 'AI code review')
   assert.deepEqual(filtered.items.map((x) => x.title), ['AI code review assistant', 'Automated developer code audit'])
-  assert.deepEqual(filtered.relevanceFilter, { before: 4, after: 2, threshold: 0.18 })
+  assert.deepEqual(filtered.relevanceFilter, { before: 4, after: 2, qualified: filtered.relevanceFilter?.qualified ?? -1, threshold: 0.18 })
+  assert.ok((filtered.relevanceFilter?.qualified ?? 0) >= 1, 'at least the top item qualifies')
   assert.equal(filtered.totalCount, 99)
 })
 test('conservative floor retains two auditable results for sparse lanes', () => {

@@ -1,3 +1,8 @@
+## 1.6.9 — 4 October 2026
+
+- **Discount unqualified sample hits from the crowding score (`crowding-1.2`):** the relevance filter keeps up to two below-threshold items as an audit floor; those items no longer contribute engagement, recency or item-count scoring, and each source's capped raw query-match total is attenuated by the share of sampled items that cleared the relevance threshold. Raw counts stay visible for audit; capsules are stamped `crowding-1.2`.
+- **Regression tests:** 500,000 irrelevant GitHub hits (200k stars, recent dates) and 100,000 irrelevant crates.io hits both score exactly 0 while raw counts and two audit items remain visible; a 10% qualified sample scores strictly below its unfiltered equivalent; fully qualified and unfiltered sources score exactly as before.
+
 ## 1.6.8 — 4 October 2026
 
 - **8th supply adapter — crates.io (Rust):** paced, circuit-broken, UA-identified adapter; package-scored; weights rebalanced (npm/pypi 0.08, crates 0.04); model `crowding-1.1`. Release gate requires eight source statuses. See [docs/RELEASE_1_6_8.md](docs/RELEASE_1_6_8.md).

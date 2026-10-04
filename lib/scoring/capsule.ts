@@ -16,7 +16,7 @@ export function buildCapsule(result: CapsuleInput): EvidenceCapsule {
 
   return {
     version: '1.2',
-    modelVersion: 'crowding-1.1',
+    modelVersion: 'crowding-1.2',
     normalizedQuery: result.normalizedQuery,
     coverage: result.coverage,
     sourceSummary: result.sources.map(({ source, status, totalCount, notice }) => ({ source, status, totalCount, ...(notice ? { notice } : {}) })),
