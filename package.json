@@ -42,5 +42,13 @@
   },
   "bin": {
     "simultaneity-mcp": "bin/simultaneity-mcp.mjs"
+  },
+  "overrides": {
+    "sharp": "0.35.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "sharp": "0.35.5"
+    }
   }
 }

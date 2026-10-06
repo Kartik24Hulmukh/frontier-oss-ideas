@@ -16,20 +16,20 @@ The supplied 4 October handoff described local commits `2afd446` and `deca3de`, 
 - Choose the strongest existing query-relevant duplicate observation without mixing provenance. Preserve variant/primary failure notices. A fresh scan bypasses cache and older in-flight work; an older completion cannot overwrite a newer retained healthy cache entry.
 - Cancel superseded search/memo/proof requests; generation guards and post-timeout success rejection prevent stale data attachment. Clear old decision evidence on a new or failed scan. Native browser fetch cancellation bounds network waits.
 - Strict canary checks receipt-covered supply provenance, fresh noncached age/skew, display-to-capsule/model binding and actual string-valued breaker schema. All-open/missing enabled analyst breakers fail. This is still a canary, not a live useful-model/capacity certificate.
-- Correct exact source weights/counts/methodology. Patch high-severity GHSA-68fv-2mgg-jv7q by updating source-map-js 1.2.1 → 1.2.2 in both npm and pnpm lockfiles. No new runtime frameworks or model dependencies.
+- Correct exact source weights/counts/methodology. Patch high-severity GHSA-68fv-2mgg-jv7q by updating source-map-js 1.2.1 → 1.2.2 in both npm and pnpm lockfiles; pin Sharp to 0.35.5 in both package-manager overrides to fix GHSA-wq5f-xc86-pv6w (librsvg CVE-2026-96889). The first PR CI audit found Sharp despite a clear earlier local audit; a direct primary-registry bulk audit identified it. After both patches the primary bulk audit returns no affected package names. No new runtime frameworks or model dependencies.
 
 ## Fresh local evidence
 
 | Check | Result | Boundary |
 |---|---|---|
 | Typecheck, tests, production build | Passed | Raw `evidence/continuation-1.6.11/verify.txt` |
-| TypeScript suite | 942 tests: **941 passed, 0 failed, 1 skipped** | Real Redis unavailable locally; CI must establish actual Redis execution |
+| TypeScript suite | 942 tests: **942 passed, 0 failed, 0 skipped** | Real Redis 7.4.6 built for loopback-only testing: production Lua concurrency/global/rolling ceilings executed; managed production remains unverified |
 | Release-gate JavaScript suite | **14/14 passed** | Synthetic fixtures, not target services |
 | New evidence matrix | **512 deterministic combinations** | Synthetic source/status/relevance/count/meta combinations, not hundreds of real users |
 | Built HTTP smoke | **14 checks passed** | Real public-source scan/cache/receipt/tamper/MCP/cohort/malformed bodies on local build |
 | Proof integrity HTTP smoke | **7 checks passed** | Synthetic public capsules/export/view/OG/forgery rejection |
 | Actual Chromium | **15 checks passed** | Local production build; 3 explicitly synthetic stale/failure/memo races; no uncaught page errors; desktop/mobile screenshots retained in downloadable bundle |
-| npm dependency audit | **0 reported advisories** | Not a penetration test or independent security assessment |
+| npm dependency audit | **0 reported advisories** after both patches; primary bulk audit empty | Not a penetration test or independent security assessment |
 | Fresh strict baseline deployment canary | **4 failing checks** | Exact 1.6.10 deployed SHA: shared admission, issuer trust, healthy supply, healthy demand |
 
 Reproduction: `npm ci && npm run verify`; start with `npm start`, then `node scripts/production-smoke.mjs http://localhost:3000` and `./node_modules/.bin/tsx scripts/proof-integrity-smoke.ts http://localhost:3000 proof.json`. Optional browser harness requires **Playwright 1.63.0** and system Chromium on the isolated test host; run `CHROMIUM_PATH=/path/to/chromium node scripts/browser-integrity-smoke.cjs`. It is a test-host tool, not a runtime dependency. Review its output and labels; do not reinterpret mocked races as live provider success.
