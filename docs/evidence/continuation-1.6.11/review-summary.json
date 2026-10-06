@@ -1,0 +1,33 @@
+{
+  "baseline": "5a05725cabdcbaca2e88875175aef41c8435fbed",
+  "baselineTrackedFiles": 259,
+  "inventoryRows": 302,
+  "fullScopedReads": 160,
+  "inventoryOrPartial": 142,
+  "researchRequirementPassages": 1201,
+  "repoDocRequirementPassages": 608,
+  "limitation": "Full review of every repository file/artifact remains incomplete. Requirement passages are not distinct confirmed tasks or completion evidence. Done document/test states apply to the document/review/test scope only, not product acceptance.",
+  "codeMergedSha": "268336b5ba8faa97c99f0d8fa0f843d761349cc5",
+  "finalLocalTests": {
+    "typescriptPassed": 942,
+    "typescriptFailed": 0,
+    "typescriptSkipped": 0,
+    "javascriptPassed": 14,
+    "httpChecks": 14,
+    "proofChecks": 7,
+    "chromiumChecks": 15
+  },
+  "ciUrl": "https://github.com/Kartik24Hulmukh/frontier-oss-ideas/actions/runs/37485683239",
+  "productionCodeSha": "268336b5ba8faa97c99f0d8fa0f843d761349cc5",
+  "strictCodeChecks": {
+    "passed": 13,
+    "total": 17,
+    "failed": [
+      "distributed-configured",
+      "issuer-trust",
+      "healthy-supply",
+      "healthy-demand"
+    ]
+  },
+  "publicHttpChecks": 14
+}

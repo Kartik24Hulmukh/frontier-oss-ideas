@@ -1,6 +1,6 @@
 {
-  "base": "http://localhost:3000",
-  "at": "2026-10-06T15:12:55.997Z",
+  "base": "https://frontier-oss-ideas.vercel.app",
+  "at": "2026-10-06T15:17:53.143Z",
   "checks": [
     {
       "check": "health",
@@ -9,7 +9,7 @@
         "ok": true,
         "service": "simultaneity-index",
         "version": "1.6.11",
-        "build": null,
+        "build": "268336b5ba8faa97c99f0d8fa0f843d761349cc5",
         "admission": "per-instance",
         "receipts": "hash-only",
         "receiptTrust": {
@@ -19,8 +19,8 @@
         "pacing": "provider-ceilings+circuit-breakers",
         "modelGateway": "not-configured",
         "credentials": {
-          "github": "absent-anonymous",
-          "openalex": false,
+          "github": "configured-unverified",
+          "openalex": true,
           "reddit": false,
           "receiptPublicKeyPinned": false
         },
@@ -52,7 +52,7 @@
           "scope": "per-instance",
           "providers": []
         },
-        "timestamp": "2026-10-06T15:12:55.215Z"
+        "timestamp": "2026-10-06T15:17:50.372Z"
       }
     },
     {
