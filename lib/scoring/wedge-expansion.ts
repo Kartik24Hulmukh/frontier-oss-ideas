@@ -1,4 +1,5 @@
 import type { SourceResult, SubLane, Verdict } from '@/lib/types'
+import { qualifiedItems } from './evidence'
 
 /**
  * Sub-lane expansion (1.5.12). Turns "this lane is crowded" into ranked, testable
@@ -30,7 +31,7 @@ export const SUB_LANE_DIMENSIONS: readonly Dimension[] = [
 const MIN_SAMPLE = 8
 
 export function expandSubLanes(query: string, parentScore: number, verdict: Verdict, sources: SourceResult[], limit = 3): SubLane[] {
-  const items = sources.filter((s) => s.status === 'ok').flatMap((s) => s.items.map((item) => ({ item, source: s.source })))
+  const items = sources.filter((s) => s.status === 'ok').flatMap((s) => qualifiedItems(s).map((item) => ({ item, source: s.source })))
   const sample = items.length
   const q = query.toLowerCase()
   const lanes: SubLane[] = []
@@ -48,7 +49,7 @@ export function expandSubLanes(query: string, parentScore: number, verdict: Verd
       claimedBy: claims.length,
       sampled: sample,
       confidence: sample >= MIN_SAMPLE * 3 ? 'medium' : sample >= MIN_SAMPLE ? 'low' : 'insufficient',
-      recommendation: `Build a ${d.angle}: ${claims.length} of ${sample} sampled builders claim it.`,
+      recommendation: `Investigate a ${d.angle}: ${claims.length} of ${sample} qualified sampled artifacts mention it. Absence from this sample is not a verified market gap.`,
       verifyQuery: `${query} ${d.suffix}`.replace(/\s+/g, ' ').trim().slice(0, 120),
       examples: claims.slice(0, 2).map(({ item, source }) => ({ source, title: item.title, url: item.url })),
       buildHere: false,

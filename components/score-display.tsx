@@ -12,6 +12,7 @@ function formatDate(iso: string | null): string {
 export function ScoreDisplay({ result }: { result: CrowdingResult }) {
   return (
     <section aria-label="Crowding score" className="border border-border bg-card">
+      {result.confidence < 50 && <p role="alert" className="border-b border-border p-4 text-sm">Insufficient qualified evidence. The observed score is provisional; no open market or build decision is established. Inspect the links and collect more signal.</p>}
       {result.coverage < 50 && <p role="alert" className="border-b border-border p-4 text-sm">Insufficient source coverage. This score is provisional, not evidence of an open market. Re-scan before deciding.</p>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -33,7 +34,7 @@ export function ScoreDisplay({ result }: { result: CrowdingResult }) {
 
         <div className="flex flex-1 flex-col gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-balance">{result.verdict}</h2>
+            <h2 className="text-2xl font-bold text-balance">{result.confidence < 50 ? 'Insufficient evidence' : result.verdict}</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">
               {result.verdictDetail}
             </p>

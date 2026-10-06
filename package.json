@@ -1,6 +1,6 @@
 {
   "name": "simultaneity-index",
-  "version": "1.6.10",
+  "version": "1.6.11",
   "private": true,
   "description": "Simultaneity Index: live crowding + demand radar for builders, funds and AI agents (MCP)",
   "engines": {
@@ -42,5 +42,13 @@
   },
   "bin": {
     "simultaneity-mcp": "bin/simultaneity-mcp.mjs"
+  },
+  "overrides": {
+    "sharp": "0.35.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "sharp": "0.35.5"
+    }
   }
 }

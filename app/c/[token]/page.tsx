@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = loaded.share.capsule
   return {
     title: `Proof: Simultaneity ${c.score} for \u201c${c.query.slice(0, 80)}\u201d \u2014 Simultaneity Index`,
-    description: `${shareTrustLabel(loaded.share)}. Snapshot from ${c.searchedAt}. Verdict: ${c.verdict}.`,
+    description: `${shareTrustLabel(loaded.share)}. Snapshot from ${c.searchedAt}. Verdict: ${c.confidence < 50 ? 'Insufficient evidence' : c.verdict}.`,
     robots: { index: false, follow: false }, referrer: 'no-referrer',
   }
 }
@@ -52,9 +52,10 @@ export default async function ProofView({ params }: Props) {
   return (
     <PageShell eyebrow="Proof link \u00b7 frozen snapshot" title={`Simultaneity ${c.score}: \u201c${c.query}\u201d`}>
       <div className={`rounded-lg border-2 p-4 font-mono text-xs uppercase tracking-widest ${status.cls}`} data-testid="proof-status">{status.label}</div>
+      {c.confidence < 50 && <p role="alert">Insufficient qualified evidence. This frozen score is provisional, not proof of an open market.</p>}
       <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
         <div><dt className="font-mono text-xs text-muted-foreground">Score</dt><dd className="text-2xl">{c.score}</dd></div>
-        <div><dt className="font-mono text-xs text-muted-foreground">Verdict</dt><dd>{c.verdict}</dd></div>
+        <div><dt className="font-mono text-xs text-muted-foreground">Verdict</dt><dd>{c.confidence < 50 ? 'Insufficient evidence' : c.verdict}</dd></div>
         <div><dt className="font-mono text-xs text-muted-foreground">Demand</dt><dd>{c.demandScore ?? '\u2014'}</dd></div>
         <div><dt className="font-mono text-xs text-muted-foreground">Quadrant</dt><dd>{c.quadrant ?? '\u2014'}</dd></div>
       </dl>

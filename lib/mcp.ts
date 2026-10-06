@@ -15,7 +15,7 @@ export const TOOLS = [
     name: 'crowding_check',
     title: 'Simultaneity Index crowding check',
     description:
-      'Before building a new project, check public-source crowding around the idea (not a unique-team count). Scans GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face (supply) and Reddit, Stack Overflow, Ask HN (demand). Returns a 0-100 Simultaneity score, verdict, Supply x Demand quadrant, confidence, wedges and evidence links.',
+      'Before building a new project, check public-source crowding around the idea (not a unique-team count). Scans GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, crates.io, Hugging Face (supply) and Reddit, Stack Overflow, Ask HN (demand). Returns a 0-100 Simultaneity score, verdict, Supply x Demand quadrant, confidence, wedges and evidence links.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -40,7 +40,7 @@ export function summarize(r: CrowdingResult): string {
     'Discussion heat is not verified buyer demand; confidence is not a calibrated probability.',
     'Top wedges:',
     ...r.wedges.slice(0, 3).map((w) => `- [${w.priority}] ${w.title}: ${w.rationale}`),
-    ...(r.subLanes?.length ? ['Least-claimed sub-lanes (estimates; verify with crowding_check):', ...r.subLanes.map((l) => `- ${l.label}: est. ${l.estimatedScore}/100 (${l.claimedBy}/${l.sampled} sampled claim it, ${l.confidence})${l.buildHere ? ' <- build here' : ''}; verify: "${l.verifyQuery}"`)] : []),
+    ...(r.subLanes?.length ? ['Least-claimed sub-lanes (estimates; verify with crowding_check):', ...r.subLanes.map((l) => `- ${l.label}: est. ${l.estimatedScore}/100 (${l.claimedBy}/${l.sampled} sampled claim it, ${l.confidence})${l.buildHere ? ' <- investigate first' : ''}; verify: "${l.verifyQuery}"`)] : []),
     'Evidence:',
     ...r.capsule.evidenceLinks.slice(0, 8).map((e) => `- (${e.source}) ${e.title} — ${e.url}`),
   ]

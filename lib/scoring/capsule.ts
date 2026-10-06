@@ -1,4 +1,5 @@
 import type { CrowdingResult, EvidenceCapsule } from '@/lib/types'
+import { qualifiedItems } from './evidence'
 
 type CapsuleInput = Omit<CrowdingResult, 'capsule'>
 
@@ -6,7 +7,7 @@ export function buildCapsule(result: CapsuleInput): EvidenceCapsule {
   const evidenceLinks = result.sources
     .filter((s) => s.status === 'ok')
     .flatMap((s) =>
-      s.items.slice(0, 5).map((item) => ({
+      qualifiedItems(s).slice(0, 5).map((item) => ({
         source: s.source,
         title: item.title,
         url: item.url,

@@ -41,7 +41,7 @@ export function WedgePanel({ wedges, subLanes = [] }: { wedges: Wedge[]; subLane
                   </span>
                   {l.buildHere && (
                     <span className="border border-foreground px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest">
-                      ✓ Build here
+                      Investigate first
                     </span>
                   )}
                 </div>

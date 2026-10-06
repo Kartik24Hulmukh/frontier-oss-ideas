@@ -1,6 +1,7 @@
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, count, nonempty, optionalText } from './contract'
 
 export async function searchNpm(
   query: string,
@@ -15,6 +16,13 @@ export async function searchNpm(
     const res = await pacedFetch('npm', url, { timeoutMs: ctx.timeoutMs })
     if (!res.ok) return errorResult('npm', label, 'npm registry returned ' + res.status + '.')
     const data = await res.json()
+    if (!record(data) || !count(data.total) || !Array.isArray(data.objects) ||
+      data.total < data.objects.length || !data.objects.every((row) => record(row) &&
+        record(row.package) && nonempty(row.package.name) &&
+        optionalText(row.package.description) && optionalText(row.package.date) &&
+        (row.package.links === undefined || (record(row.package.links) && optionalText(row.package.links.npm))))) {
+      return errorResult('npm', label, 'npm registry returned a malformed response.')
+    }
     const items: EvidenceItem[] = (data.objects ?? []).map(
       (obj: {
         package: {

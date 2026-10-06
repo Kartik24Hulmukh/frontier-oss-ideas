@@ -1,4 +1,5 @@
 import type { SourceResult } from '@/lib/types'
+import { semanticRelevance } from '@/lib/scoring/semantic-filter'
 
 /**
  * Canonical identity for an evidence URL so the same artefact appearing in
@@ -28,29 +29,39 @@ function titleKey(title: string): string {
 }
 
 /**
- * Marks cross-source duplicates by setting relevance to 0 on later copies
- * (source order = priority) and removes them from items. totalCount is left as
- * reported upstream; only displayed/scored evidence is deduplicated.
+ * Select the most query-relevant observation before collapsing duplicates.
+ * Otherwise an early off-topic description can erase a later qualified copy
+ * of the same artifact. Ties (and calls without a query) preserve source order.
+ * Retain the winning item in its original source, without mixing metadata from
+ * different observations. Raw counts, source notices and statuses are unchanged.
+ * Qualification still happens after dedup; audit-only items remain inspectable.
  */
-export function dedupeAcrossSources(sources: SourceResult[]): { sources: SourceResult[]; collapsed: number } {
+export function dedupeAcrossSources(sources: SourceResult[], query?: string): { sources: SourceResult[]; collapsed: number } {
   const seenUrl = new Set<string>()
   const seenTitle = new Set<string>()
+  const retained = sources.map(() => new Set<number>())
+  const candidates = sources.flatMap((source, sourceIndex) =>
+    source.status !== 'ok' ? [] : source.items.map((item, itemIndex) => ({
+      item, sourceIndex, itemIndex,
+      relevance: query === undefined ? 0 : semanticRelevance(query, item),
+    })),
+  )
+  candidates.sort((a, b) => b.relevance - a.relevance || a.sourceIndex - b.sourceIndex || a.itemIndex - b.itemIndex)
   let collapsed = 0
-  const out = sources.map((s) => {
-    if (s.status !== 'ok') return s
-    const items = s.items.filter((item) => {
-      const u = canonicalUrl(item.url)
-      const t = titleKey(item.title)
-      const dupe = seenUrl.has(u) || (t.length > 12 && seenTitle.has(t))
-      if (dupe) {
-        collapsed++
-        return false
-      }
-      seenUrl.add(u)
-      if (t.length > 12) seenTitle.add(t)
-      return true
-    })
-    return { ...s, items }
+  for (const { item, sourceIndex, itemIndex } of candidates) {
+    const u = canonicalUrl(item.url)
+    const t = titleKey(item.title)
+    if (seenUrl.has(u) || (t.length > 12 && seenTitle.has(t))) {
+      collapsed++
+      continue
+    }
+    seenUrl.add(u)
+    if (t.length > 12) seenTitle.add(t)
+    retained[sourceIndex].add(itemIndex)
+  }
+  const out = sources.map((s, sourceIndex) => s.status !== 'ok' ? s : {
+    ...s,
+    items: s.items.filter((_, itemIndex) => retained[sourceIndex].has(itemIndex)),
   })
   return { sources: out, collapsed }
 }

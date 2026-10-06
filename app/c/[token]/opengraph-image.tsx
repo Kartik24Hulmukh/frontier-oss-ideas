@@ -47,7 +47,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 40 }}>
             <div style={{ display: 'flex', fontSize: 160, fontWeight: 800, color: tone, lineHeight: 1 }}>{capsule.score}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 16 }}>
-              <div style={{ display: 'flex', fontSize: 48, fontWeight: 700, color: tone }}>{capsule.verdict}</div>
+              <div style={{ display: 'flex', fontSize: 48, fontWeight: 700, color: tone }}>{capsule.confidence < 50 ? 'Insufficient evidence' : capsule.verdict}</div>
               <div style={{ display: 'flex', fontSize: 26, color: '#444' }}>{`Scanned ${new Date(capsule.searchedAt).toISOString().slice(0, 10)}`}</div>
             </div>
           </div>

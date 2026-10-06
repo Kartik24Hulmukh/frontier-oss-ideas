@@ -1,0 +1,19 @@
+{
+  "sharp": [
+    {
+      "id": 1241331,
+      "url": "https://github.com/advisories/GHSA-wq5f-xc86-pv6w",
+      "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
+      "severity": "high",
+      "vulnerable_versions": "<0.35.5",
+      "cwe": [
+        "CWE-416",
+        "CWE-1395"
+      ],
+      "cvss": {
+        "score": 0,
+        "vectorString": null
+      }
+    }
+  ]
+}

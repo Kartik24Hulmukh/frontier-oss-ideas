@@ -1,6 +1,7 @@
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, nonempty, optionalText } from './contract'
 
 /** Best-effort PyPI adapter: JSON for exact-ish names + HTML search parse. */
 export async function searchPypi(
@@ -15,6 +16,7 @@ export async function searchPypi(
     )
 
     const items: EvidenceItem[] = []
+    let malformedExact = false
     await Promise.all(candidates.slice(0, 3).map(async (name) => {
       try {
         const res = await pacedFetch(
@@ -24,7 +26,15 @@ export async function searchPypi(
         )
         if (!res.ok) return
         const data = await res.json()
-        const info = data.info ?? {}
+        if (!record(data) || !record(data.info) || !nonempty(data.info.name) ||
+          !record(data.releases) || !Object.values(data.releases).every((files) =>
+            Array.isArray(files) && files.every((file) => record(file) && optionalText(file.upload_time_iso_8601))) ||
+          !optionalText(data.info.summary) || !optionalText(data.info.package_url) ||
+          !optionalText(data.info.version)) {
+          malformedExact = true
+          return
+        }
+        const info = data.info as { name: string; summary?: string | null; package_url?: string | null; version?: string | null }
         const dates = Object.values(data.releases ?? {}).flat().map((f) => (f as { upload_time_iso_8601?: string }).upload_time_iso_8601).filter((d): d is string => typeof d === 'string' && !Number.isNaN(Date.parse(d))).sort()
         items.push({
           title: info.name ?? name,
@@ -34,7 +44,8 @@ export async function searchPypi(
           meta: info.version ? 'version ' + info.version : null,
           relevance: name === slug ? 1 : 0.7,
         })
-      } catch {
+      } catch (error) {
+        if (error instanceof SyntaxError) malformedExact = true
         // continue
       }
     }))
@@ -73,6 +84,7 @@ export async function searchPypi(
       // ignore HTML path failures
     }
 
+    if (malformedExact) return errorResult('pypi', label, 'PyPI returned a malformed exact-name response.')
     if (!searchAvailable && items.length === 0) return errorResult('pypi', label, 'PyPI search unavailable or challenged; exact-name probes found no evidence. Not evidence of an empty ecosystem.')
     const unique = [...new Map(items.map((i) => [i.url, i])).values()]
     return {

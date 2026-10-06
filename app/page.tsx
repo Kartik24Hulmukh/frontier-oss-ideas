@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { LatestRequest } from '@/lib/core/latest-request'
 import { SearchForm } from '@/components/search-form'
 import { ScoreDisplay } from '@/components/score-display'
 import { SourceSection } from '@/components/source-section'
@@ -17,6 +18,7 @@ const SOURCE_NAMES = [
   'OpenAlex',
   'npm',
   'PyPI',
+  'crates.io',
   'Hugging Face',
   'Reddit (demand)',
   'Stack Overflow (demand)',
@@ -24,6 +26,9 @@ const SOURCE_NAMES = [
 ]
 
 export default function Home() {
+  const searchRequest = useRef(new LatestRequest())
+  const memoRequest = useRef(new LatestRequest())
+  const proofRequest = useRef(new LatestRequest())
   const [data, setData] = useState<CrowdingResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -33,6 +38,13 @@ export default function Home() {
   const [memoError, setMemoError] = useState<string | null>(null)
 
   async function runSearch(query: string) {
+    const request = searchRequest.current.begin()
+    memoRequest.current.cancel()
+    proofRequest.current.cancel()
+    setData(null)
+    setProofState('idle')
+    setMemoError(null)
+    setShared(false)
     setIsLoading(true)
     setError(null)
     setCopied(false)
@@ -44,8 +56,11 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
+        signal: request.signal,
       })
       const payload = await response.json().catch(() => null)
+      if (!request.isCurrent()) return
+      if (!request.canCommit()) throw new Error('Request timed out. Please try again.')
       if (!response.ok) {
         throw new Error(payload?.error ?? 'Search failed. Please try again.')
       }
@@ -53,15 +68,17 @@ export default function Home() {
       try { recordScan(payload as CrowdingResult) } catch { /* A storage failure must not discard a successful scan. */ }
       // Keep private idea text out of browser history unless the user explicitly shares.
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Search failed.')
+      if (request.isCurrent()) setError(request.signal.aborted ? 'Scan timed out. Please try again.' : cause instanceof Error ? cause.message : 'Search failed.')
     } finally {
-      setIsLoading(false)
+      if (request.isCurrent()) setIsLoading(false)
+      request.finish()
     }
   }
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('q')
     if (q) void runSearch(q)
+    return () => { searchRequest.current.cancel(); memoRequest.current.cancel(); proofRequest.current.cancel() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -83,19 +100,25 @@ export default function Home() {
   async function copyProofLink() {
     if (!data) return
     if (!window.confirm('A proof link embeds this exact scan (including your idea) in a public URL. It is frozen and tamper-evident. Continue?')) return
+    const request = proofRequest.current.begin()
     setProofState('loading')
     try {
-      const response = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsule: data.capsule, receipt: data.receipt }) })
+      const response = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsule: data.capsule, receipt: data.receipt }), signal: request.signal })
       const payload = await response.json().catch(() => null)
+      if (!request.isCurrent()) return
+      if (!request.canCommit()) throw new Error('Request timed out. Please try again.')
       if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Could not create a proof link.')
       const url = `${window.location.origin}${payload.path}`
-      try { await navigator.clipboard.writeText(url) } catch { window.prompt('Copy this proof link', url) }
+      try { await navigator.clipboard.writeText(url) } catch { if (request.canCommit()) window.prompt('Copy this proof link', url) }
+      if (!request.canCommit()) return
       setProofState('copied')
-      window.setTimeout(() => setProofState('idle'), 1800)
+      window.setTimeout(() => { if (request.isCurrent()) setProofState('idle') }, 1800)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not create a proof link.')
-      setProofState('idle')
-    }
+      if (request.isCurrent()) {
+        setError(request.signal.aborted ? 'Proof request timed out. Please try again.' : cause instanceof Error ? cause.message : 'Could not create a proof link.')
+        setProofState('idle')
+      }
+    } finally { request.finish() }
   }
 
   async function copyCapsule() {
@@ -111,18 +134,23 @@ export default function Home() {
 
   async function requestMemo() {
     if (!data) return
+    const request = memoRequest.current.begin()
     setMemoState('loading')
     setMemoError(null)
     try {
-      const response = await fetch('/api/analyst', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: data.query, profile: 'fast' }) })
+      const response = await fetch('/api/analyst', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: data.query, profile: 'fast' }), signal: request.signal })
       const payload = await response.json().catch(() => null)
+      if (!request.isCurrent()) return
+      if (!request.canCommit()) throw new Error('Request timed out. Please try again.')
       if (!response.ok || !payload?.memo) throw new Error(payload?.error ?? (payload?.route?.error === 'budget_exceeded' ? 'AI budget reached for now. Use the decision brief.' : 'AI analyst unavailable. The deterministic decision brief still works.'))
       setMemo({ text: payload.memo, model: payload.route?.model ?? 'unknown', failovers: Math.max(0, (payload.route?.attempts?.length ?? 1) - 1) })
       setMemoState('idle')
     } catch (cause) {
-      setMemoError(cause instanceof Error ? cause.message : 'AI analyst unavailable.')
-      setMemoState('error')
-    }
+      if (request.isCurrent()) {
+        setMemoError(request.signal.aborted ? 'AI analyst timed out. The deterministic decision brief still works.' : cause instanceof Error ? cause.message : 'AI analyst unavailable.')
+        setMemoState('error')
+      }
+    } finally { request.finish() }
   }
 
   function downloadBrief() {
@@ -157,7 +185,7 @@ export default function Home() {
           </span>
           <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <span aria-hidden="true" className="inline-block size-2 rounded-full bg-signal" />
-            10 source adapters
+            8 supply + 3 demand adapters
           </span>
           <nav className="hidden gap-4 font-mono text-xs uppercase tracking-widest text-muted-foreground sm:flex">
             <a href="/pulse" className="hover:text-foreground">Pulse</a>
@@ -306,7 +334,7 @@ export default function Home() {
         {!data && !isLoading && !error && (
           <section className="grid grid-cols-1 overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 sm:gap-px">
             {[
-              ['01', 'Scan', 'Seven public ecosystems: repos, launches, papers, packages, models, and datasets.'],
+              ['01', 'Scan', 'Eight public supply ecosystems: repos, launches, papers, packages, models, and datasets.'],
               ['02', 'Score', 'Transparent heuristics with explicit source coverage and confidence.'],
               ['03', 'Wedge', 'See whether to enter, specialize, move up the stack, or kill the idea.'],
             ].map(([number, title, body]) => (

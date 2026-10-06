@@ -19,9 +19,17 @@ export function evaluateGate(health, scan, verification, strict = false, expecte
   check('receipt-integrity', verification?.digestMatches === true, 'Exported capsule must match receipt')
   check('snapshot-provenance', scan?.capsule?.version === '1.2' && Boolean(scan?.capsule?.modelVersion) && exactSources(scan?.capsule?.sourceSummary, supplyIds), 'Capsule 1.2 with model and eight source statuses')
   if (strict) {
+    const age = Date.now() - Date.parse(scan?.capsule?.searchedAt)
+    check('fresh-snapshot', scan?.cached !== true && Number.isFinite(age) && age >= -30_000 && age <= 120_000 && scan?.searchedAt === scan?.capsule?.searchedAt, 'Fresh, noncached receipt-covered snapshot; max age 120s, max clock skew 30s')
+    check('snapshot-binding', scan?.capsule?.modelVersion === 'crowding-1.3' && ['query', 'score', 'coverage', 'confidence', 'verdict'].every(k => scan?.[k] === scan?.capsule?.[k]), 'Displayed query, score, confidence, coverage and verdict must match the approved model capsule')
+    check('llm-breaker-availability', !health?.llm?.configured || (health.llm.breakers && Object.values(health.llm.breakers).some(b => b === 'closed' || b === 'half_open')), 'Enabled analyst needs at least one dispatchable model; real useful completion remains a separate launch requirement')
     check('llm-distributed-budget', !health?.llm?.configured || health?.llm?.budgetScope === 'distributed-configured', 'Enabled AI analyst requires distributed token admission; runtime outage tests still required')
     check('distributed-configured', health?.admission === 'distributed-configured', 'Configuration only; concurrent/outage tests still required')
     check('issuer-trust', verification?.issuerTrusted === true && health?.credentials?.receiptPublicKeyPinned === true, 'Pinned issuer key required')
+    check('supply-provenance', exactSources(scan?.capsule?.sourceSummary, supplyIds) && scan.capsule.sourceSummary.every(s => {
+      const live = scan?.sources?.find(d => d.source === s.source)
+      return live && ['status', 'totalCount', 'notice'].every(k => s[k] === live[k])
+    }), 'Receipt-covered supply metadata must match the scan, including fallback notices')
     check('healthy-supply', exactSources(scan?.sources, supplyIds, healthy), 'Exactly eight healthy adapters without fallback')
     check('healthy-demand', exactSources(scan?.demand?.sources, demandIds, s => healthy(s) && (s.source !== 'reddit' || s.provenance === 'primary')), 'Exactly three healthy demand adapters; no mirror or fallback notices')
     check('demand-provenance', exactSources(scan?.capsule?.demandSourceSummary, demandIds) && scan.capsule.demandSourceSummary.every(s => {
@@ -42,7 +50,7 @@ export async function runGate(base, strict = false, expectedBuild) {
     return response.json()
   }
   const health = await req('/api/health')
-  const scan = await req('/api/search', { query: 'AI code review agent' })
+  const scan = await req('/api/search', { query: 'AI code review agent', fresh: true })
   const verification = await req('/api/verify', { capsule: scan.capsule, receipt: scan.receipt })
   const tampered = await req('/api/verify', { capsule: { ...scan.capsule, score: 999 }, receipt: scan.receipt })
   const result = evaluateGate(health, scan, verification, strict, expectedBuild)

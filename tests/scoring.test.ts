@@ -53,7 +53,7 @@ describe('computeCrowding', () => {
     const result = computeCrowding('totally novel quantum teapot', sources)
     assert.equal(result.verdict, 'Open lane')
     assert.ok(result.score <= 25)
-    assert.ok(result.confidence > 0)
+    assert.equal(result.confidence, 0)
     assert.ok(result.capsule.evidenceLinks.length === 0)
     assert.ok(result.wedges.length >= 1)
   })
