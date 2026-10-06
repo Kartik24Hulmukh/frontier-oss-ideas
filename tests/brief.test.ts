@@ -8,7 +8,7 @@ import { admitScan } from '../lib/core/admission'
 test('capsule records failed sources, weights and model, with stable JSON roundtrip', () => {
   const r = computeCrowding('test idea', [{ source: 'github', label: 'GitHub', status: 'error', totalCount: 0, items: [] }])
   assert.equal(r.capsule.version, '1.2')
-  assert.equal(r.capsule.modelVersion, 'crowding-1.3')
+  assert.equal(r.capsule.modelVersion, 'crowding-1.4')
   assert.equal(r.capsule.sourceSummary?.[0].status, 'error')
   assert.equal(r.capsule.breakdown?.[0].included, false)
   assert.equal(digestCapsule(JSON.parse(JSON.stringify(r.capsule))), digestCapsule(r.capsule))

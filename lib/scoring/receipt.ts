@@ -63,9 +63,22 @@ export function trustedKeyCount(single = process.env.RECEIPT_PUBLIC_KEY, keyring
   return trustedKeys(single, keyring).length
 }
 
+/** Configuration readiness checks the actual key, not just env presence. */
+export function receiptReadiness(pem = process.env.RECEIPT_PRIVATE_KEY, single = process.env.RECEIPT_PUBLIC_KEY, keyring = process.env.RECEIPT_PUBLIC_KEYS) {
+  const key = loadKey(pem)
+  const pins = trustedKeys(single, keyring)
+  const signer = !pem ? 'missing' : key ? 'valid' : 'invalid'
+  const issuerMatched = !!key && pins.some(pin => keyId(pin) === keyId(createPublicKey(key)))
+  return { signer, pinnedKeys: pins.length, issuerMatched, ready: signer === 'valid' && issuerMatched }
+}
+export class ReceiptConfigurationError extends Error {
+  constructor() { super('Receipt signer configuration is invalid'); this.name = 'ReceiptConfigurationError' }
+}
+
 export function issueReceipt(capsule: EvidenceCapsule, pem?: string): ScanReceipt {
   const digest = digestCapsule(capsule)
   const key = loadKey(pem)
+  if ((pem ?? process.env.RECEIPT_PRIVATE_KEY) && !key) throw new ReceiptConfigurationError()
   if (!key) {
     return { algorithm: 'sha256', digest, signature: null, publicKey: null, issuedAt: capsule.searchedAt }
   }

@@ -10,8 +10,8 @@
  * - Hedge delay = clamp(p90 * multiplier, minMs, maxMs), computed per model at dispatch.
  * - Cold start is conservative: until minSamples successes exist the static fallback
  *   (or maxMs) is used, so a fresh process never hedges aggressively on unknown models.
- * - A rolling hedge-rate governor caps the fraction of requests allowed to hedge, so a
- *   gateway-wide slowdown cannot double the token bill.
+ * - A rolling governor counts extra concurrent attempts per dispatched request,
+ *   with a bounded cold-start burst. This is process-local, not a fleet-wide spend cap.
  */
 
 export interface HedgePolicy {
@@ -23,11 +23,11 @@ export interface HedgePolicy {
   maxMs: number
   /** Successful samples required before the learned delay is trusted. */
   minSamples: number
-  /** Maximum fraction of recent requests allowed to hedge (0..1). */
+  /** Extra concurrent attempts per dispatched request at admission (0..1), after cold start. */
   maxHedgeRate: number
   /** Rolling window for the hedge-rate governor. */
   statsWindowMs: number
-  /** Requests needed before the governor can block (avoids blocking the 1st hedge). */
+  /** Cold-start boundary. Before this, at most ceil(rate * (boundary - 1)) extra attempts may dispatch. */
   minRequestsForRate: number
 }
 
@@ -57,6 +57,8 @@ export class HedgeController {
     p.maxMs = Math.max(p.minMs, p.maxMs)
     p.minSamples = Math.max(1, Math.floor(p.minSamples))
     p.maxHedgeRate = Math.min(1, Math.max(0, p.maxHedgeRate))
+    p.statsWindowMs = Math.max(1, Math.floor(p.statsWindowMs))
+    p.minRequestsForRate = Math.max(1, Math.floor(p.minRequestsForRate))
     this.policy = p
   }
 
@@ -85,13 +87,24 @@ export class HedgeController {
   }
 
   noteRequest() { this.prune(); this.requests.push(this.now()) }
+  /** @deprecated Manual telemetry only; dispatchers must use tryReserveHedge(). */
   noteHedge() { this.prune(); this.hedges.push(this.now()) }
 
-  /** False when recent hedging already exceeds the configured spend ceiling. */
+  /** Compatibility preview, NOT a dispatch ticket. Counts extra attempts, not unique requests. */
   allowHedge(): boolean {
     this.prune()
-    if (this.requests.length < this.policy.minRequestsForRate) return true
-    return (this.hedges.length + 1) / this.requests.length <= this.policy.maxHedgeRate
+    if (!this.requests.length || this.policy.maxHedgeRate === 0) return false
+    const capacity = this.requests.length < this.policy.minRequestsForRate
+      ? Math.ceil(this.policy.maxHedgeRate * (this.policy.minRequestsForRate - 1))
+      : Math.floor(this.policy.maxHedgeRate * this.requests.length)
+    return this.hedges.length < capacity
+  }
+
+  /** Synchronous check-and-charge at every extra dispatch. No refunds on cancellation. */
+  tryReserveHedge(): boolean {
+    if (!this.allowHedge()) return false
+    this.hedges.push(this.now())
+    return true
   }
 
   private prune() {
@@ -110,6 +123,9 @@ export class HedgeController {
       models[model] = { samples: ring.length, learned: p !== undefined, delayMs: p !== undefined ? this.delayFor(model) : null }
     }
     return {
+      scope: 'process-local' as const,
+      metric: 'extra-attempts-per-request' as const,
+      coldStartAllowance: Math.ceil(this.policy.maxHedgeRate * (this.policy.minRequestsForRate - 1)),
       policy: this.policy,
       requests: this.requests.length,
       hedges: this.hedges.length,

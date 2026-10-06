@@ -106,7 +106,7 @@ describe('crowding-1.2 relevance attenuation', () => {
     )
   })
 
-  it('fully qualified samples are scored exactly as before', () => {
+  it('fully qualified samples cannot validate an unseen raw tail', () => {
     const raw: SourceResult = {
       ...irrelevantGitHub(500),
       items: Array.from({ length: 5 }, (_, i) => ({
@@ -121,7 +121,7 @@ describe('crowding-1.2 relevance attenuation', () => {
     assert.equal(filtered.relevanceFilter?.qualified, filtered.relevanceFilter?.before)
     const withFilter = computeCrowding(QUERY, [filtered, ...fillers()])
     const withoutFilter = computeCrowding(QUERY, [raw, ...fillers()])
-    assert.equal(withFilter.score, withoutFilter.score)
+    assert.ok(withFilter.score <= withoutFilter.score)
   })
 
   it('sources without a relevance filter are unchanged', () => {
@@ -131,13 +131,13 @@ describe('crowding-1.2 relevance attenuation', () => {
     assert.ok((gh?.subScore ?? 0) > 0)
   })
 
-  it('capsule is stamped crowding-1.3', () => {
+  it('capsule is stamped crowding-1.4', () => {
     const result = computeCrowding(QUERY, [irrelevantGitHub(10), ...fillers()])
-    assert.equal(result.capsule.modelVersion, 'crowding-1.3')
+    assert.equal(result.capsule.modelVersion, 'crowding-1.4')
   })
 })
 
-describe('crowding-1.3 qualified-evidence logarithmic bound', () => {
+describe('crowding-1.4 qualified-evidence logarithmic bound', () => {
   function npmHits(total: number, qualifiedCount: number, sample = 20): SourceResult {
     return {
       source: 'npm',

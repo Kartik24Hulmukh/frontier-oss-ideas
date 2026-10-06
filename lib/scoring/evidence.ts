@@ -4,7 +4,7 @@ import type { EvidenceItem, SourceResult } from '@/lib/types'
 export function qualifiedItems(source: SourceResult): EvidenceItem[] {
   if (source.status !== 'ok') return []
   const filter = source.relevanceFilter
-  return filter ? source.items.filter(item => (item.relevance ?? 1) >= filter.threshold) : source.items
+  return filter ? source.items.filter(item => (item.relevance ?? 0) >= filter.threshold) : source.items
 }
 
 /** Only an explicit star unit is traction; dates and download counts are not. */

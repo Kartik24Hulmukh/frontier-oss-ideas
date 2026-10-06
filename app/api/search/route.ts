@@ -1,5 +1,6 @@
 import { readObject, inputResponse, validIdea } from '@/lib/core/input'
 import { clientKey, rateLimitResponse, scanLimiter } from '@/lib/core/ratelimit'
+import { ReceiptConfigurationError } from '@/lib/scoring/receipt'
 import { scanIdea } from '@/lib/scan'
 
 export const runtime = 'nodejs'
@@ -19,7 +20,10 @@ async function handle(request: Request, raw: string, fresh = false) {
   if (q.length < 3) return Response.json({ error: 'Describe the idea in at least 3 characters.' }, { status: 400, headers: CORS })
   const limit = scanLimiter.check(clientKey(request))
   if (!limit.allowed) return rateLimitResponse(limit.retryAfterSec, CORS)
-  const result = await scanIdea(q, { fresh })
+  let result
+  try { result = await scanIdea(q, { fresh }) } catch (error) {
+    return Response.json({ error: error instanceof ReceiptConfigurationError ? 'Receipt signing is unavailable. Operator configuration is required.' : 'Scan unavailable. Please retry later.' }, { status: 503, headers: { ...CORS, 'Cache-Control': 'no-store' } })
+  }
   return Response.json(result, {
     headers: {
       ...CORS,

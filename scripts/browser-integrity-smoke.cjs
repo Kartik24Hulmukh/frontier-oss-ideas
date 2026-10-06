@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const assert = require('assert/strict');
 const base=process.env.SMOKE_BASE || 'http://127.0.0.1:3000';
-const out=process.env.SMOKE_OUT || 'docs/evidence/continuation-1.6.11';
+const out=process.env.SMOKE_OUT || 'docs/evidence/continuation-1.6.12';
 fs.mkdirSync(out,{recursive:true});
 async function main(){
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -14,7 +14,7 @@ async function main(){
   await page.goto(base); await page.getByLabel('Describe your idea').fill('AI code review agent'); await page.getByRole('button',{name:'Run scan',exact:true}).click();
   await page.locator('[aria-label="Crowding score"]').waitFor({timeout:65000}); check('real scan renders score and eight supply sources');
   const response=await context.request.post(base+'/api/search',{data:{query:'AI code review agent'}}); const scan=await response.json();
-  assert.equal(scan.sources.length,8); assert.equal(scan.capsule.modelVersion,'crowding-1.3');
+  assert.equal(scan.sources.length,8); assert.equal(scan.capsule.modelVersion,'crowding-1.4');
   const text=await page.locator('body').innerText(); assert.ok(text.toLowerCase().includes('8 supply + 3 demand adapters')); assert.ok(!text.toLowerCase().includes('build here')); check('actual source-count and investigate-first copy');
   await page.screenshot({path:out+'/browser-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'☆ Watch this lane',exact:true}).click(); await page.locator('[aria-label="Watchlist"]').waitFor(); check('watchlist saves successful scan');
@@ -26,8 +26,8 @@ async function main(){
   }
   const evidence=JSON.parse(fs.readFileSync(out+'/download-evidence.json','utf8'));
   const verified=await context.request.post(base+'/api/verify',{data:evidence});assert.equal((await verified.json()).digestMatches,true);check('downloaded receipt verifies over HTTP');
-  await page.getByRole('button',{name:'AI analyst memo',exact:true}).click();await page.getByText('AI analyst not configured',{exact:false}).waitFor({timeout:65000}).catch(async()=>{await page.locator('[aria-label="AI analyst memo"]').waitFor({timeout:65000})});
-  assert.ok((await page.locator('[aria-label="AI analyst memo"]').innerText()).toLowerCase().includes('not configured'));check('unconfigured analyst degrades visibly without losing deterministic scan');
+  await page.getByRole('button',{name:'AI analyst memo',exact:true}).click();await page.locator('[aria-label="AI analyst memo"]').waitFor({timeout:65000});
+  assert.match((await page.locator('[aria-label="AI analyst memo"]').innerText()).toLowerCase(), /not configured|no citable evidence/);check('unconfigured or evidence-insufficient analyst abstains visibly without losing deterministic scan');
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+'/browser-mobile.png',fullPage:true});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));check('mobile viewport has no horizontal overflow');
   await page.goto(base+'/methodology');assert.ok((await page.locator('body').innerText()).includes('crates.io 0.04'));check('methodology publishes exact weights');

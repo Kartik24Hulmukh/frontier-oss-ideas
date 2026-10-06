@@ -18,7 +18,7 @@ for (const id of ids) for (const status of ['ok', 'error'] as const) for (const 
     const r = computeCrowding('code review', [s])
     assert.ok(r.score >= 0 && r.score <= 100)
     assert.ok(r.confidence >= 0 && r.confidence <= 100)
-    assert.equal(r.capsule.modelVersion, 'crowding-1.3')
+    assert.equal(r.capsule.modelVersion, 'crowding-1.4')
     assert.equal(r.sources[0].totalCount, count, 'audit count preserved')
     if (status !== 'ok' || relevance < 0.18) {
       assert.equal(r.score, 0)

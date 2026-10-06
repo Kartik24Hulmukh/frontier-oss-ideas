@@ -44,7 +44,7 @@ function parseDownloads(meta: string | null): number {
 }
 
 /**
- * crowding-1.3: linear attenuation (raw × qualified/before) still lets a huge raw
+ * crowding-1.4: linear attenuation (raw × qualified/before) still lets a huge raw
  * total dominate when a handful of sampled items qualify (e.g. 2M npm hits with
  * 2/20 qualified → 200k "effective" hits). The effective total is therefore the
  * smaller of the linear estimate and a qualified-evidence logarithmic bound:
@@ -52,15 +52,12 @@ function parseDownloads(meta: string | null): number {
  * Each qualified, inspectable item can vouch for at most a logarithmic share of
  * the unseen tail. With a filter present and no inspectable sample (sampled = 0,
  * e.g. everything removed by de-duplication) nothing is scored: an unseen raw
- * total is not evidence. Fully qualified samples keep the raw total. Uncalibrated; see docs/METHODOLOGY_CROWDING_1_3.md.
+ * total is not evidence. The bound also applies to fully qualified samples; inspected samples cannot validate an unseen tail. Uncalibrated; see docs/METHODOLOGY_CROWDING_1_3.md.
  */
 export function qualifiedTotal(result: SourceResult): number {
   const filter = result.relevanceFilter
   if (!filter) return result.totalCount
   if (filter.before <= 0 || filter.qualified <= 0) return 0
-  // Fully qualified samples are unchanged: the bound only applies once the
-  // filter has rejected sampled evidence as off-topic.
-  if (filter.qualified >= filter.before) return result.totalCount
   const raw = Math.max(0, result.totalCount)
   const linear = raw * (filter.qualified / filter.before)
   const bound = filter.qualified * (1 + Math.log10(1 + raw / filter.before))
@@ -69,7 +66,7 @@ export function qualifiedTotal(result: SourceResult): number {
 
 function relevanceNote(result: SourceResult): string {
   const filter = result.relevanceFilter
-  if (!filter || filter.qualified >= filter.before) return ''
+  if (!filter) return ''
   return ` Scored on ${filter.qualified}/${filter.before} sampled items above relevance threshold ${filter.threshold}; the ${result.totalCount.toLocaleString()} raw match count is shown for audit only.`
 }
 
@@ -349,7 +346,7 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
     },
     searchedAt,
     methodology:
-      'Heuristic crowding score from live public sources (GitHub, HN, arXiv, OpenAlex, npm, PyPI, crates.io, Hugging Face; model crowding-1.3). Not investment advice; not a legal novelty opinion.',
+      'Heuristic crowding score from live public sources (GitHub, HN, arXiv, OpenAlex, npm, PyPI, crates.io, Hugging Face; model crowding-1.4). Not investment advice; not a legal novelty opinion.',
   }
 
   return {
