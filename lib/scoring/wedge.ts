@@ -1,5 +1,7 @@
 import type { ScoreBreakdown, SourceResult, Verdict, Wedge } from '@/lib/types'
 
+import { qualifiedItems, parseStars } from './evidence'
+
 /**
  * Wedge engine v1 — lightweight, evidence-grounded suggestions.
  * Never invents competitors; only reads live source patterns.
@@ -11,6 +13,11 @@ export function computeWedges(
   sources: SourceResult[],
   breakdown: ScoreBreakdown[],
 ): Wedge[] {
+  if (!sources.some(source => qualifiedItems(source).length > 0)) return [{
+    title: 'Collect more signal',
+    rationale: 'No qualified supply evidence was observed. Empty or unavailable channels do not establish market openness. Refine the phrase, inspect source health, and validate the buyer workflow.',
+    priority: 'high',
+  }]
   const wedges: Wedge[] = []
   const byId = Object.fromEntries(sources.map((s) => [s.source, s]))
   const sub = Object.fromEntries(breakdown.map((b) => [b.source, b.subScore]))
@@ -21,14 +28,15 @@ export function computeWedges(
   const npm = byId.npm
   const pypi = byId.pypi
 
-  const launches = hn?.items.filter((i) => i.isLaunchSignal).length ?? 0
-  const hotRepos = gh?.items.filter((i) => /\d{2,}|\d{1,3},\d{3}/.test(i.meta ?? '')).length ?? 0
+  const launches = hn ? qualifiedItems(hn).filter((i) => i.isLaunchSignal).length : 0
+  const hotRepos = gh ? qualifiedItems(gh).filter((i) => parseStars(i.meta) >= 50).length : 0
+  const healthy = (source: SourceResult | undefined) => source?.status === 'ok' && !source.notice
 
   if (verdict === 'Open lane') {
     wedges.push({
       title: 'Speed-to-evidence wedge',
       rationale:
-        'Lane looks empty on public builder signals. Ship a thin vertical slice and collect proof of demand before the simultaneous wave arrives.',
+        'Few qualified public artifacts were observed. Verify source coverage and interview target buyers before testing a thin vertical slice; low observed supply is not proof of an open market.',
       priority: 'high',
     })
     if ((sub.arxiv ?? 0) + (sub.openalex ?? 0) > 30) {
@@ -54,13 +62,13 @@ export function computeWedges(
     wedges.push({
       title: 'Neutral layer above the lane',
       rationale:
-        'Many independent builders already exist. Prefer infrastructure, aggregation, evaluation, or interoperability over another vertical app.',
+        'Many related public artifacts were observed; verify which are direct competitors. Prefer infrastructure, aggregation, evaluation, or interoperability over another vertical app.',
       priority: 'high',
     })
   }
 
   // Ecosystem asymmetry wedges
-  if ((sub.npm ?? 0) > 40 && (sub.pypi ?? 0) < 20) {
+  if (healthy(npm) && healthy(pypi) && (sub.npm ?? 0) > 40 && (sub.pypi ?? 0) < 20) {
     wedges.push({
       title: 'Python/ML-native packaging gap',
       rationale:
@@ -68,7 +76,7 @@ export function computeWedges(
       priority: 'medium',
     })
   }
-  if ((sub.pypi ?? 0) > 40 && (sub.npm ?? 0) < 20) {
+  if (healthy(pypi) && healthy(npm) && (sub.pypi ?? 0) > 40 && (sub.npm ?? 0) < 20) {
     wedges.push({
       title: 'Developer UX / web surface gap',
       rationale:
@@ -76,7 +84,7 @@ export function computeWedges(
       priority: 'medium',
     })
   }
-  if ((sub.huggingface ?? 0) > 45 && (sub.github ?? 0) < 35) {
+  if (healthy(hf) && healthy(gh) && (sub.huggingface ?? 0) > 45 && (sub.github ?? 0) < 35) {
     wedges.push({
       title: 'From models to product',
       rationale:
@@ -84,11 +92,11 @@ export function computeWedges(
       priority: 'high',
     })
   }
-  if (launches === 0 && score > 40) {
+  if (healthy(hn) && launches === 0 && score > 40) {
     wedges.push({
       title: 'Quiet builders, no public launch',
       rationale:
-        'Builder density without Show HN launches suggests stealth or incomplete GTM — a crisp public narrative can still win attention.',
+        'No qualified Show HN launch was observed in this sample. This is not evidence of stealth or incomplete GTM; inspect other launch channels before testing a public narrative.',
       priority: 'medium',
     })
   }

@@ -1,6 +1,5 @@
 import type {
   CrowdingResult,
-  EvidenceItem,
   ScoreBreakdown,
   SourceId,
   SourceResult,
@@ -10,6 +9,7 @@ import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { computeWedges } from './wedge'
 import { expandSubLanes } from './wedge-expansion'
 import { buildCapsule } from './capsule'
+import { qualifiedItems, parseStars } from './evidence'
 
 const clamp = (n: number, min = 0, max = 100) => Math.min(max, Math.max(min, n))
 
@@ -31,12 +31,6 @@ function monthsAgo(iso: string | null): number | null {
   return (Date.now() - then) / (1000 * 60 * 60 * 24 * 30.44)
 }
 
-function parseStars(meta: string | null): number {
-  if (!meta) return 0
-  const match = meta.match(/([\d,]+)\s*stars/i)
-  return match ? Number.parseInt(match[1].replace(/,/g, ''), 10) : 0
-}
-
 function parsePoints(meta: string | null): number {
   if (!meta) return 0
   const match = meta.match(/([\d,]+)\s*points/i)
@@ -47,18 +41,6 @@ function parseDownloads(meta: string | null): number {
   if (!meta) return 0
   const match = meta.match(/([\d,]+)\s*downloads/i)
   return match ? Number.parseInt(match[1].replace(/,/g, ''), 10) : 0
-}
-
-/**
- * crowding-1.2: the relevance filter keeps up to two below-threshold items as an
- * audit floor so sparse lanes stay inspectable. Those items must never count as
- * scoring evidence, and raw query-match totals are attenuated by the share of
- * sampled items that actually qualified. Raw counts stay visible in signals.
- */
-function qualifiedItems(result: SourceResult): EvidenceItem[] {
-  const filter = result.relevanceFilter
-  if (!filter) return result.items
-  return result.items.filter((item) => (item.relevance ?? 1) >= filter.threshold)
 }
 
 /**
@@ -329,10 +311,16 @@ export function computeCrowding(query: string, sources: SourceResult[]): Crowdin
       ? subs.reduce((s, v) => s + (v - mean) ** 2, 0) / subs.length
       : 0
   const agreement = clamp(100 - Math.sqrt(variance), 20, 100) / 100
-  const confidence = available.length === 0 ? 0 : Math.round(clamp(coverage * 0.65 + agreement * 0.35, 0, 1) * 100)
+  const qualifiedCounts = sources.map(source => qualifiedItems(source).length)
+  const evidenceCount = qualifiedCounts.reduce((sum, n) => sum + n, 0)
+  const evidenceSources = qualifiedCounts.filter(n => n > 0).length
+  // Agreement among empty channels is not confidence. Thin, single-channel
+  // observations must not revive 100% confidence; these are uncalibrated caps.
+  const sufficiency = Math.min(1, evidenceCount / 8) * Math.min(1, evidenceSources / 3)
+  const confidence = Math.round(clamp((coverage * 0.65 + agreement * 0.35) * sufficiency, 0, 1) * 100)
 
   const allDates = sources
-    .flatMap((s) => s.items.map((i) => i.date))
+    .flatMap((s) => qualifiedItems(s).map((i) => i.date))
     .filter((d): d is string => Boolean(d))
     .sort()
 

@@ -1,13 +1,13 @@
 import type { Quadrant, QuadrantResult } from '@/lib/types'
 
-/** Supply >= 50 is "high supply"; demand >= 40 is "real pull" (demand channels are noisier, so the bar is lower). */
+/** Supply >= 50 is "high supply"; demand >= 40 is a discussion-heat split, not buyer pull (demand channels are noisier, so the bar is lower). */
 export const SUPPLY_SPLIT = 50
 export const DEMAND_SPLIT = 40
 
 const COPY: Record<Quadrant, { headline: string; action: string }> = {
   'Blue Ocean': {
     headline: 'Low observed supply, stronger discussion signal — validate buyer demand.',
-    action: 'Move now. Ship a narrow v1 in weeks, capture the people asking in the linked threads, and publish before the lane heats up.',
+    action: 'Inspect the linked discussions, verify relevant alternatives and interview target buyers. Test a narrow workflow only after a concrete demand commitment; discussion activity is not willingness to pay.',
   },
   'Gold Rush': {
     headline: 'High observed supply and discussion activity — revenue is not established.',
@@ -23,7 +23,8 @@ const COPY: Record<Quadrant, { headline: string; action: string }> = {
   },
 }
 
-export function quadrantFor(supply: number, demand: number | null, trend: 'rising' | 'flat' | 'falling' | 'unknown' = 'unknown'): QuadrantResult {
+export function quadrantFor(supply: number, demand: number | null, trend: 'rising' | 'flat' | 'falling' | 'unknown' = 'unknown', supplyKnown = true): QuadrantResult {
+  if (!supplyKnown) return { quadrant: null, supply, demand, headline: 'Insufficient qualified supply evidence — market quadrant unknown.', action: 'Collect more signal, inspect source health and refine the phrase. Unknown supply is not low competition.' }
   if (demand === null) {
     return {
       quadrant: null,

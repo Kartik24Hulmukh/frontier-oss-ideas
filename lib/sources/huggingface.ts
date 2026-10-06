@@ -1,6 +1,13 @@
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, nonempty, optionalText, optionalCount } from './contract'
+
+function validRows(rows: unknown): boolean {
+  return Array.isArray(rows) && rows.every((row) => record(row) && nonempty(row.id) &&
+    optionalText(row.lastModified) && optionalText(row.pipeline_tag) &&
+    optionalCount(row.downloads) && optionalCount(row.likes))
+}
 
 export async function searchHuggingFace(
   query: string,
@@ -33,6 +40,7 @@ export async function searchHuggingFace(
 
     if (modelsRes.ok) {
       const models = await modelsRes.json()
+      if (!validRows(models)) return errorResult('huggingface', label, 'Hugging Face returned a malformed models response.')
       for (const m of models as Array<{
         id: string
         downloads?: number
@@ -57,6 +65,7 @@ export async function searchHuggingFace(
 
     if (datasetsRes.ok) {
       const datasets = await datasetsRes.json()
+      if (!validRows(datasets)) return errorResult('huggingface', label, 'Hugging Face returned a malformed datasets response.')
       for (const d of datasets as Array<{
         id: string
         downloads?: number

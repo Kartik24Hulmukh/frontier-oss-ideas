@@ -14,7 +14,7 @@ export default function AgentsPage() {
     <PageShell
       eyebrow="Agent-native · MCP + HTTP"
       title="Make every agent check the lane before it scaffolds"
-      lede="One tool, crowding_check(idea): 10 sources, confidence, Supply × Demand quadrant, wedges and a signed evidence receipt. Stateless Streamable HTTP — no install, no API key for the free tier."
+      lede="One tool, crowding_check(idea): 8 supply + 3 demand adapters, confidence, Supply × Demand quadrant, wedges and a tamper-evident receipt (issuer-authenticated only when signing and an independent pin are configured). Stateless Streamable HTTP — no install, no API key for the free tier."
     >
       <Card title="1 · Add the MCP server (Cursor .cursor/mcp.json / Claude Code / Windsurf / goose)">
         <pre className={code}>{`{
@@ -66,7 +66,7 @@ curl -X POST ${SITE_URL}/api/mcp -H 'content-type: application/json' \\
       </Card>
       <Card title="Why this vs other idea-check MCPs">
         <ul className="list-disc pl-5">
-          <li>Seven supply sources incl. arXiv, OpenAlex and Hugging Face — plus three demand channels.</li>
+          <li>Eight supply sources incl. arXiv, OpenAlex and Hugging Face — plus three demand channels.</li>
           <li>Confidence + coverage math, visible degraded-source warnings, published methodology & gold-set calibration.</li>
           <li>Tamper-evident receipts (SHA-256, Ed25519 when configured) — verify at POST /api/verify.</li>
         </ul>

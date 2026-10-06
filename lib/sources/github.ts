@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, count, nonempty, optionalText } from './contract'
 
 export type GitHubCredentialStatus = 'accepted' | 'rejected-anonymous-fallback' | 'absent-anonymous' | 'configured-unverified'
 let observation: { fingerprint: string; status: GitHubCredentialStatus } | undefined
@@ -65,6 +66,16 @@ export async function searchGitHub(
       observation = { fingerprint: fingerprint(ctx.githubToken), status: 'accepted' }
     }
     const data = await res.json()
+    if (!record(data) || !count(data.total_count) || !Array.isArray(data.items) ||
+      (data.incomplete_results !== undefined && typeof data.incomplete_results !== 'boolean') ||
+      data.total_count < data.items.length || !data.items.every((row) => record(row) &&
+        nonempty(row.full_name) && nonempty(row.html_url) && count(row.stargazers_count) &&
+        nonempty(row.created_at) && optionalText(row.description) && optionalText(row.pushed_at))) {
+      return errorResult('github', label, 'GitHub returned a malformed response.')
+    }
+    if (data.incomplete_results === true) {
+      notice = [notice, 'Partial GitHub evidence: provider marked search results incomplete. Counts and coverage are not exhaustive.'].filter(Boolean).join(' ')
+    }
     const items: EvidenceItem[] = (data.items ?? []).map(
       (repo: {
         full_name: string

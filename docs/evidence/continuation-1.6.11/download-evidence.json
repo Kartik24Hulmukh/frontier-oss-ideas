@@ -1,0 +1,360 @@
+{
+  "capsule": {
+    "version": "1.2",
+    "modelVersion": "crowding-1.3",
+    "normalizedQuery": "ai code review agent",
+    "coverage": 100,
+    "sourceSummary": [
+      {
+        "source": "github",
+        "status": "ok",
+        "totalCount": 5358
+      },
+      {
+        "source": "hackernews",
+        "status": "ok",
+        "totalCount": 514
+      },
+      {
+        "source": "arxiv",
+        "status": "ok",
+        "totalCount": 1
+      },
+      {
+        "source": "openalex",
+        "status": "ok",
+        "totalCount": 350116
+      },
+      {
+        "source": "npm",
+        "status": "ok",
+        "totalCount": 2056133
+      },
+      {
+        "source": "pypi",
+        "status": "ok",
+        "totalCount": 1,
+        "notice": "PyPI search unavailable or challenged; exact-name evidence only, not ecosystem-wide search."
+      },
+      {
+        "source": "huggingface",
+        "status": "ok",
+        "totalCount": 0
+      },
+      {
+        "source": "crates",
+        "status": "ok",
+        "totalCount": 2298
+      }
+    ],
+    "breakdown": [
+      {
+        "source": "github",
+        "label": "GitHub Repositories",
+        "subScore": 100,
+        "signal": "13 repo(s) with 50+ stars in top results; 5,358 total matches; 14 created in last 18 months.",
+        "weight": 0.28,
+        "included": true
+      },
+      {
+        "source": "hackernews",
+        "label": "Hacker News",
+        "subScore": 100,
+        "signal": "7 Show HN launch signal(s); 0 stories with 50+ points. Scored on 12/14 sampled items above relevance threshold 0.18; the 514 raw match count is shown for audit only.",
+        "weight": 0.18,
+        "included": true
+      },
+      {
+        "source": "arxiv",
+        "label": "arXiv Papers",
+        "subScore": 6,
+        "signal": "1 works; 1 in last 2 years — modest academic interest.",
+        "weight": 0.1,
+        "included": true
+      },
+      {
+        "source": "openalex",
+        "label": "OpenAlex Works",
+        "subScore": 90,
+        "signal": "350,116 works; 6 in last 2 years — active academic heat.",
+        "weight": 0.1,
+        "included": true
+      },
+      {
+        "source": "npm",
+        "label": "npm Packages",
+        "subScore": 95,
+        "signal": "2,056,133 package signals; 9 recently maintained among top hits. Scored on 9/10 sampled items above relevance threshold 0.18; the 2,056,133 raw match count is shown for audit only.",
+        "weight": 0.08,
+        "included": true
+      },
+      {
+        "source": "pypi",
+        "label": "PyPI Packages",
+        "subScore": 8,
+        "signal": "1 package signals; 1 recently maintained among top hits.",
+        "weight": 0.08,
+        "included": true
+      },
+      {
+        "source": "huggingface",
+        "label": "Hugging Face Hub",
+        "subScore": 0,
+        "signal": "No Hugging Face models/datasets matched.",
+        "weight": 0.14,
+        "included": true
+      },
+      {
+        "source": "crates",
+        "label": "crates.io (Rust)",
+        "subScore": 47,
+        "signal": "2,298 package signals; 5 recently maintained among top hits. Scored on 5/10 sampled items above relevance threshold 0.18; the 2,298 raw match count is shown for audit only.",
+        "weight": 0.04,
+        "included": true
+      }
+    ],
+    "query": "AI code review agent",
+    "score": 78,
+    "confidence": 85,
+    "verdict": "Saturated",
+    "searchedAt": "2026-10-06T15:03:03.941Z",
+    "evidenceLinks": [
+      {
+        "source": "github",
+        "title": "Gentleman-Programming/gentle-ai",
+        "url": "https://github.com/Gentleman-Programming/gentle-ai"
+      },
+      {
+        "source": "github",
+        "title": "builderz-labs/mission-control",
+        "url": "https://github.com/builderz-labs/mission-control"
+      },
+      {
+        "source": "github",
+        "title": "darrenhinde/OpenAgentsControl",
+        "url": "https://github.com/darrenhinde/OpenAgentsControl"
+      },
+      {
+        "source": "github",
+        "title": "zubair-trabzada/ai-legal-claude",
+        "url": "https://github.com/zubair-trabzada/ai-legal-claude"
+      },
+      {
+        "source": "github",
+        "title": "openedclaude/claude-reviews-claude",
+        "url": "https://github.com/openedclaude/claude-reviews-claude"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: Autofix Bot – Hybrid static analysis and AI code review agent",
+        "url": "https://news.ycombinator.com/item?id=46237358"
+      },
+      {
+        "source": "hackernews",
+        "title": "I built an AI code review agent in a few hours, here's what I learned",
+        "url": "https://www.sourcebot.dev/blog/review-agent-learnings"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: Open-source AI code review agent that's aware of your entire codebase",
+        "url": "https://docs.sourcebot.dev/docs/agents/review-agent"
+      },
+      {
+        "source": "hackernews",
+        "title": "I built a zero-noise AI code review agent using Claude Code",
+        "url": "https://medium.com/riskified-technology/lgtm-2-0-zero-noise-ai-code-review-agents-857441ec4f1a"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: AgentCheck – Local AI-powered code review agents for Claude Code",
+        "url": "https://github.com/devlyai/AgentCheck"
+      },
+      {
+        "source": "arxiv",
+        "title": "CR-Bench: Evaluating the Real-World Utility of AI Code Review Agents",
+        "url": "http://arxiv.org/abs/2603.11078v1"
+      },
+      {
+        "source": "openalex",
+        "title": "Human-AI Synergy in Agentic Code Review",
+        "url": "http://arxiv.org/abs/2603.15911"
+      },
+      {
+        "source": "openalex",
+        "title": "Rethinking Code Review in the Age of AI: A Vision for Agentic Code Review",
+        "url": "https://arxiv.org/abs/2605.17548"
+      },
+      {
+        "source": "openalex",
+        "title": "An Agentic-AI Solution for Intelligent Code Review",
+        "url": "https://doi.org/10.1109/slaai-icai68534.2025.11318443"
+      },
+      {
+        "source": "openalex",
+        "title": "Understanding Dominant Themes in Reviewing Agentic AI-authored Code",
+        "url": "http://arxiv.org/abs/2601.19287"
+      },
+      {
+        "source": "openalex",
+        "title": "Using Agentic AI for contextualized and multifaceted code review at Ericsson",
+        "url": "https://arxiv.org/abs/2609.15877"
+      },
+      {
+        "source": "npm",
+        "title": "@0xsequence/codegenie",
+        "url": "https://www.npmjs.com/package/@0xsequence/codegenie"
+      },
+      {
+        "source": "npm",
+        "title": "diffowl",
+        "url": "https://www.npmjs.com/package/diffowl"
+      },
+      {
+        "source": "npm",
+        "title": "@deepseek-ai/dsh-plan-mode",
+        "url": "https://www.npmjs.com/package/@deepseek-ai/dsh-plan-mode"
+      },
+      {
+        "source": "npm",
+        "title": "@vercel/detect-agent",
+        "url": "https://www.npmjs.com/package/@vercel/detect-agent"
+      },
+      {
+        "source": "npm",
+        "title": "@deepseek-ai/dsh-user-questions",
+        "url": "https://www.npmjs.com/package/@deepseek-ai/dsh-user-questions"
+      },
+      {
+        "source": "pypi",
+        "title": "ai-code-review-agent",
+        "url": "https://pypi.org/project/ai-code-review-agent/"
+      },
+      {
+        "source": "crates",
+        "title": "spar-cli",
+        "url": "https://crates.io/crates/spar-cli"
+      },
+      {
+        "source": "crates",
+        "title": "truth-mirror",
+        "url": "https://crates.io/crates/truth-mirror"
+      },
+      {
+        "source": "crates",
+        "title": "cora-code",
+        "url": "https://crates.io/crates/cora-code"
+      }
+    ],
+    "disclaimer": "Heuristic crowding evidence from public sources only. Not investment, legal, or novelty advice.",
+    "expansions": [
+      "AI code review agent",
+      "ai pull request review agent"
+    ],
+    "duplicatesCollapsed": 4,
+    "demandSourceSummary": [
+      {
+        "source": "reddit",
+        "status": "error",
+        "totalCount": 0
+      },
+      {
+        "source": "stackoverflow",
+        "status": "ok",
+        "totalCount": 7
+      },
+      {
+        "source": "askhn",
+        "status": "ok",
+        "totalCount": 1924
+      }
+    ],
+    "demandBreakdown": [
+      {
+        "source": "reddit",
+        "label": "Reddit discussions",
+        "subScore": 0,
+        "signal": "Source unavailable — excluded from demand score.",
+        "weight": 0.4,
+        "included": false
+      },
+      {
+        "source": "stackoverflow",
+        "label": "Stack Overflow questions",
+        "subScore": 42,
+        "signal": "7 developer questions; 5,666 views across top hits.",
+        "weight": 0.25,
+        "included": true
+      },
+      {
+        "source": "askhn",
+        "label": "Ask HN + comment pull",
+        "subScore": 80,
+        "signal": "1,924 Ask HN posts/comments mention it; 0 direct Ask HN threads in top hits.",
+        "weight": 0.35,
+        "included": true
+      }
+    ],
+    "demandCoverage": 67,
+    "demandEvidenceLinks": [
+      {
+        "source": "stackoverflow",
+        "title": "Cursor AI Agent sometimes applies code changes automatically without showing the “Keep” or “Undo” options",
+        "url": "https://stackoverflow.com/questions/79834436/cursor-ai-agent-sometimes-applies-code-changes-automatically-without-showing-the"
+      },
+      {
+        "source": "stackoverflow",
+        "title": "No agent found that satisfies the specified demands in Azure DevOps On-Prem",
+        "url": "https://stackoverflow.com/questions/79409641/no-agent-found-that-satisfies-the-specified-demands-in-azure-devops-on-prem"
+      },
+      {
+        "source": "stackoverflow",
+        "title": "Boss wants us to add more AI to our workflow",
+        "url": "https://stackoverflow.com/questions/79928220/boss-wants-us-to-add-more-ai-to-our-workflow"
+      },
+      {
+        "source": "stackoverflow",
+        "title": "Gitlab runner cannot access git repository SSL: CERTIFICATE_VERIFY_FAILED",
+        "url": "https://stackoverflow.com/questions/79729579/gitlab-runner-cannot-access-git-repository-ssl-certificate-verify-failed"
+      },
+      {
+        "source": "stackoverflow",
+        "title": "Give a full GitHub repo to LLM with Langchain",
+        "url": "https://stackoverflow.com/questions/67725641/give-a-full-github-repo-to-llm-with-langchain"
+      },
+      {
+        "source": "askhn",
+        "title": "How can a junior dev get better when they have to use AI in their job?",
+        "url": "https://news.ycombinator.com/item?id=49193728"
+      },
+      {
+        "source": "askhn",
+        "title": "Open Source Code Review Agent",
+        "url": "https://news.ycombinator.com/item?id=48307730"
+      },
+      {
+        "source": "askhn",
+        "title": "Familiarity is the enemy: On why Enterprise systems have failed for 60 years",
+        "url": "https://news.ycombinator.com/item?id=47890413"
+      },
+      {
+        "source": "askhn",
+        "title": "The State of AI Coding Report 2025",
+        "url": "https://news.ycombinator.com/item?id=46301887"
+      },
+      {
+        "source": "askhn",
+        "title": "How we (re)built our AI agent for code reviews in IDEs",
+        "url": "https://news.ycombinator.com/item?id=43987478"
+      }
+    ],
+    "demandScore": 64,
+    "quadrant": "Gold Rush"
+  },
+  "receipt": {
+    "algorithm": "sha256",
+    "digest": "4f48f2e066dc6d7a073a0ae16ff83aad6573d7d04c974ed309bfb3389494c5a6",
+    "signature": null,
+    "publicKey": null,
+    "issuedAt": "2026-10-06T15:03:03.941Z"
+  }
+}

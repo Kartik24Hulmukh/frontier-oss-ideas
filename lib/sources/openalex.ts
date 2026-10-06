@@ -1,6 +1,7 @@
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, count, nonempty, optionalText, optionalCount } from './contract'
 
 export async function searchOpenAlex(
   query: string,
@@ -37,6 +38,19 @@ export async function searchOpenAlex(
     }
 
     const data = await response.json()
+    if (!record(data) || !record(data.meta) || !count(data.meta.count) ||
+      !Array.isArray(data.results) || data.meta.count < data.results.length ||
+      !data.results.every((row) => record(row) &&
+        optionalText(row.display_name) && optionalText(row.title) &&
+        (nonempty(row.display_name) || nonempty(row.title)) &&
+        (nonempty(row.id) || nonempty(row.doi) ||
+          (record(row.primary_location) && nonempty(row.primary_location.landing_page_url))) &&
+        optionalText(row.publication_date) && optionalCount(row.cited_by_count) &&
+        optionalText(row.doi) && optionalText(row.id) &&
+        (row.primary_location === undefined || row.primary_location === null ||
+          (record(row.primary_location) && optionalText(row.primary_location.landing_page_url))))) {
+      return errorResult('openalex', label, 'OpenAlex returned a malformed response.')
+    }
     const items: EvidenceItem[] = (data.results ?? []).map(
       (work: {
         display_name?: string
@@ -47,7 +61,7 @@ export async function searchOpenAlex(
         doi?: string | null
         primary_location?: { landing_page_url?: string | null }
       }) => {
-        const title = work.display_name ?? work.title ?? 'Untitled work'
+        const title = nonempty(work.display_name) ? work.display_name : work.title ?? 'Untitled work'
         const doi = work.doi?.replace(/^https?:\/\/doi.org\//, '')
         const url =
           work.primary_location?.landing_page_url ||

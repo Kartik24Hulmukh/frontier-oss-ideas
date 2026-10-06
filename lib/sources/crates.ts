@@ -1,6 +1,7 @@
 import { errorResult } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
 import type { AdapterContext, EvidenceItem, SourceResult } from '@/lib/types'
+import { record, count, optionalText, optionalCount } from './contract'
 
 /**
  * crates.io supply adapter (Rust systems ecosystem).
@@ -36,6 +37,13 @@ export async function searchCrates(
     })
     if (!res.ok) return errorResult('crates', label, 'crates.io returned ' + res.status + '.', res.status === 429)
     const data = (await res.json()) as { crates?: CrateRow[]; meta?: { total?: number } }
+    if (!record(data) || !record(data.meta) || !count(data.meta.total) ||
+      !Array.isArray(data.crates) || data.meta.total < data.crates.length ||
+      !data.crates.every((row) => record(row) && typeof row.name === 'string' &&
+        optionalText(row.description) && optionalText(row.updated_at) &&
+        optionalCount(row.downloads) && optionalCount(row.recent_downloads))) {
+      return errorResult('crates', label, 'crates.io returned a malformed response.')
+    }
     const rows = Array.isArray(data.crates) ? data.crates : []
     const items: EvidenceItem[] = rows
       .filter((c) => c && typeof c.name === 'string' && c.name.length > 0)

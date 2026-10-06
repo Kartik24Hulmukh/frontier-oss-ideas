@@ -19,7 +19,7 @@ async function handle(request: Request, raw: string, fresh = false) {
   if (q.length < 3) return Response.json({ error: 'Describe the idea in at least 3 characters.' }, { status: 400, headers: CORS })
   const limit = scanLimiter.check(clientKey(request))
   if (!limit.allowed) return rateLimitResponse(limit.retryAfterSec, CORS)
-  const result = await scanIdea(q)
+  const result = await scanIdea(q, { fresh })
   return Response.json(result, {
     headers: {
       ...CORS,

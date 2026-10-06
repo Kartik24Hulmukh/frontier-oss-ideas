@@ -1,4 +1,5 @@
 import type { CrowdingResult } from '@/lib/types'
+import { qualifiedItems } from '@/lib/scoring/evidence'
 import { getRouter, ModelRouter, type RouteProfile, type RouteResult, type ChatMessage } from './router'
 
 /** Process-wide router so breakers and the token budget persist across requests on an instance. */
@@ -13,7 +14,7 @@ export function evidenceTable(result: CrowdingResult, limit = 24): EvidenceRef[]
   const refs: EvidenceRef[] = []
   const perSource = Math.max(2, Math.ceil(limit / Math.max(1, result.sources.length)))
   for (const s of result.sources) {
-    for (const item of s.items.slice(0, perSource)) {
+    for (const item of qualifiedItems(s).slice(0, perSource)) {
       if (refs.length >= limit) break
       if (!/^https:\/\//.test(item.url)) continue
       refs.push({ id: 'E' + (refs.length + 1), source: s.label, title: clean(item.title, 140), url: item.url })

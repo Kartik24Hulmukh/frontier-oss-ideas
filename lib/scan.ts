@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { InFlight, TTLCache } from '@/lib/core/cache'
 import { dedupeAcrossSources } from '@/lib/core/dedup'
 import { expandQuery } from '@/lib/core/expand'
@@ -11,11 +11,12 @@ import { issueReceipt } from '@/lib/scoring/receipt'
 import { runAllSources, searchGitHub, searchHackerNews } from '@/lib/sources'
 import type { AdapterContext, CrowdingResult, DemandResult, SourceResult } from '@/lib/types'
 
-const cache = new TTLCache<CrowdingResult>(
+const cache = new TTLCache<{ result: CrowdingResult; sequence: number }>(
   Number(process.env.SCAN_CACHE_MAX ?? 500),
   Number(process.env.SCAN_CACHE_TTL_MS ?? 20 * 60 * 1000),
 )
 const inflight = new InFlight<CrowdingResult>()
+let scanSequence = 0
 
 export function defaultContext(): AdapterContext {
   return {
@@ -28,12 +29,14 @@ export function defaultContext(): AdapterContext {
 
 /** Merge a variant-query result into the primary result for the same source. */
 export function mergeSource(primary: SourceResult, extra: SourceResult | undefined): SourceResult {
-  if (!extra || extra.status !== 'ok') return primary
-  if (primary.status !== 'ok') return { ...extra, label: primary.label }
+  if (!extra) return primary
+  if (extra.status !== 'ok') return { ...primary, notice: [primary.notice, 'Query variant unavailable; original-query evidence only.'].filter(Boolean).join(' ') }
+  if (primary.status !== 'ok') return { ...extra, label: primary.label, notice: ['Primary query unavailable; variant-query evidence only.', extra.notice].filter(Boolean).join(' ') }
   const seen = new Set(primary.items.map((i) => i.url))
   const added = extra.items.filter((i) => !seen.has(i.url)).map((i) => ({ ...i, relevance: 0.7 }))
   return {
     ...primary,
+    ...((primary.notice || extra.notice) ? { notice: [...new Set([primary.notice, extra.notice].filter(Boolean))].join(' ') } : {}),
     totalCount: Math.max(primary.totalCount, extra.totalCount),
     items: [...primary.items, ...added].slice(0, 15),
   }
@@ -51,9 +54,12 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
   const key = createHash('sha256').update(JSON.stringify([normalizeQuery(query), opts.ctx ?? null])).digest('hex') + (opts.demand === false ? ':s' : '') + (opts.expand === false ? ':x' : '')
   if (!opts.fresh) {
     const hit = cache.get(key)
-    if (hit) return { ...hit, cached: true }
+    if (hit) return { ...hit.result, cached: true }
   }
-  return inflight.run(key, async () => {
+  // A fresh canary must dispatch new observations, not join an older scan.
+  // Keep the regular cache key below so healthy fresh results remain reusable.
+  return inflight.run(opts.fresh ? `${key}:fresh:${randomUUID()}` : key, async () => {
+    const sequence = ++scanSequence
     const ctx = opts.ctx ?? defaultContext()
     const expansions = opts.expand === false ? [query] : expandQuery(query, 3)
     const variant = expansions[1]
@@ -68,10 +74,10 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
     const merged = primary.map((s) =>
       s.source === 'github' ? mergeSource(s, ghVariant) : s.source === 'hackernews' ? mergeSource(s, hnVariant) : s,
     )
-    const { sources: deduped, collapsed } = dedupeAcrossSources(merged)
+    const { sources: deduped, collapsed } = dedupeAcrossSources(merged, query)
     const sources = filterSourcesByRelevance(deduped, query)
     const base = computeCrowding(query, sources)
-    const quadrant = demand ? quadrantFor(base.score, demand.score, demand.trend) : undefined
+    const quadrant = demand ? quadrantFor(base.score, demand.coverage >= 67 ? demand.score : null, demand.trend, base.confidence >= 50) : undefined
     const capsule = {
       ...base.capsule,
       version: '1.2' as const,
@@ -98,7 +104,8 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
       receipt: issueReceipt(capsule),
     }
     // Do not cache badly degraded scans; let the next request retry upstreams.
-    if (result.coverage >= 50) cache.set(key, result)
+    // A slower older scan must not overwrite a newer healthy fresh snapshot.
+    if (result.coverage >= 50 && sequence >= (cache.get(key)?.sequence ?? 0)) cache.set(key, { result, sequence })
     return result
   })
 }

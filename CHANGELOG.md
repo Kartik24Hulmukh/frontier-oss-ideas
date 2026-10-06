@@ -255,6 +255,10 @@ Closes the two premortem items still open after 1.4.1 (PM2, PM3) and puts a visi
 
 # Changelog
 
+## 1.6.11 — 6 October 2026
+
+Qualified evidence across scoring/recommendations/citations; sparse-confidence caps and quadrant abstention; runtime supply contracts; query-aware dedup; fresh scan/cache ordering and strict provenance/freshness; latest-wins UI; honest source weights/counts; source-map-js security patch. Research beta only: semantic/demand/production/pilot gates remain. See [release evidence](docs/RELEASE_1_6_11.md).
+
 ## 1.2.0 — 2026-09-26 · “Distribution loops”
 
 ### Added
