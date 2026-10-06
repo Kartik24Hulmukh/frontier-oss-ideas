@@ -1,0 +1,11 @@
+✔ degraded and superseded snapshots retained immutably; exact receipt required; no provider calls (5.19506ms)
+✔ expired issued snapshot rejects even when a retained record still exists (0.42078ms)
+✔ partially configured distributed store fails closed instead of memory fallback (0.525717ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 227.815519

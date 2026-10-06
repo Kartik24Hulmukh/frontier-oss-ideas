@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "base": "http://127.0.0.1:3000",
+  "checkedAt": "2026-10-06T16:14:11.760Z",
+  "mode": "strict-technical",
+  "version": "1.6.12",
+  "build": null,
+  "passed": false,
+  "checks": [
+    {
+      "name": "health",
+      "passed": true,
+      "detail": "1.6.12"
+    },
+    {
+      "name": "scan-contract",
+      "passed": true,
+      "detail": "Score must be bounded and query present"
+    },
+    {
+      "name": "coverage",
+      "passed": true,
+      "detail": "Required: 95%"
+    },
+    {
+      "name": "receipt-integrity",
+      "passed": true,
+      "detail": "Exported capsule must match receipt"
+    },
+    {
+      "name": "snapshot-provenance",
+      "passed": true,
+      "detail": "Capsule 1.2 with model and eight source statuses"
+    },
+    {
+      "name": "fresh-snapshot",
+      "passed": true,
+      "detail": "Fresh, noncached receipt-covered snapshot; max age 120s, max clock skew 30s"
+    },
+    {
+      "name": "snapshot-binding",
+      "passed": true,
+      "detail": "Displayed query, score, confidence, coverage and verdict must match the approved model capsule"
+    },
+    {
+      "name": "llm-breaker-availability",
+      "passed": true,
+      "detail": "Enabled analyst needs at least one dispatchable model; real useful completion remains a separate launch requirement"
+    },
+    {
+      "name": "llm-distributed-budget",
+      "passed": true,
+      "detail": "Enabled AI analyst requires distributed token admission; runtime outage tests still required"
+    },
+    {
+      "name": "distributed-configured",
+      "passed": false,
+      "detail": "Configuration only; concurrent/outage tests still required"
+    },
+    {
+      "name": "issuer-trust",
+      "passed": false,
+      "detail": "Pinned issuer key required"
+    },
+    {
+      "name": "supply-provenance",
+      "passed": true,
+      "detail": "Receipt-covered supply metadata must match the scan, including fallback notices"
+    },
+    {
+      "name": "healthy-supply",
+      "passed": false,
+      "detail": "Exactly eight healthy adapters without fallback"
+    },
+    {
+      "name": "healthy-demand",
+      "passed": false,
+      "detail": "Exactly three healthy demand adapters; no mirror or fallback notices"
+    },
+    {
+      "name": "demand-provenance",
+      "passed": true,
+      "detail": "Receipt-covered demand metadata must match the scan, including mirror provenance and notices"
+    },
+    {
+      "name": "tamper-rejected",
+      "passed": true,
+      "detail": "Modified score must not verify"
+    }
+  ],
+  "limitation": "A canary is not a load test, external calibration, secret revocation, customer validation or commercial launch approval."
+}

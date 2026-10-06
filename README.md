@@ -1,3 +1,5 @@
+**1.6.12 root-cause increment:** [verified repairs and remaining GO gates](docs/RELEASE_1_6_12.md). Exact-snapshot memos, qualified recent discussion support, shared actual-call quotas and all-attempt usage. **Research beta; production/paid NO-GO remains.**
+
 > **1.6.8 — eight supply sources:** crates.io (Rust) joins GitHub, HN, arXiv, OpenAlex, npm, PyPI and Hugging Face, so Rust-heavy lanes are no longer under-counted. Scoring model `crowding-1.1`. [Release scope](docs/RELEASE_1_6_8.md). **Public research beta; strict production gates remain blocked.**
 
 
@@ -40,7 +42,7 @@ Recommended env for production: `GITHUB_TOKEN`, `OPENALEX_API_KEY`, `REDDIT_CLIE
 
 **Live crowding intelligence for builders and AI agents.**
 
-Enter an idea and scan seven public ecosystems in real time: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, and Hugging Face. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.
+Enter an idea and inspect eight public ecosystems: GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face and crates.io. These observations are not a market census or a count of independent teams. The app returns a transparent crowding score, confidence, source coverage, verifiable evidence, and open-wedge recommendations.
 
 ## Deploy to Vercel
 

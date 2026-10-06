@@ -1,0 +1,300 @@
+{
+  "capsule": {
+    "version": "1.2",
+    "modelVersion": "crowding-1.4",
+    "normalizedQuery": "ai code review agent",
+    "coverage": 100,
+    "sourceSummary": [
+      {
+        "source": "github",
+        "status": "ok",
+        "totalCount": 5359
+      },
+      {
+        "source": "hackernews",
+        "status": "ok",
+        "totalCount": 514
+      },
+      {
+        "source": "arxiv",
+        "status": "ok",
+        "totalCount": 1
+      },
+      {
+        "source": "openalex",
+        "status": "ok",
+        "totalCount": 350116
+      },
+      {
+        "source": "npm",
+        "status": "ok",
+        "totalCount": 2056456
+      },
+      {
+        "source": "pypi",
+        "status": "ok",
+        "totalCount": 1,
+        "notice": "PyPI search unavailable or challenged; exact-name evidence only, not ecosystem-wide search."
+      },
+      {
+        "source": "huggingface",
+        "status": "ok",
+        "totalCount": 0
+      },
+      {
+        "source": "crates",
+        "status": "ok",
+        "totalCount": 2298
+      }
+    ],
+    "breakdown": [
+      {
+        "source": "github",
+        "label": "GitHub Repositories",
+        "subScore": 16,
+        "signal": "1 repo(s) with 50+ stars in top results; 5,359 total matches; 1 created in last 18 months. Scored on 1/15 sampled items above relevance threshold 0.18; the 5,359 raw match count is shown for audit only.",
+        "weight": 0.28,
+        "included": true
+      },
+      {
+        "source": "hackernews",
+        "label": "Hacker News",
+        "subScore": 100,
+        "signal": "7 Show HN launch signal(s); 0 stories with 50+ points. Scored on 12/14 sampled items above relevance threshold 0.18; the 514 raw match count is shown for audit only.",
+        "weight": 0.18,
+        "included": true
+      },
+      {
+        "source": "arxiv",
+        "label": "arXiv Papers",
+        "subScore": 6,
+        "signal": "1 works; 1 in last 2 years — modest academic interest. Scored on 1/1 sampled items above relevance threshold 0.18; the 1 raw match count is shown for audit only.",
+        "weight": 0.1,
+        "included": true
+      },
+      {
+        "source": "openalex",
+        "label": "OpenAlex Works",
+        "subScore": 66,
+        "signal": "350,116 works; 5 in last 2 years — active academic heat. Scored on 6/7 sampled items above relevance threshold 0.18; the 350,116 raw match count is shown for audit only.",
+        "weight": 0.1,
+        "included": true
+      },
+      {
+        "source": "npm",
+        "label": "npm Packages",
+        "subScore": 0,
+        "signal": "No matching packages found. Scored on 0/10 sampled items above relevance threshold 0.18; the 2,056,456 raw match count is shown for audit only.",
+        "weight": 0.08,
+        "included": true
+      },
+      {
+        "source": "pypi",
+        "label": "PyPI Packages",
+        "subScore": 8,
+        "signal": "1 package signals; 1 recently maintained among top hits. Scored on 1/1 sampled items above relevance threshold 0.18; the 1 raw match count is shown for audit only.",
+        "weight": 0.08,
+        "included": true
+      },
+      {
+        "source": "huggingface",
+        "label": "Hugging Face Hub",
+        "subScore": 0,
+        "signal": "No Hugging Face models/datasets matched.",
+        "weight": 0.14,
+        "included": true
+      },
+      {
+        "source": "crates",
+        "label": "crates.io (Rust)",
+        "subScore": 9,
+        "signal": "2,298 package signals; 1 recently maintained among top hits. Scored on 1/10 sampled items above relevance threshold 0.18; the 2,298 raw match count is shown for audit only.",
+        "weight": 0.04,
+        "included": true
+      }
+    ],
+    "query": "AI code review agent",
+    "score": 55,
+    "confidence": 88,
+    "verdict": "Crowded",
+    "searchedAt": "2026-10-06T16:18:50.036Z",
+    "evidenceLinks": [
+      {
+        "source": "github",
+        "title": "Gentleman-Programming/gentle-ai",
+        "url": "https://github.com/Gentleman-Programming/gentle-ai"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: Autofix Bot – Hybrid static analysis and AI code review agent",
+        "url": "https://news.ycombinator.com/item?id=46237358"
+      },
+      {
+        "source": "hackernews",
+        "title": "I built an AI code review agent in a few hours, here's what I learned",
+        "url": "https://www.sourcebot.dev/blog/review-agent-learnings"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: Open-source AI code review agent that's aware of your entire codebase",
+        "url": "https://docs.sourcebot.dev/docs/agents/review-agent"
+      },
+      {
+        "source": "hackernews",
+        "title": "I built a zero-noise AI code review agent using Claude Code",
+        "url": "https://medium.com/riskified-technology/lgtm-2-0-zero-noise-ai-code-review-agents-857441ec4f1a"
+      },
+      {
+        "source": "hackernews",
+        "title": "Show HN: AgentCheck – Local AI-powered code review agents for Claude Code",
+        "url": "https://github.com/devlyai/AgentCheck"
+      },
+      {
+        "source": "arxiv",
+        "title": "CR-Bench: Evaluating the Real-World Utility of AI Code Review Agents",
+        "url": "http://arxiv.org/abs/2603.11078v1"
+      },
+      {
+        "source": "openalex",
+        "title": "Human-AI Synergy in Agentic Code Review",
+        "url": "http://arxiv.org/abs/2603.15911"
+      },
+      {
+        "source": "openalex",
+        "title": "Rethinking Code Review in the Age of AI: A Vision for Agentic Code Review",
+        "url": "https://arxiv.org/abs/2605.17548"
+      },
+      {
+        "source": "openalex",
+        "title": "An Agentic-AI Solution for Intelligent Code Review",
+        "url": "https://doi.org/10.1109/slaai-icai68534.2025.11318443"
+      },
+      {
+        "source": "openalex",
+        "title": "Using Agentic AI for contextualized and multifaceted code review at Ericsson",
+        "url": "https://arxiv.org/abs/2609.15877"
+      },
+      {
+        "source": "openalex",
+        "title": "AGENTCODE INSPECTOR: AN AGENTIC AI-BASED AUTONOMOUS CODE REVIEW SYSTEM",
+        "url": "https://doi.org/10.5281/zenodo.20093791"
+      },
+      {
+        "source": "pypi",
+        "title": "ai-code-review-agent",
+        "url": "https://pypi.org/project/ai-code-review-agent/"
+      },
+      {
+        "source": "crates",
+        "title": "cora-code",
+        "url": "https://crates.io/crates/cora-code"
+      }
+    ],
+    "disclaimer": "Heuristic crowding evidence from public sources only. Not investment, legal, or novelty advice.",
+    "expansions": [
+      "AI code review agent",
+      "ai pull request review agent"
+    ],
+    "duplicatesCollapsed": 4,
+    "demandSourceSummary": [
+      {
+        "source": "reddit",
+        "status": "error",
+        "totalCount": 0
+      },
+      {
+        "source": "stackoverflow",
+        "status": "ok",
+        "totalCount": 2,
+        "qualification": {
+          "query": "AI code review agent",
+          "method": "demand-lexical-window-v1",
+          "semanticReliability": "uncalibrated",
+          "capturedAt": "2026-10-06T16:18:49.280Z",
+          "window": {
+            "start": "2025-10-06T16:18:49.280Z",
+            "end": "2026-10-06T16:18:49.280Z",
+            "days": 365
+          },
+          "rawCount": 2,
+          "sampledCount": 2,
+          "qualifiedCount": 0,
+          "rejectedCount": 2,
+          "qualifiedTotal": 0,
+          "sufficient": false,
+          "reasons": [
+            "Lexical qualification is uncalibrated; discussion heat is not verified buyer demand.",
+            "Only observed unique qualified items count; provider totals and engagement are audit-only.",
+            "No inspectable recent topical pull sample; abstain."
+          ]
+        },
+        "provenance": "primary"
+      },
+      {
+        "source": "askhn",
+        "status": "ok",
+        "totalCount": 1406,
+        "qualification": {
+          "query": "AI code review agent",
+          "method": "demand-lexical-window-v1",
+          "semanticReliability": "uncalibrated",
+          "capturedAt": "2026-10-06T16:18:49.280Z",
+          "window": {
+            "start": "2025-10-06T16:18:49.280Z",
+            "end": "2026-10-06T16:18:49.280Z",
+            "days": 365
+          },
+          "rawCount": 1406,
+          "sampledCount": 25,
+          "qualifiedCount": 0,
+          "rejectedCount": 25,
+          "qualifiedTotal": 0,
+          "sufficient": false,
+          "reasons": [
+            "Lexical qualification is uncalibrated; discussion heat is not verified buyer demand.",
+            "Only observed unique qualified items count; provider totals and engagement are audit-only.",
+            "No inspectable recent topical pull sample; abstain."
+          ]
+        },
+        "provenance": "primary"
+      }
+    ],
+    "demandBreakdown": [
+      {
+        "source": "reddit",
+        "label": "Reddit discussions",
+        "subScore": 0,
+        "signal": "Insufficient inspectable recent topical pull evidence — excluded from demand score; raw hits and engagement cannot establish buyer demand. Aggregate abstains: requires two distinct supported channels, four unique qualified URLs and same query/windows (capture skew ≤60s); these are uncalibrated safeguards.",
+        "weight": 0.4,
+        "included": false
+      },
+      {
+        "source": "stackoverflow",
+        "label": "Stack Overflow questions",
+        "subScore": 0,
+        "signal": "Insufficient inspectable recent topical pull evidence — excluded from demand score; raw hits and engagement cannot establish buyer demand. Aggregate abstains: requires two distinct supported channels, four unique qualified URLs and same query/windows (capture skew ≤60s); these are uncalibrated safeguards.",
+        "weight": 0.25,
+        "included": false
+      },
+      {
+        "source": "askhn",
+        "label": "Ask HN + comment pull",
+        "subScore": 0,
+        "signal": "Insufficient inspectable recent topical pull evidence — excluded from demand score; raw hits and engagement cannot establish buyer demand. Aggregate abstains: requires two distinct supported channels, four unique qualified URLs and same query/windows (capture skew ≤60s); these are uncalibrated safeguards.",
+        "weight": 0.35,
+        "included": false
+      }
+    ],
+    "demandCoverage": 0,
+    "demandEvidenceLinks": [],
+    "demandScore": null,
+    "quadrant": null
+  },
+  "receipt": {
+    "algorithm": "sha256",
+    "digest": "a358eb169cf0dbfd3efc4c2f6a1026cc91dd6a557e5c850fd672766d3a4b3e72",
+    "signature": null,
+    "publicKey": null,
+    "issuedAt": "2026-10-06T16:18:50.036Z"
+  }
+}

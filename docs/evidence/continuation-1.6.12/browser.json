@@ -1,0 +1,82 @@
+{
+  "passed": true,
+  "at": "2026-10-06T16:18:54.263Z",
+  "checks": [
+    {
+      "name": "real scan renders score and eight supply sources",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "actual source-count and investigate-first copy",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "watchlist saves successful scan",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "watchlist persists across reload",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "saved lane rescans",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "Download evidence",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "Download decision brief",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "downloaded receipt verifies over HTTP",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "unconfigured or evidence-insufficient analyst abstains visibly without losing deterministic scan",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "mobile viewport has no horizontal overflow",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "methodology publishes exact weights",
+      "passed": true,
+      "kind": "real-browser"
+    },
+    {
+      "name": "late older scan cannot overwrite newer result",
+      "passed": true,
+      "kind": "synthetic-browser"
+    },
+    {
+      "name": "failed scan clears previous decision evidence",
+      "passed": true,
+      "kind": "synthetic-browser"
+    },
+    {
+      "name": "old analyst memo cannot attach to a new idea",
+      "passed": true,
+      "kind": "synthetic-browser"
+    },
+    {
+      "name": "no uncaught page errors across tested journey",
+      "passed": true,
+      "kind": "real-browser"
+    }
+  ],
+  "limitations": "Real Chromium against local production build; three synthetic races/failures labelled. Not consented customer research, external accessibility certification or target deployment proof."
+}

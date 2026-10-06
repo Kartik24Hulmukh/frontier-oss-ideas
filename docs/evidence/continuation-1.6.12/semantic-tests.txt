@@ -1,0 +1,29 @@
+▶ crowding-1.2 relevance attenuation
+  ✔ scores 500,000 irrelevant GitHub hits exactly 0 while raw counts and audit items stay visible (22.7984ms)
+  ✔ scores 100,000 irrelevant crates.io hits exactly 0 (1.278261ms)
+  ✔ a 10% qualified sample scores strictly below its unfiltered equivalent (2.497405ms)
+  ✔ fully qualified samples cannot validate an unseen raw tail (1.482593ms)
+  ✔ sources without a relevance filter are unchanged (0.359431ms)
+  ✔ capsule is stamped crowding-1.4 (0.307422ms)
+✔ crowding-1.2 relevance attenuation (29.802804ms)
+▶ crowding-1.4 qualified-evidence logarithmic bound
+  ✔ bounds a 2,000,000-hit npm total with 2/20 qualified far below linear attenuation (4.053627ms)
+  ✔ never exceeds linear attenuation and is monotonic in qualified evidence (10.218334ms)
+  ✔ closes the empty-sample bypass: ok source with a huge total and no items scores 0 (1.13866ms)
+  ✔ 512-combination matrix: bounded score never exceeds the unfiltered score (104.808836ms)
+✔ crowding-1.4 qualified-evidence logarithmic bound (120.517438ms)
+✔ semantic score separates a homonym from the requested workflow (1.334465ms)
+✔ filter removes lexical drift before scoring and reports provenance (1.235642ms)
+✔ conservative floor retains two auditable results for sparse lanes (0.287086ms)
+✔ generic AI weather evidence cannot revive maximum confidence for code review (18.087025ms)
+✔ specific anchors preserve workflows and synonyms, reject body dumps and generic queries (0.607776ms)
+✔ fully qualified sample bound has no million-count discontinuity (0.182024ms)
+✔ workflow aliases preserve PR/diff review while explicit contradictions abstain (0.325958ms)
+ℹ tests 17
+ℹ suites 2
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 695.594633
