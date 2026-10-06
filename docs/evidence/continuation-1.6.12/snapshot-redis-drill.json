@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "scope": "local real Redis DB13, not managed deployment",
+  "pids": [
+    8460,
+    8461
+  ],
+  "cases": [
+    "independent process retrieval",
+    "receipt mismatch rejected",
+    "bounded TTL",
+    "store outage fails closed",
+    "recovery same snapshot"
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "checkedAt": "2026-10-06T16:11:32.644Z",
+  "baseCommit": "242c6ec07b98bfc7c993186f507cbfb131e0bf13",
+  "sourceSha256": {
+    "lib/core/admission.ts": "b9dcff4e4b9be6037bc546c560413c71dcc4d30adf13fa0e7b7fc1bcbf3fc044",
+    "lib/core/budget.ts": "6b856843f8f1f08dcd3b37bb11a2bcc7b60c4ea6664020a552b4c4630c565839",
+    "lib/core/pace.ts": "6a813cbd275f7b82bbb82a687d628db8c2579730a8f67b12adf94fbb3d253ec9",
+    "lib/llm/shared-budget.ts": "a18b9d9f01a8b7bcc8221db5ed6e2adfda3296c927ae552f968553afabafe432"
+  },
+  "scope": "local two-process + real Redis, NOT staging/managed provider evidence",
+  "redisVersion": "7.4.6",
+  "isolatedDb": "14",
+  "pids": [
+    8580,
+    8581
+  ],
+  "clockSkewMs": [
+    0,
+    3600000
+  ],
+  "cases": [
+    {
+      "name": "same-client atomic80 with skew",
+      "admitted": 80,
+      "limited": 20
+    },
+    {
+      "name": "shared work-unit400",
+      "acceptedBatches": 5,
+      "rejectedBatches": 5,
+      "batchCost": 80
+    },
+    {
+      "name": "irrevocable shared token1000",
+      "accepted": 10,
+      "limited": 6,
+      "cost": 100
+    },
+    {
+      "name": "actual provider dispatch shared7",
+      "dispatched": 7,
+      "rejected": 13
+    },
+    {
+      "name": "anonymous GitHub clamps30 to10",
+      "dispatched": 10,
+      "rejected": 6
+    },
+    {
+      "name": "cross-worker backoff delta",
+      "dispatched": 1,
+      "rejected": 1,
+      "retryAfterMs": 59988
+    },
+    {
+      "name": "cross-worker backoff date",
+      "dispatched": 1,
+      "rejected": 1,
+      "retryAfterMs": 119993
+    },
+    {
+      "name": "cross-worker backoff reset",
+      "dispatched": 1,
+      "rejected": 1,
+      "retryAfterMs": 120994
+    },
+    {
+      "name": "cross-worker backoff body",
+      "dispatched": 1,
+      "rejected": 1,
+      "retryAfterMs": 59992
+    },
+    {
+      "name": "cooldown max not last-writer",
+      "retryAfterMs": 119984
+    },
+    {
+      "name": "Redis cooldown expiry recovery",
+      "rejected": 1,
+      "recovered": 1
+    },
+    {
+      "name": "malformed backend no dispatch",
+      "rejected": 1
+    },
+    {
+      "name": "backend transport outage fail-closed",
+      "admission": "unavailable",
+      "tokens": "unavailable",
+      "provider": 503,
+      "dispatches": 0
+    },
+    {
+      "name": "cooldown persistence outage rejects source and next replica",
+      "first": 503,
+      "second": 503,
+      "dispatched": 1
+    },
+    {
+      "name": "replica provider config cannot widen active ceiling",
+      "stricter": 2,
+      "looser": 20,
+      "dispatched": 2
+    },
+    {
+      "name": "real Redis SIGKILL mid-workload fails closed",
+      "admittedBeforeCrash": 8,
+      "admissionsRefusedDuringOutage": 32,
+      "tokens": "unavailable",
+      "provider": 503,
+      "newDispatches": 0
+    },
+    {
+      "name": "AOF restart preserves admission/token/provider debt",
+      "priorAdmissionUnits": 8,
+      "tokenOverrunRefused": true,
+      "providerTotal": 2
+    }
+  ]
+}

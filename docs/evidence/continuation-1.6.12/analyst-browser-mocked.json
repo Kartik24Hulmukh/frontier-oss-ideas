@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "browser sends only exact snapshot ID and receipt",
+      "passed": true
+    },
+    {
+      "name": "every repeated E citation is an inline link plus mapped list and dated identity",
+      "passed": true
+    },
+    {
+      "name": "same-query digest mismatch discarded without losing scan",
+      "passed": true
+    },
+    {
+      "name": "export still contains displayed digest after mismatch",
+      "passed": true
+    },
+    {
+      "name": "late memo cannot attach to a new same-query snapshot",
+      "passed": true
+    },
+    {
+      "name": "unconfigured error preserves deterministic scan and brief",
+      "passed": true
+    },
+    {
+      "name": "empty error preserves deterministic scan and brief",
+      "passed": true
+    },
+    {
+      "name": "missing error preserves deterministic scan and brief",
+      "passed": true
+    },
+    {
+      "name": "390px viewport without horizontal overflow or uncaught page errors",
+      "passed": true
+    }
+  ],
+  "limitations": "Local Chromium dev UI with synthetic search/analyst route fixtures; no gateway or source requests; not live deployment or user-study evidence."
+}
