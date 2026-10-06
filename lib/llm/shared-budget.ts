@@ -3,6 +3,8 @@ import { acceptableRedisUrl } from '@/lib/core/redis-endpoint'
 
 // Redis server time avoids app-instance clock skew. Reservations are deliberately
 // irrevocable; a timeout does not prove that the provider performed no billable work.
+// This coordinates reserved token ceilings only, NOT the process-local hedge-rate
+// governor or provider billing reconciliation. All replicas must use matched limits.
 export const RESERVE_TOKENS_LUA = `local t = redis.call('TIME')
 local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 local window = tonumber(ARGV[3]) + tonumber(ARGV[4])
@@ -25,7 +27,7 @@ export function sharedBudgetMode() {
 }
 
 export async function reserveSharedTokens(tokens: number, limit: number, windowMs: number, deadlineMs: number, fetcher: typeof fetch = fetch): Promise<'ok' | 'limited' | 'unavailable'> {
-  if (![tokens, limit, windowMs, deadlineMs].every(n => Number.isSafeInteger(n) && n > 0) || tokens > limit) return 'limited'
+  if (![tokens, limit, windowMs, deadlineMs].every(n => Number.isSafeInteger(n) && n > 0) || tokens > limit || !Number.isSafeInteger(windowMs + deadlineMs)) return 'limited'
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url && !token) return required() ? 'unavailable' : 'ok'

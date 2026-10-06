@@ -4,6 +4,9 @@ import { dedupeAcrossSources } from '@/lib/core/dedup'
 import { expandQuery } from '@/lib/core/expand'
 import { displayQuery, normalizeQuery } from '@/lib/core/normalize'
 import { runDemand } from '@/lib/demand'
+import { qualifiedDemandItems } from '@/lib/demand/qualification'
+import { retainScanSnapshot } from '@/lib/core/scan-snapshots'
+export { lookupScanSnapshot } from '@/lib/core/scan-snapshots'
 import { computeCrowding } from '@/lib/scoring'
 import { quadrantFor } from '@/lib/scoring/quadrant'
 import { filterSourcesByRelevance } from '@/lib/scoring/semantic-filter'
@@ -83,11 +86,11 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
       version: '1.2' as const,
       expansions: variant ? expansions.slice(0, 2) : [query],
       duplicatesCollapsed: collapsed,
-      demandSourceSummary: demand?.sources.map(({ source, status, totalCount, provenance, notice }) => ({ source, status, totalCount, ...(provenance ? { provenance } : {}), ...(notice ? { notice } : {}) })) ?? [],
+      demandSourceSummary: demand?.sources.map(({ source, status, totalCount, provenance, notice, qualification }) => ({ source, status, totalCount, ...(qualification ? { qualification: (({ rejectedItems: _rejected, qualifiedIndices: _indices, ...summary }) => summary)(qualification) } : {}), ...(provenance ? { provenance } : {}), ...(notice ? { notice } : {}) })) ?? [],
       demandBreakdown: demand?.breakdown ?? [],
       coverage: base.coverage,
       demandCoverage: demand?.coverage ?? 0,
-      demandEvidenceLinks: demand?.sources.filter((s) => s.status === 'ok').flatMap((s) => s.items.slice(0, 5).map((i) => ({ source: s.source, title: i.title, url: i.url }))) ?? [],
+      demandEvidenceLinks: demand?.sources.filter((s) => s.status === 'ok').flatMap((s) => qualifiedDemandItems(s).slice(0, 5).map((i) => ({ source: s.source, title: i.title, url: i.url }))) ?? [],
       demandScore: demand?.score ?? null,
       quadrant: quadrant?.quadrant ?? null,
     }
@@ -95,7 +98,7 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
       ...base,
       methodology:
         base.methodology +
-        ' Demand heat from Reddit, Stack Overflow and Ask HN. Query expanded with transparent synonym variants; cross-source duplicates collapsed.',
+        ' Observed, query-qualified discussion support within a 365-day window; not buyer demand. Lexical semantics remain uncalibrated. Query expanded with transparent synonym variants; cross-source duplicates collapsed.',
       demand,
       quadrant,
       expansions: variant ? expansions.slice(0, 2) : [query],
@@ -103,6 +106,9 @@ export async function scanIdea(rawQuery: string, opts: ScanOptions = {}): Promis
       capsule,
       receipt: issueReceipt(capsule),
     }
+    // Snapshot retention is separate from healthy query caching; a store outage
+    // leaves the deterministic scan usable but memo lookup fails closed.
+    await retainScanSnapshot(result).catch(() => undefined)
     // Do not cache badly degraded scans; let the next request retry upstreams.
     // A slower older scan must not overwrite a newer healthy fresh snapshot.
     if (result.coverage >= 50 && sequence >= (cache.get(key)?.sequence ?? 0)) cache.set(key, { result, sequence })

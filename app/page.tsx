@@ -10,6 +10,7 @@ import { MatrixPanel } from '@/components/matrix-panel'
 import { WatchButton, Watchlist, recordScan } from '@/components/watchlist'
 import { opportunityBrief } from '@/lib/brief'
 import type { CrowdingResult } from '@/lib/types'
+import type { EvidenceRef } from '@/lib/llm/analyst'
 
 const SOURCE_NAMES = [
   'GitHub',
@@ -25,15 +26,63 @@ const SOURCE_NAMES = [
   'Ask HN (demand)',
 ]
 
+interface SnapshotMemo {
+  snapshotId: string
+  text: string
+  citations: EvidenceRef[]
+  invalidCitations: number
+  model: string
+  failovers: number
+}
+
+/** Reject a separately acquired snapshot or an unbound/unsafe citation map. */
+function memoForSnapshot(payload: unknown, snapshot: CrowdingResult): SnapshotMemo | null {
+  if (!payload || typeof payload !== 'object') return null
+  const p = payload as Record<string, unknown>
+  if (!snapshot.receipt || p.snapshotId !== snapshot.receipt.digest || p.ok !== true || typeof p.memo !== 'string' || !p.memo.trim() || !Array.isArray(p.citations)) return null
+  const bound = [...snapshot.capsule.evidenceLinks, ...(snapshot.capsule.demandEvidenceLinks ?? [])]
+  const citations: EvidenceRef[] = []
+  const ids = new Set<string>()
+  for (const value of p.citations) {
+    if (!value || typeof value !== 'object') return null
+    const ref = value as EvidenceRef
+    if (typeof ref.id !== 'string' || !/^E[1-9]\d*$/.test(ref.id) || ids.has(ref.id)) return null
+    const link = bound.find(link => link.url === ref.url && link.source === ref.source)
+    if (!link) return null
+    try {
+      const url = new URL(link.url)
+      if (url.protocol !== 'https:' || url.username || url.password) return null
+    } catch { return null }
+    ids.add(ref.id)
+    // Display titles come from the active capsule, never caller/model link text.
+    citations.push({ id: ref.id, source: link.source, title: link.title, url: link.url })
+  }
+  for (const match of p.memo.matchAll(/\[(E\d+)\]/g)) if (!ids.has(match[1])) return null
+  const route = p.route as { model?: unknown; attempts?: unknown[] } | undefined
+  return { snapshotId: snapshot.receipt.digest, text: p.memo, citations,
+    invalidCitations: typeof p.invalidCitations === 'number' && Number.isFinite(p.invalidCitations) ? Math.max(0, p.invalidCitations) : 0,
+    model: typeof route?.model === 'string' ? route.model : 'unknown',
+    failovers: Array.isArray(route?.attempts) ? Math.max(0, route.attempts.length - 1) : 0 }
+}
+
+function MemoText({ memo }: { memo: SnapshotMemo }) {
+  const refs = new Map(memo.citations.map(ref => [ref.id, ref]))
+  return <div className="whitespace-pre-wrap font-sans text-sm leading-6">{memo.text.split(/(\[E\d+\])/g).map((part, index) => {
+    const ref = /^\[E\d+\]$/.test(part) ? refs.get(part.slice(1, -1)) : undefined
+    return ref ? <a key={index} href={ref.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" aria-label={`${part} ${ref.source}: ${ref.title}`}>{part}</a> : part
+  })}</div>
+}
+
 export default function Home() {
   const searchRequest = useRef(new LatestRequest())
   const memoRequest = useRef(new LatestRequest())
   const proofRequest = useRef(new LatestRequest())
+  const activeSnapshot = useRef<CrowdingResult | null>(null)
   const [data, setData] = useState<CrowdingResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [memo, setMemo] = useState<{ text: string; model: string; failovers: number } | null>(null)
+  const [memo, setMemo] = useState<SnapshotMemo | null>(null)
   const [memoState, setMemoState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [memoError, setMemoError] = useState<string | null>(null)
 
@@ -41,6 +90,7 @@ export default function Home() {
     const request = searchRequest.current.begin()
     memoRequest.current.cancel()
     proofRequest.current.cancel()
+    activeSnapshot.current = null
     setData(null)
     setProofState('idle')
     setMemoError(null)
@@ -64,6 +114,7 @@ export default function Home() {
       if (!response.ok) {
         throw new Error(payload?.error ?? 'Search failed. Please try again.')
       }
+      activeSnapshot.current = payload as CrowdingResult
       setData(payload as CrowdingResult)
       try { recordScan(payload as CrowdingResult) } catch { /* A storage failure must not discard a successful scan. */ }
       // Keep private idea text out of browser history unless the user explicitly shares.
@@ -134,16 +185,27 @@ export default function Home() {
 
   async function requestMemo() {
     if (!data) return
+    const snapshot = data
+    const snapshotId = snapshot.receipt?.digest
+    if (!snapshotId) {
+      setMemoError('This scan has no snapshot receipt. The deterministic decision brief still works.')
+      setMemoState('error')
+      return
+    }
     const request = memoRequest.current.begin()
+    setMemo(null)
     setMemoState('loading')
     setMemoError(null)
     try {
-      const response = await fetch('/api/analyst', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: data.query, profile: 'fast' }), signal: request.signal })
+      const response = await fetch('/api/analyst', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapshotId, receipt: snapshot.receipt, profile: 'fast' }), signal: request.signal })
       const payload = await response.json().catch(() => null)
       if (!request.isCurrent()) return
       if (!request.canCommit()) throw new Error('Request timed out. Please try again.')
       if (!response.ok || !payload?.memo) throw new Error(payload?.error ?? (payload?.route?.error === 'budget_exceeded' ? 'AI budget reached for now. Use the decision brief.' : 'AI analyst unavailable. The deterministic decision brief still works.'))
-      setMemo({ text: payload.memo, model: payload.route?.model ?? 'unknown', failovers: Math.max(0, (payload.route?.attempts?.length ?? 1) - 1) })
+      if (activeSnapshot.current?.receipt?.digest !== snapshotId) return
+      const mapped = memoForSnapshot(payload, snapshot)
+      if (!mapped) throw new Error('Analyst snapshot or citation mismatch; memo discarded. The displayed scan and deterministic decision brief are unchanged.')
+      setMemo(mapped)
       setMemoState('idle')
     } catch (cause) {
       if (request.isCurrent()) {
@@ -273,9 +335,13 @@ export default function Home() {
                 {(memo || memoError) && (
                   <div className="basis-full rounded-lg border border-border bg-card p-4" role="region" aria-label="AI analyst memo" aria-live="polite">
                     {memoError && <p className="text-sm text-muted-foreground">{memoError}</p>}
-                    {memo && (<>
-                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">AI narrative · {memo.model}{memo.failovers ? ` · ${memo.failovers} failover(s)` : ''} · not covered by the receipt — verify each [E#] link</p>
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{memo.text}</pre>
+                    {memo && memo.snapshotId === data.receipt?.digest && (<>
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">AI narrative · {memo.model}{memo.failovers ? ` · ${memo.failovers} failover(s)` : ''} · snapshot {memo.snapshotId.slice(0, 12)}… · {data.searchedAt}</p>
+                      <p className="mb-2 text-xs text-muted-foreground">AI interpretation is not signed by the scan receipt. Links map to this capsule; citation existence does not prove a claim. Discussion activity is not buyer demand.</p>
+                      {memo.invalidCitations > 0 && <p className="mb-2 text-xs text-muted-foreground">{memo.invalidCitations} invalid citation(s) removed as [uncited]. Verify all claims before acting.</p>}
+                      {memo.citations.length === 0 && <p className="mb-2 text-xs text-muted-foreground">No evidence cited by the model. This narrative is ungrounded; use the deterministic decision brief.</p>}
+                      <MemoText memo={memo} />
+                      {memo.citations.length > 0 && <ul className="mt-3 space-y-1 text-xs" aria-label="Analyst evidence links">{memo.citations.map(ref => <li key={ref.id}><a href={ref.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">[{ref.id}] {ref.source}: {ref.title}</a></li>)}</ul>}
                     </>)}
                   </div>
                 )}

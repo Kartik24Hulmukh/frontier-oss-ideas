@@ -48,15 +48,15 @@ describe('sourceHealth', () => {
     }) as typeof fetch
     await assert.rejects(pacedFetch('beta', 'https://example.test/b'))
     await pacedFetch('beta', 'https://example.test/b')
-    await pacedFetch('beta', 'https://example.test/b')
+    await assert.rejects(pacedFetch('beta', 'https://example.test/b'), /backoff/)
     h = sourceHealth()
     assert.equal(h.status, 'degraded')
     const beta = h.providers.find((p) => p.provider === 'beta')!
-    assert.equal(beta.state, 'open')
-    assert.equal(beta.failures, 3)
-    assert.equal(beta.requests, 3)
+    assert.equal(beta.state, 'closed')
+    assert.equal(beta.failures, 2)
+    assert.equal(beta.requests, 2)
     assert.ok(beta.retryInMs > 0)
-    await assert.rejects(pacedFetch('beta', 'https://example.test/b'), /circuit open/)
+    await assert.rejects(pacedFetch('beta', 'https://example.test/b'), /backoff/)
     globalThis.fetch = realFetch
   })
 })

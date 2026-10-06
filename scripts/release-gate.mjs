@@ -21,7 +21,7 @@ export function evaluateGate(health, scan, verification, strict = false, expecte
   if (strict) {
     const age = Date.now() - Date.parse(scan?.capsule?.searchedAt)
     check('fresh-snapshot', scan?.cached !== true && Number.isFinite(age) && age >= -30_000 && age <= 120_000 && scan?.searchedAt === scan?.capsule?.searchedAt, 'Fresh, noncached receipt-covered snapshot; max age 120s, max clock skew 30s')
-    check('snapshot-binding', scan?.capsule?.modelVersion === 'crowding-1.3' && ['query', 'score', 'coverage', 'confidence', 'verdict'].every(k => scan?.[k] === scan?.capsule?.[k]), 'Displayed query, score, confidence, coverage and verdict must match the approved model capsule')
+    check('snapshot-binding', scan?.capsule?.modelVersion === 'crowding-1.4' && ['query', 'score', 'coverage', 'confidence', 'verdict'].every(k => scan?.[k] === scan?.capsule?.[k]), 'Displayed query, score, confidence, coverage and verdict must match the approved model capsule')
     check('llm-breaker-availability', !health?.llm?.configured || (health.llm.breakers && Object.values(health.llm.breakers).some(b => b === 'closed' || b === 'half_open')), 'Enabled analyst needs at least one dispatchable model; real useful completion remains a separate launch requirement')
     check('llm-distributed-budget', !health?.llm?.configured || health?.llm?.budgetScope === 'distributed-configured', 'Enabled AI analyst requires distributed token admission; runtime outage tests still required')
     check('distributed-configured', health?.admission === 'distributed-configured', 'Configuration only; concurrent/outage tests still required')

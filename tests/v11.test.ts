@@ -6,6 +6,7 @@ import { RateLimiter } from '../lib/core/ratelimit'
 import { expandQuery, termSimilarity } from '../lib/core/expand'
 import { canonicalUrl, dedupeAcrossSources } from '../lib/core/dedup'
 import { computeDemand, trendOf } from '../lib/demand'
+import { qualifyDemandSource } from '../lib/demand/qualification'
 import { quadrantFor } from '../lib/scoring/quadrant'
 import { digestCapsule, issueReceipt, verifyReceipt } from '../lib/scoring/receipt'
 import { handleRpc, TOOLS } from '../lib/mcp'
@@ -88,15 +89,15 @@ describe('query expansion + dedup', () => {
 
 function demandSrc(source: DemandSourceResult['source'], total: number, n: number, monthsBack = 1): DemandSourceResult {
   const d = new Date(Date.now() - monthsBack * 30 * 864e5).toISOString()
-  return { source, label: source, status: 'ok', totalCount: total, items: Array.from({ length: n }, (_, i) => ({ title: 't' + i, description: null, url: source + i, date: d, meta: source === 'reddit' ? '5 upvotes · 25 comments' : source === 'askhn' ? 'Ask HN · 10 points' : '1,000 views · 1 answers' })) }
+  return qualifyDemandSource({ source, label: source, status: 'ok', totalCount: total, items: Array.from({ length: n }, (_, i) => ({ title: 'Need code review help ' + i, description: null, url: `https://example.test/${source}/${i}`, date: d, meta: source === 'reddit' ? '5 upvotes · 25 comments' : source === 'askhn' ? 'Ask HN · 10 points' : '1,000 views · 1 answers' })) }, 'code review')
 }
 
 describe('demand + quadrant', () => {
   it('scores hot demand higher than cold demand', () => {
     const hot = computeDemand([demandSrc('reddit', 25, 10), demandSrc('stackoverflow', 5000, 10), demandSrc('askhn', 800, 10)])
     const cold = computeDemand([demandSrc('reddit', 0, 0), demandSrc('stackoverflow', 0, 0), demandSrc('askhn', 0, 0)])
-    assert.ok((hot.score ?? 0) > 60, `hot=${hot.score}`)
-    assert.equal(cold.score, 0)
+    assert.equal(hot.score, 40, '10 observed qualified items / bounded sample 25; raw totals and views do not boost score')
+    assert.equal(cold.score, null, 'empty samples establish neither demand nor its absence')
     assert.equal(hot.coverage, 100)
   })
   it('excludes failed demand sources and returns null when all fail', () => {
@@ -105,8 +106,8 @@ describe('demand + quadrant', () => {
     assert.equal(r.score, null)
     assert.equal(r.coverage, 0)
   })
-  it('detects rising trend', () => {
-    assert.equal(trendOf([demandSrc('reddit', 6, 6, 1), demandSrc('askhn', 1, 1, 9)]), 'rising')
+  it('abstains on trend from non-comparable ranked snippets', () => {
+    assert.equal(trendOf([demandSrc('reddit', 6, 6, 1), demandSrc('askhn', 1, 1, 9)]), 'unknown')
     assert.equal(trendOf([demandSrc('reddit', 1, 1, 1)]), 'unknown')
   })
   it('maps all four quadrants and the null case', () => {

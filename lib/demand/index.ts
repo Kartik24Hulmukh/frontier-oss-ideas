@@ -1,5 +1,9 @@
 import { errorResult as supplyError, fetchWithTimeout } from '@/lib/core/fetch'
 import { pacedFetch, UpstreamError } from '@/lib/core/pace'
+import { record, count, nonempty, optionalText, optionalCount } from '@/lib/sources/contract'
+import { demandWindow, qualifyDemandSource, qualifiedDemandItems, DEMAND_SAMPLE_LIMIT } from './qualification'
+import type { DemandQualification } from './qualification'
+export { qualifiedDemandItems } from './qualification'
 import type {
   AdapterContext,
   DemandBreakdown,
@@ -14,6 +18,15 @@ import type {
  * from a *dead lane nobody wants*. These three public, key-free channels are a
  * cheap, honest proxy for pull: people asking for / complaining about the thing.
  */
+
+const seconds = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0 && Number.isFinite(new Date(v * 1000).getTime())
+const https = (v: unknown): v is string => { try { return typeof v === 'string' && new URL(v).protocol === 'https:' } catch { return false } }
+const redditRow = (v: unknown): v is Record<string, unknown> => record(v) && nonempty(v.title) && typeof v.permalink === 'string' && /^\/r\/[^\s?#]+\/comments\//.test(v.permalink) && seconds(v.created_utc) && optionalText(v.selftext) && optionalText(v.subreddit) && optionalCount(v.num_comments) && (v.score === undefined || (typeof v.score === 'number' && Number.isSafeInteger(v.score)))
+function redditItem(d: Record<string, unknown>, mirror = false): EvidenceItem {
+  const self = typeof d.selftext === 'string' && !['[removed]', '[deleted]'].includes(d.selftext) ? d.selftext : ''
+  return { title: String(d.title), description: self || null, url: 'https://www.reddit.com' + d.permalink,
+    date: seconds(d.created_utc) ? new Date(d.created_utc * 1000).toISOString() : null, meta: `r/${d.subreddit ?? '?'} · ${d.score ?? 0} upvotes · ${d.num_comments ?? 0} comments${mirror ? ' · via mirror' : ''}` }
+}
 
 const UA = 'SimultaneityIndex/1.1 (+https://github.com/Kartik24Hulmukh/frontier-oss-ideas)'
 
@@ -64,27 +77,22 @@ async function redditToken(ctx: AdapterContext): Promise<string | null> {
 export async function searchRedditPrimary(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
   const label = 'Reddit discussions'
   try {
+    const capturedAt = Date.now()
     // Reddit blocks most anonymous datacenter traffic; app-only OAuth (free) fixes it.
     const token = await redditToken(ctx)
     const host = token ? 'https://oauth.reddit.com/search' : 'https://www.reddit.com/search.json'
-    const url = host + '?q=' + encodeURIComponent(query) + '&sort=relevance&t=year&limit=25&type=link&raw_json=1'
+    const url = host + '?q=' + encodeURIComponent(query) + '&sort=new&t=year&limit=25&type=link&raw_json=1'
     const headers: Record<string, string> = { 'User-Agent': UA, Accept: 'application/json' }
     if (token) headers.Authorization = 'Bearer ' + token
     const res = await pacedFetch('reddit', url, { timeoutMs: ctx.timeoutMs, headers })
     if (res.status === 403 && !token) return demandError('reddit', label, 'Reddit blocks anonymous server traffic — set REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET.')
     if (res.status === 429) return demandError('reddit', label, 'Reddit rate limited this request.', true)
     if (!res.ok) return demandError('reddit', label, 'Reddit returned ' + res.status + '.')
-    const data = await res.json()
-    const children: Array<{ data: { title: string; permalink: string; created_utc: number; score: number; num_comments: number; subreddit: string; selftext?: string } }> = data?.data?.children ?? []
-    const items: EvidenceItem[] = children.slice(0, 10).map(({ data: d }) => ({
-      title: d.title,
-      description: d.selftext ? d.selftext.slice(0, 180) : null,
-      url: 'https://www.reddit.com' + d.permalink,
-      date: new Date(d.created_utc * 1000).toISOString(),
-      meta: `r/${d.subreddit} · ${d.score} upvotes · ${d.num_comments} comments`,
-      relevance: 1,
-    }))
-    return { source: 'reddit', label, status: 'ok', totalCount: children.length, items }
+    const data: unknown = await res.json()
+    if (!record(data) || !record(data.data) || !Array.isArray(data.data.children) || data.data.children.length > DEMAND_SAMPLE_LIMIT || data.data.children.some(c => !record(c) || !redditRow(c.data))) return demandError('reddit', label, 'Reddit returned a malformed payload.')
+    const children = data.data.children as Array<{ data: Record<string, unknown> }>
+    return qualifyDemandSource({ source: 'reddit', label, status: 'ok', totalCount: children.length, items: children.slice(0, DEMAND_SAMPLE_LIMIT).map(c => redditItem(c.data)), provenance: 'primary' }, query, capturedAt)
+
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('reddit', label, e.message, e.status === 429)
     return demandError('reddit', label, 'Reddit request failed or timed out.')
@@ -106,28 +114,22 @@ const MIRROR_LABEL = 'PullPush archive mirror'
 export async function searchRedditMirror(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
   const label = 'Reddit discussions'
   try {
-    const after = Math.floor(Date.now() / 1000) - 365 * 24 * 3600
+    const capturedAt = Date.now()
+    const window = demandWindow(capturedAt)
+    const after = Math.floor(Date.parse(window.start) / 1000)
+    const before = Math.floor(Date.parse(window.end) / 1000)
     const base = process.env.REDDIT_MIRROR_URL || 'https://api.pullpush.io/reddit/search/submission/'
-    const url = base + '?q=' + encodeURIComponent(query) + '&size=25&after=' + after
+    const url = base + '?q=' + encodeURIComponent(query) + '&size=25&sort=desc&sort_type=created_utc&after=' + after + '&before=' + before
     const res = await pacedFetch('reddit-mirror', url, { timeoutMs: ctx.timeoutMs, headers: { 'User-Agent': UA, Accept: 'application/json' } })
     if (res.status === 429) return demandError('reddit', label, MIRROR_LABEL + ' rate limited this request.', true)
     if (!res.ok) return demandError('reddit', label, MIRROR_LABEL + ' returned ' + res.status + '.')
     const data = (await res.json()) as { data?: unknown }
-    if (!data || !Array.isArray(data.data)) return demandError('reddit', label, MIRROR_LABEL + ' returned a malformed payload.')
-    const rows = (data.data as Array<Record<string, unknown>>).filter((d) => typeof d?.title === 'string' && typeof d?.permalink === 'string')
-    const items: EvidenceItem[] = rows.slice(0, 10).map((d) => {
-      const created = Number(d.created_utc)
-      const self = typeof d.selftext === 'string' && d.selftext !== '[removed]' && d.selftext !== '[deleted]' ? d.selftext : ''
-      return {
-        title: String(d.title),
-        description: self ? self.slice(0, 180) : null,
-        url: 'https://www.reddit.com' + String(d.permalink),
-        date: Number.isFinite(created) ? new Date(created * 1000).toISOString() : null,
-        meta: `r/${String(d.subreddit ?? '?')} · ${Number(d.score ?? 0)} upvotes · ${Number(d.num_comments ?? 0)} comments · via mirror`,
-        relevance: 1,
-      }
-    })
-    return { source: 'reddit', label, status: 'ok', totalCount: rows.length, items, provenance: 'mirror' }
+    if (!data || !Array.isArray(data.data) || data.data.length > DEMAND_SAMPLE_LIMIT) return demandError('reddit', label, MIRROR_LABEL + ' returned a malformed payload.')
+    const raw = data.data as unknown[]
+    const rows = raw.filter(redditRow)
+    const malformed: DemandQualification['rejectedItems'] = raw.flatMap((d, index) => redditRow(d) ? [] : [{ item: record(d) && nonempty(d.title) && typeof d.permalink === 'string' && /^\/r\/[^\s?#]+\/comments\//.test(d.permalink) ? redditItem(d, true) : null, index, reasons: ['malformed-row'], provenance: 'mirror' as const }])
+    return qualifyDemandSource({ source: 'reddit', label, status: 'ok', totalCount: raw.length, items: rows.slice(0, DEMAND_SAMPLE_LIMIT).map(d => redditItem(d, true)), provenance: 'mirror' }, query, capturedAt, malformed)
+
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('reddit', label, MIRROR_LABEL + ': ' + e.message, e.status === 429)
     return demandError('reddit', label, MIRROR_LABEL + ' request failed or timed out.')
@@ -154,9 +156,9 @@ export async function searchReddit(query: string, ctx: AdapterContext = {}): Pro
 export async function searchStackOverflow(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
   const label = 'Stack Overflow questions'
   try {
-    const url =
-      'https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&site=stackoverflow&pagesize=20&filter=total&q=' +
-      encodeURIComponent(query)
+    const capturedAt = Date.now()
+    const window = demandWindow(capturedAt)
+    const url = 'https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=creation&site=stackoverflow&pagesize=25&filter=total&fromdate=' + Math.floor(Date.parse(window.start) / 1000) + '&todate=' + Math.floor(Date.parse(window.end) / 1000) + '&q=' + encodeURIComponent(query)
     const listUrl = url.replace('&filter=total', '')
     const [totalRes, listRes] = await Promise.all([
       pacedFetch('stackoverflow', url, { timeoutMs: ctx.timeoutMs }),
@@ -166,18 +168,21 @@ export async function searchStackOverflow(query: string, ctx: AdapterContext = {
       return demandError('stackoverflow', label, 'Stack Exchange throttled this request.', true)
     }
     if (!listRes.ok) return demandError('stackoverflow', label, 'Stack Exchange returned ' + listRes.status + '.')
-    const list = await listRes.json()
-    const total = totalRes.ok ? ((await totalRes.json())?.total ?? null) : null
-    const raw: Array<{ title: string; link: string; creation_date: number; score: number; answer_count: number; is_answered: boolean; view_count: number }> = list.items ?? []
-    const items: EvidenceItem[] = raw.slice(0, 10).map((q) => ({
-      title: q.title.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&'),
-      description: null,
-      url: q.link,
-      date: new Date(q.creation_date * 1000).toISOString(),
-      meta: `${q.view_count.toLocaleString()} views · ${q.answer_count} answers${q.is_answered ? '' : ' · unanswered'}`,
-      relevance: 1,
+    const list: unknown = await listRes.json()
+    if (!record(list) || list.error_id !== undefined || !Array.isArray(list.items) || list.items.length > DEMAND_SAMPLE_LIMIT || list.items.some(q => !record(q) || !nonempty(q.title) || !https(q.link) || !seconds(q.creation_date) || !optionalCount(q.view_count) || !optionalCount(q.answer_count) || (q.is_answered !== undefined && typeof q.is_answered !== 'boolean'))) return demandError('stackoverflow', label, 'Stack Exchange returned a malformed list payload.')
+    let total: number | null = null
+    if (totalRes.ok) {
+      const payload: unknown = await totalRes.json()
+      if (!record(payload) || payload.error_id !== undefined || !count(payload.total) || payload.total < list.items.length) return demandError('stackoverflow', label, 'Stack Exchange returned a malformed total payload.')
+      total = payload.total
+    }
+    const items = (list.items as Array<Record<string, unknown>>).slice(0, DEMAND_SAMPLE_LIMIT).map(q => ({
+      title: String(q.title).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&'), description: null,
+      url: String(q.link), date: new Date(Number(q.creation_date) * 1000).toISOString(),
+      meta: `${Number(q.view_count ?? 0).toLocaleString()} views · ${q.answer_count ?? 0} answers${q.is_answered ? '' : ' · unanswered'}`,
     }))
-    return { source: 'stackoverflow', label, status: 'ok', totalCount: typeof total === 'number' ? total : raw.length, items, ...(typeof total !== 'number' ? { notice: 'Stack Overflow total count unavailable; count reflects returned top hits only.' } : {}) }
+    return qualifyDemandSource({ source: 'stackoverflow', label, status: 'ok', totalCount: total ?? list.items.length, items, provenance: 'primary', ...(total === null ? { notice: 'Stack Overflow total count unavailable; count reflects returned top hits only.' } : {}) }, query, capturedAt)
+
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('stackoverflow', label, e.message, e.status === 429)
     return demandError('stackoverflow', label, 'Stack Exchange request failed or timed out.')
@@ -187,20 +192,20 @@ export async function searchStackOverflow(query: string, ctx: AdapterContext = {
 export async function searchAskHN(query: string, ctx: AdapterContext = {}): Promise<DemandSourceResult> {
   const label = 'Ask HN + comment pull'
   try {
-    const url = 'https://hn.algolia.com/api/v1/search?query=' + encodeURIComponent(query) + '&tags=(ask_hn,comment)&hitsPerPage=20'
+    const capturedAt = Date.now()
+    const window = demandWindow(capturedAt)
+    const url = 'https://hn.algolia.com/api/v1/search_by_date?query=' + encodeURIComponent(query) + '&tags=(ask_hn,comment)&hitsPerPage=25&numericFilters=' + encodeURIComponent('created_at_i>=' + Math.floor(Date.parse(window.start) / 1000) + ',created_at_i<=' + Math.floor(Date.parse(window.end) / 1000))
+
     const res = await pacedFetch('askhn', url, { timeoutMs: ctx.timeoutMs })
-    if (!res.ok) return demandError('askhn', label, 'Hacker News returned ' + res.status + '.')
-    const data = await res.json()
-    const hits: Array<{ title?: string | null; story_title?: string | null; comment_text?: string | null; objectID: string; created_at: string; points?: number | null }> = data.hits ?? []
-    const items: EvidenceItem[] = hits.slice(0, 10).map((h) => ({
-      title: h.title ?? h.story_title ?? 'HN comment',
-      description: h.comment_text ? h.comment_text.replace(/<[^>]+>/g, ' ').slice(0, 180) : null,
-      url: 'https://news.ycombinator.com/item?id=' + h.objectID,
-      date: h.created_at,
-      meta: h.title ? `Ask HN · ${h.points ?? 0} points` : 'comment',
-      relevance: 1,
+    if (!res.ok) return demandError('askhn', label, 'Hacker News returned ' + res.status + '.', res.status === 429)
+    const data: unknown = await res.json()
+    if (!record(data) || !Array.isArray(data.hits) || data.hits.length > DEMAND_SAMPLE_LIMIT || !count(data.nbHits) || data.nbHits < data.hits.length || data.hits.some(h => !record(h) || typeof h.objectID !== 'string' || !/^\d+$/.test(h.objectID) || !optionalText(h.title) || !optionalText(h.story_title) || !optionalText(h.comment_text) || (!nonempty(h.title) && !nonempty(h.story_title) && !nonempty(h.comment_text)) || typeof h.created_at !== 'string' || !Number.isFinite(Date.parse(h.created_at)) || !optionalCount(h.points))) return demandError('askhn', label, 'Hacker News returned a malformed payload.')
+    const items = (data.hits as Array<Record<string, unknown>>).slice(0, DEMAND_SAMPLE_LIMIT).map(h => ({
+      title: String(h.title ?? h.story_title ?? 'HN comment'), description: typeof h.comment_text === 'string' ? h.comment_text.replace(/<[^>]+>/g, ' ') : null,
+      url: 'https://news.ycombinator.com/item?id=' + h.objectID, date: String(h.created_at), meta: h.title ? `Ask HN · ${h.points ?? 0} points` : 'comment',
     }))
-    return { source: 'askhn', label, status: 'ok', totalCount: data.nbHits ?? items.length, items }
+    return qualifyDemandSource({ source: 'askhn', label, status: 'ok', totalCount: data.nbHits, items, provenance: 'primary' }, query, capturedAt)
+
   } catch (e) {
     if (e instanceof UpstreamError) return demandError('askhn', label, e.message, e.status === 429)
     return demandError('askhn', label, 'Hacker News request failed or timed out.')
@@ -214,71 +219,34 @@ export const DEMAND_WEIGHTS: Record<DemandSourceId, number> = {
   askhn: 0.35,
 }
 
-const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n))
-
-function monthsAgo(iso: string | null): number | null {
-  if (!iso) return null
-  const t = new Date(iso).getTime()
-  return Number.isNaN(t) ? null : (Date.now() - t) / (1000 * 60 * 60 * 24 * 30.44)
-}
-
-function firstNumber(meta: string | null, word: string): number {
-  if (!meta) return 0
-  const m = meta.match(new RegExp('([\\d,]+)\\s*' + word, 'i'))
-  return m ? Number.parseInt(m[1].replace(/,/g, ''), 10) : 0
-}
-
 export function scoreDemandSource(r: DemandSourceResult): DemandBreakdown {
   const weight = DEMAND_WEIGHTS[r.source] * (r.provenance === 'mirror' ? REDDIT_MIRROR_WEIGHT_FACTOR : 1)
-  if (r.status !== 'ok') {
-    return { source: r.source, label: r.label, subScore: 0, signal: 'Source unavailable — excluded from demand score.', weight, included: false }
-  }
-  const recent = r.items.filter((i) => {
-    const m = monthsAgo(i.date)
-    return m !== null && m <= 6
-  }).length
-  let score = 0
-  let signal = ''
-  if (r.source === 'reddit') {
-    const engaged = r.items.filter((i) => firstNumber(i.meta, 'comments') >= 10).length
-    score = clamp(r.totalCount * 2 + engaged * 6 + recent * 3)
-    signal = `${r.totalCount} threads in the last year; ${engaged} with 10+ comments; ${recent} in last 6 months.`
-  } else if (r.source === 'stackoverflow') {
-    const views = r.items.reduce((s, i) => s + firstNumber(i.meta, 'views'), 0)
-    score = clamp(Math.log10(1 + r.totalCount) * 22 + Math.log10(1 + views) * 6)
-    signal = `${r.totalCount.toLocaleString()} developer questions; ${views.toLocaleString()} views across top hits.`
-  } else {
-    const asks = r.items.filter((i) => i.meta?.startsWith('Ask HN')).length
-    score = clamp(Math.log10(1 + r.totalCount) * 20 + asks * 8 + recent * 2)
-    signal = `${r.totalCount.toLocaleString()} Ask HN posts/comments mention it; ${asks} direct Ask HN threads in top hits.`
-  }
+  const items = qualifiedDemandItems(r)
+  const included = r.status === 'ok' && items.length > 0
+  let signal = included
+    ? `${items.length} observed unique qualified pull items in a matched 365-day window; ${r.totalCount.toLocaleString()} raw hits audit-only. Lexical discussion heat, not verified buyer demand; semantics uncalibrated.`
+    : 'Insufficient inspectable recent topical pull evidence — excluded from demand score; raw hits and engagement cannot establish buyer demand.'
   if (r.provenance === 'mirror') signal += ' [via archive mirror — primary unavailable; weight halved]'
-  return { source: r.source, label: r.label, subScore: Math.round(score), signal, weight, included: true }
+  // No extrapolation of search-ranked samples, engagement boosts, or unbounded totals.
+  return { source: r.source, label: r.label, subScore: included ? Math.round(Math.min(100, items.length / DEMAND_SAMPLE_LIMIT * 100)) : 0, signal, weight, included }
 }
 
-export function trendOf(sources: DemandSourceResult[]): DemandResult['trend'] {
-  const dates = sources.flatMap((s) => s.items.map((i) => monthsAgo(i.date))).filter((m): m is number => m !== null && m <= 24)
-  if (dates.length < 4) return 'unknown'
-  const last6 = dates.filter((m) => m <= 6).length
-  const prior = dates.filter((m) => m > 6 && m <= 12).length
-  if (last6 >= prior * 1.5 && last6 >= 2) return 'rising'
-  if (prior >= last6 * 1.5 && prior >= 2) return 'falling'
-  return 'flat'
-}
+/** Ranked search snippets cannot establish comparable temporal rates. */
+export function trendOf(_sources: DemandSourceResult[]): DemandResult['trend'] { return 'unknown' }
 
 export function computeDemand(sources: DemandSourceResult[]): DemandResult {
   const breakdown = sources.map(scoreDemandSource)
-  const ok = breakdown.filter((b) => b.included)
-  const w = ok.reduce((s, b) => s + b.weight, 0)
-  const score = w > 0 ? Math.round(ok.reduce((s, b) => s + b.subScore * b.weight, 0) / w) : null
-  return {
-    score,
-    coverage: sources.length ? Math.round((ok.length / sources.length) * 100) : 0,
-    // Relevance-ranked top hits are not comparable time windows.
-    trend: 'unknown',
-    breakdown,
-    sources,
-  }
+  const supported = breakdown.filter(b => b.included)
+  const w = supported.reduce((s, b) => s + b.weight, 0)
+  const uniqueSources = new Set(supported.map(b => b.source))
+  const uniqueItems = new Set(sources.flatMap(s => qualifiedDemandItems(s).map(i => i.url.replace(/\/$/, ''))))
+  const queries = new Set(sources.filter(s => qualifiedDemandItems(s).length).map(s => s.qualification?.query))
+  const ends = sources.filter(s => qualifiedDemandItems(s).length).map(s => Date.parse(s.qualification!.window.end))
+  const comparable = ends.length > 0 && Math.max(...ends) - Math.min(...ends) <= 60_000
+  const sufficient = comparable && uniqueSources.size >= 2 && uniqueItems.size >= 4 && queries.size === 1 && supported.length === uniqueSources.size
+  const score = sufficient && w > 0 ? Math.round(supported.reduce((s, b) => s + b.subScore * b.weight, 0) / w) : null
+  if (!sufficient) for (const b of breakdown) b.signal += ' Aggregate abstains: requires two distinct supported channels, four unique qualified URLs and same query/windows (capture skew ≤60s); these are uncalibrated safeguards.'
+  return { score, coverage: Math.round(uniqueSources.size / 3 * 100), trend: 'unknown', breakdown, sources }
 }
 
 export async function runDemand(query: string, ctx: AdapterContext = {}): Promise<DemandResult> {

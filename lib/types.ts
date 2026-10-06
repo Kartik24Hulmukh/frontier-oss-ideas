@@ -1,3 +1,4 @@
+import type { DemandQualification } from './demand/qualification'
 export type SourceId =
   | 'github'
   | 'hackernews'
@@ -104,7 +105,7 @@ export interface EvidenceCapsule {
   duplicatesCollapsed?: number
   sourceSummary?: Array<{ source: SourceId; status: SourceStatus; totalCount: number; notice?: string }>
   breakdown?: ScoreBreakdown[]
-  demandSourceSummary?: Array<{ source: DemandSourceId; status: SourceStatus; totalCount: number; provenance?: 'primary' | 'mirror'; notice?: string }>
+  demandSourceSummary?: Array<{ source: DemandSourceId; status: SourceStatus; totalCount: number; provenance?: 'primary' | 'mirror'; notice?: string; qualification?: Omit<DemandQualification, 'rejectedItems' | 'qualifiedIndices'> }>
   demandBreakdown?: DemandBreakdown[]
   coverage?: number
   demandCoverage?: number
@@ -135,6 +136,7 @@ export type SourceAdapter = (
 export type DemandSourceId = 'reddit' | 'stackoverflow' | 'askhn'
 
 export interface DemandSourceResult {
+  qualification?: DemandQualification
   source: DemandSourceId
   label: string
   status: SourceStatus

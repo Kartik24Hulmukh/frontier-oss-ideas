@@ -1,6 +1,6 @@
 # Simultaneity Index
 
-> Live crowding + demand radar: how many teams are already building an idea. Supply from GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face; demand from Reddit, Stack Overflow, Ask HN.
+> Uncalibrated public-artifact research instrument: inspect observed supply and recent topical discussion. Counts are not numbers of independent teams, buyer demand, or market validation. Supply from GitHub, Hacker News, arXiv, OpenAlex, npm, PyPI, Hugging Face, crates.io; demand from Reddit, Stack Overflow, Ask HN.
 
 ## For agents
 - MCP (Streamable HTTP, stateless): POST /api/mcp  tool: crowding_check {idea, depth?: quick|full}
@@ -9,6 +9,11 @@
 - Verify a receipt: POST /api/verify {capsule, receipt}
 
 ## Docs
-- /methodology  published formula, weights, thresholds, gold-set calibration
+- /methodology  published formula, weights, thresholds, author-estimated gold set (not independent validation)
 - /pulse        live leaderboard of the most simultaneous lanes
 - /agents       install instructions for Cursor, Claude Code, Windsurf, goose
+
+## Exact-snapshot optional memo
+- POST /api/analyst {snapshotId: receipt.digest, receipt, profile?: fast|quality|reasoning}
+- Uses only retained server-owned snapshot; never silently rescans. Expires after20minutes.
+- /api/ready probes operational dependencies; not launch/customer approval.

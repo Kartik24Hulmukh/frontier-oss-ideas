@@ -20,6 +20,13 @@ test('scan → signed capsule → verification preserves degraded demand provena
     const result = await scanIdea('provenance regression unique', { fresh: true, expand: false })
     const source = result.capsule.demandSourceSummary?.find(s => s.source === 'reddit')
     assert.equal(source?.provenance, 'mirror')
+    assert.equal(source?.qualification?.method, 'demand-lexical-window-v1')
+    assert.equal(source?.qualification?.rawCount, 1)
+    assert.equal(source?.qualification?.qualifiedCount, 0, 'old unrelated evidence cannot qualify')
+    assert.equal(source?.qualification?.rejectedCount, 1)
+    assert.equal(result.demand?.score, null)
+    assert.deepEqual(result.capsule.demandEvidenceLinks, [], 'rejected audit rows are not citation support')
+    assert.equal(result.demand?.sources.find(s => s.source === 'reddit')?.items.length, 1, 'normalized rejected row remains inspectable')
     assert.match(source?.notice ?? '', /Primary Reddit unavailable/)
     const roundtrip = JSON.parse(JSON.stringify(result.capsule))
     assert.equal(verifyReceipt(roundtrip, result.receipt!).digestMatches, true)
@@ -27,6 +34,9 @@ test('scan → signed capsule → verification preserves degraded demand provena
     const key = generateKeyPairSync('ed25519').privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
     const receipt = issueReceipt(roundtrip, key)
     assert.equal(verifyReceipt(roundtrip, receipt).signatureValid, true)
+    const qualificationTamper = JSON.parse(JSON.stringify(roundtrip))
+    qualificationTamper.demandSourceSummary.find((s: { source: string }) => s.source === 'reddit').qualification.qualifiedCount = 1
+    assert.equal(verifyReceipt(qualificationTamper, receipt).digestMatches, false, 'qualification audit projection is receipt-bound')
     roundtrip.demandSourceSummary.find((s: { source: string }) => s.source === 'reddit').provenance = 'primary'
     assert.equal(verifyReceipt(roundtrip, receipt).digestMatches, false)
     assert.match(summarize(result), /Primary Reddit unavailable/)
