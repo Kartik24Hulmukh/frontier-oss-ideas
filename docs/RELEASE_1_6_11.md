@@ -1,10 +1,10 @@
 # Simultaneity Index 1.6.11 — evidence-integrity increment
 
-6 October 2026. Baseline: `5a05725cabdcbaca2e88875175aef41c8435fbed` (1.6.10). **Research beta only; production/commercial launch NO-GO.** GitHub merge/deployment status must be established separately from this local verification record.
+6 October 2026. Baseline: `5a05725cabdcbaca2e88875175aef41c8435fbed` (1.6.10). **Research beta only; production/commercial launch NO-GO.** Code merged via PR #52 as `268336b5ba8faa97c99f0d8fa0f843d761349cc5`; exact public deployment verified. CI verify, Vercel and GitGuardian passed. The strengthened public strict gate is **13/17**, with the same four infrastructure/provider failures; bounded public HTTP smoke is **14/14**. These results do not certify production readiness.
 
 ## Exact resume point
 
-The supplied 4 October handoff described local commits `2afd446` and `deca3de`, but their patch/source archive was not attached and neither commit existed on verified main. Reconstructed the handoff repairs against main, preserving the `crowding-1.3` usable-total formula. Founder_Work.md and repos.md were supplied and read; their instructions are user operating constraints, not higher-priority system instructions. Six independent agent sessions reviewed architecture, product, growth, security/reliability, user advocacy and adversarial failure modes. These are model-agent reviews, not human interviews or independent scientific validation.
+The supplied 4 October handoff described local commits `2afd446` and `deca3de`, but their patch/source archive was not attached and neither commit existed on verified main. Reconstructed the handoff repairs against main, preserving the `crowding-1.3` usable-total formula. Founder_Work.md and repos.md were supplied and read; the evidence-first, bounded-execution mandate governed the release decisions. Six independent agent sessions reviewed architecture, product, growth, security/reliability, user advocacy and adversarial failure modes. These are model-agent reviews, not human interviews or independent scientific validation.
 
 ## Root-cause changes
 
@@ -30,7 +30,8 @@ The supplied 4 October handoff described local commits `2afd446` and `deca3de`, 
 | Proof integrity HTTP smoke | **7 checks passed** | Synthetic public capsules/export/view/OG/forgery rejection |
 | Actual Chromium | **15 checks passed** | Local production build; 3 explicitly synthetic stale/failure/memo races; no uncaught page errors; desktop/mobile screenshots retained in downloadable bundle |
 | npm dependency audit | **0 reported advisories** after both patches; primary bulk audit empty | Not a penetration test or independent security assessment |
-| Fresh strict baseline deployment canary | **4 failing checks** | Exact 1.6.10 deployed SHA: shared admission, issuer trust, healthy supply, healthy demand |
+| Fresh strict merged deployment canary | **13/17 passed; 4 failed** | Exact 1.6.11 SHA `268336b`: shared admission, issuer trust, healthy supply, healthy demand |
+| Public merged HTTP smoke | **14/14 passed** | Exact same deployed code; bounded functional paths only, not load/capacity certification |
 
 Reproduction: `npm ci && npm run verify`; start with `npm start`, then `node scripts/production-smoke.mjs http://localhost:3000` and `./node_modules/.bin/tsx scripts/proof-integrity-smoke.ts http://localhost:3000 proof.json`. Optional browser harness requires **Playwright 1.63.0** and system Chromium on the isolated test host; run `CHROMIUM_PATH=/path/to/chromium node scripts/browser-integrity-smoke.cjs`. It is a test-host tool, not a runtime dependency. Review its output and labels; do not reinterpret mocked races as live provider success.
 

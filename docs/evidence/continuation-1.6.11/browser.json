@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "at": "2026-10-06T15:04:14.855Z",
+  "at": "2026-10-06T15:14:06.719Z",
   "checks": [
     {
       "name": "real scan renders score and eight supply sources",
