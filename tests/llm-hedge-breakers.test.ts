@@ -56,3 +56,38 @@ test('already-settled reasoning-starved loser updates availability once', async 
   assert.equal(router.health().breakers[ROUTES.quality[1]], 'open')
   assert.equal(router.health().availability[ROUTES.quality[1]].reasoningExhausted, 1)
 })
+
+for (const status of [429, 503, 504, 404]) {
+  test(`losing hedge with observed HTTP ${status} headers and stalled body cannot lose safety state`, async () => {
+    let finishPrimary!: (response: Response) => void
+    let headersSeen!: () => void
+    const seen = new Promise<void>(resolve => { headersSeen = resolve })
+    const router = new ModelRouter({ apiKey: 'fake', hedgeAfterMs: 1,
+      breaker: { failureThreshold: 2, cooldownMs: 10, maxCooldownMs: 100 },
+      fetcher: (async (_url, init) => {
+        const model = JSON.parse(String(init?.body)).model
+        if (model === ROUTES.quality[0]) return new Promise<Response>(resolve => { finishPrimary = resolve })
+        const response = new Response('{}', { status, headers: { 'retry-after': '900' } })
+        // Mark the exact post-headers/pre-body boundary without timing sleeps.
+        response.json = () => { headersSeen(); return new Promise(() => {}) }
+        return response
+      }) as typeof fetch })
+    const work = router.complete({ messages, maxOutputTokens: 100 })
+    await seen
+    finishPrimary(answer())
+    const result = await work
+    assert.equal(result.ok, true)
+    const loser = ROUTES.quality[1]
+    assert.equal(router.health().breakers[loser], 'open', 'winning before body parse finishes must not erase observed error/backoff')
+    const attempt = result.attempts.find(a => a.model === loser)!
+    assert.equal(attempt.status, status)
+    assert.equal(attempt.billingUnknown, true, 'unparsed error-body billing remains unknown')
+    assert.equal(result.usage.knownTotalTokens, 15)
+    assert.equal(result.usage.reservedTokens, 248)
+    if (status === 404) assert.equal(router.health().availability[loser].refusals, 1)
+    const snapshot = JSON.stringify(result)
+    await new Promise(resolve => setTimeout(resolve, 1))
+    assert.equal(JSON.stringify(result), snapshot, 'late cancellation completion must not mutate or double-account the snapshot')
+    if (status === 404) assert.equal(router.health().availability[loser].refusals, 1)
+  })
+}

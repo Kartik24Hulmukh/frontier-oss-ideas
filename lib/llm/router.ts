@@ -246,6 +246,9 @@ function classify(status: number): AttemptOutcome {
   return 'bad_request'
 }
 
+/** Headers are already authoritative for failure/backoff even if body billing stalls. */
+interface AttemptObservation { failure?: { outcome: AttemptOutcome; status: number; retryAfter?: number } }
+
 interface Settled { id: ModelId; outcome: AttemptOutcome; status?: number; retryAfter?: number; text?: string; usage?: TokenUsage; reservation: number; dispatch: number; failoverMs?: number; hedged: boolean; end: number }
 
 interface ChatCompletion {
@@ -404,7 +407,7 @@ export class ModelRouter {
     let terminal: RouteResult['error'] | undefined
     // Process-local extra-attempt governor; distributed token admission is separate.
     let hedgeBlocked = !this.hedgingEnabled()
-    const inflight = new Map<ModelId, { controller: AbortController; dispatch: number; promise: Promise<Settled>; reservation: number; hedged: boolean; settled?: Settled }>()
+    const inflight = new Map<ModelId, { controller: AbortController; dispatch: number; promise: Promise<Settled>; reservation: number; hedged: boolean; observation: AttemptObservation; settled?: Settled }>()
     const perRequest = this.budget.config.perRequestTokens
     const maxOf = (id: ModelId) => Math.max(16, Math.min(req.maxOutputTokens ?? MODELS[id].maxOutputTokens, MODELS[id].maxOutputTokens))
     // Dispatch the next eligible model. A hedge never ends the request: if it cannot
@@ -437,9 +440,10 @@ export class ModelRouter {
         const failoverMs = hedge ? undefined : lastEnd === undefined ? undefined : dispatch - lastEnd
         const controller = new AbortController()
         const timeoutMs = Math.min(this.timeouts[id] ?? MODELS[id].timeoutMs, remaining)
-        const entry: { controller: AbortController; dispatch: number; reservation: number; hedged: boolean; promise: Promise<Settled>; settled?: Settled } = {
-          controller, dispatch, reservation, hedged: hedge,
-          promise: this.attempt(id, maxOf(id), req, promptTokens, reservation, timeoutMs, controller, dispatch, failoverMs, hedge),
+        const observation: AttemptObservation = {}
+        const entry: { controller: AbortController; dispatch: number; reservation: number; hedged: boolean; promise: Promise<Settled>; observation: AttemptObservation; settled?: Settled } = {
+          controller, dispatch, reservation, hedged: hedge, observation,
+          promise: this.attempt(id, maxOf(id), req, promptTokens, reservation, timeoutMs, controller, dispatch, failoverMs, hedge, observation),
         }
         entry.promise = entry.promise.then(result => { entry.settled = result; return result })
         inflight.set(id, entry)
@@ -483,7 +487,11 @@ export class ModelRouter {
         if (f.settled) record(f.settled)
         else {
           f.controller.abort(Object.assign(new Error('hedge lost'), { name: 'AbortError' }))
-          record({ id, outcome: 'hedge_cancelled', dispatch: f.dispatch, end: this.now(),
+          // Cancellation makes billing unknown, not an already-observed HTTP
+          // failure or its mandatory wait. Apply that known outcome exactly once.
+          const failure = f.observation.failure
+          record({ id, outcome: failure?.outcome ?? 'hedge_cancelled', status: failure?.status,
+            retryAfter: failure?.retryAfter, dispatch: f.dispatch, end: this.now(),
             hedged: f.hedged, reservation: f.reservation })
         }
         this.breakers.get(id)!.releaseProbe()
@@ -518,7 +526,7 @@ export class ModelRouter {
     return fail(terminal ?? 'all_models_failed')
   }
 
-  private async attempt(id: ModelId, maxOut: number, req: CompleteRequest, promptTokens: number, reservation: number, timeoutMs: number, controller: AbortController, dispatch: number, failoverMs: number | undefined, hedged: boolean): Promise<Settled> {
+  private async attempt(id: ModelId, maxOut: number, req: CompleteRequest, promptTokens: number, reservation: number, timeoutMs: number, controller: AbortController, dispatch: number, failoverMs: number | undefined, hedged: boolean, observation: AttemptObservation): Promise<Settled> {
     let outcome: AttemptOutcome = 'network_error'
     let status: number | undefined
     let retryAfter: number | undefined
@@ -540,6 +548,7 @@ export class ModelRouter {
       status = res.status
       outcome = res.ok ? 'empty' : classify(status)
       retryAfter = parseRetryAfter(res.headers.get('retry-after'), this.now)
+      if (!res.ok) observation.failure = { outcome, status, retryAfter }
       // Error usage is useful when present, but an endless error body must not delay failover.
       if (!res.ok) errorBodyTimer = setTimeout(() => controller.abort(Object.assign(new Error('error body timeout'), { name: 'TimeoutError' })), 25)
       let json: ChatCompletion | undefined
