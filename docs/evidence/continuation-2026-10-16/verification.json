@@ -1,0 +1,38 @@
+{
+  "scope": "local combined Next.js/router/readiness source snapshot; source hashes, not a deployment receipt",
+  "baseCommit": "bdebc3e9a395f1025a25237d69e59d95cd290c7c",
+  "sha256": {
+    "package.json": "539f463f6b5b521694cdfb01ff4ded8080697af2c3e8fd981e616d4a697f1636",
+    "package-lock.json": "797f65e4ac3e5c84d29d5667c9bbf6c68ce79ca931500c30bc7dfe3c92b6a066",
+    "pnpm-lock.yaml": "2976e954903403a35c67d9309694ca06e3252dc610b009b5faa7ee2e0dcbd160",
+    "lib/llm/router.ts": "2a93c239eb02baf302b493ce174ba9ae4aca1e5d621fda43b26fbe382ed8f04c",
+    "scripts/release-gate.mjs": "84bbedc113ede81dd6a15d67330890586805d2f0c08ce569c3de376b0ddb97bc",
+    "tests/llm-hedge-breakers.test.ts": "88ad432514c208c924f8faa63b472107f292d9606db272e4685266e816ed75c8",
+    "tests/release-gate.test.mjs": "bbd9448bef4597da01855e381e359adc2ddc27f61525f21409fb27b1233e59b5",
+    "tests/release-readiness.test.mjs": "b75d8f29ce1476ba207d9c974d1a3fc3fcbede9ebbf1e1c23ad5c75f84119edc"
+  },
+  "verification": {
+    "typecheck": "passed",
+    "build": "passed",
+    "typescriptTests": {
+      "total": 1697,
+      "passed": 1697,
+      "failed": 0,
+      "skipped": 0
+    },
+    "javascriptTests": {
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    "redis": "actual local Redis 7.4.6; not managed cloud"
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  }
+}

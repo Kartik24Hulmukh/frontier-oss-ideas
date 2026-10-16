@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { evaluateGate } from '../scripts/release-gate.mjs'
+import { evaluateGate as evaluateDeploymentGate } from '../scripts/release-gate.mjs'
+const readiness = { status: 200, body: { ready: true, scope: 'operational-dependencies-only', redis: 'healthy', receipts: { ready: true, signer: 'valid', issuerMatched: true, pinnedKeys: 1 } } }
+const evaluateGate = (health, scan, verification, strict = false, expectedBuild) => evaluateDeploymentGate(health, scan, verification, strict, expectedBuild, readiness)
 const sources = ['github', 'hackernews', 'arxiv', 'openalex', 'npm', 'pypi', 'huggingface', 'crates'].map(source => ({ source, status: 'ok', totalCount: 0 }))
 const health = { ok: true, version: 'test', admission: 'distributed-configured', credentials: { receiptPublicKeyPinned: true } }
 const scan = { query: 'test idea', score: 50, coverage: 100, capsule: { version: '1.2', modelVersion: 'crowding-1.4', sourceSummary: sources.map(s => ({ ...s })) }, sources, demand: { sources: ['reddit','stackoverflow','askhn'].map(source => ({ source, status: 'ok', totalCount: 0 })) } }

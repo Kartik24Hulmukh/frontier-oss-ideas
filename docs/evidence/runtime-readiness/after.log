@@ -1,0 +1,30 @@
+✔ strict gate accepts complete technical fixture (2.108851ms)
+✔ strict gate rejects per-instance admission and untrusted issuer (0.261243ms)
+✔ strict gate rejects anonymous fallback despite 100% coverage (0.213308ms)
+✔ gate rejects missing provenance, malformed score and broken digest (0.171102ms)
+✔ beta gate explicitly permits unprovisioned infrastructure, not strict gate (0.230009ms)
+✔ strict gate rejects enabled analyst with per-instance spending limits (0.177725ms)
+✔ strict gate rejects mirror demand even with 100% responding coverage (0.367544ms)
+✔ strict gate rejects lost or changed receipt-covered demand metadata (0.412024ms)
+✔ gate rejects duplicate sources, impossible coverage and unexpected deployment SHA (0.458122ms)
+✔ strict gate requires explicit primary Reddit provenance (0.316805ms)
+✔ strict gate rejects altered or missing receipt-covered supply provenance (0.574296ms)
+✔ strict gate rejects stale, future and cached snapshots or mismatched display (0.670936ms)
+✔ strict gate rejects enabled analyst with every breaker open or unobserved (0.287436ms)
+✔ strict breaker gate uses actual string-valued router health schema (0.169816ms)
+✔ strict gate fails closed when runtime readiness is absent despite healthy configuration (2.810749ms)
+✔ strict gate rejects unavailable, malformed and contradictory runtime readiness (1.445791ms)
+✔ strict live canary probes readiness and preserves a 503 as an explicit failed check (23.770696ms)
+✔ strict canary accepts valid readiness; beta does not imply or probe operational readiness (2.248246ms)
+✔ strict canary rejects unexpected readiness HTTP 401 without fallback (0.887234ms)
+✔ strict canary rejects unexpected readiness HTTP 404 without fallback (0.388228ms)
+✔ strict canary rejects unexpected readiness HTTP 429 without fallback (0.310122ms)
+✔ strict canary rejects unexpected readiness HTTP 500 without fallback (0.340026ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 180.069152

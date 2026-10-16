@@ -9,7 +9,7 @@ function exactSources(rows, ids, predicate = () => true) {
 }
 const healthy = s => s.status === 'ok' && !s.notice && s.provenance !== 'mirror'
 
-export function evaluateGate(health, scan, verification, strict = false, expectedBuild) {
+export function evaluateGate(health, scan, verification, strict = false, expectedBuild, readiness) {
   const checks = []
   const check = (name, passed, detail) => checks.push({ name, passed: Boolean(passed), detail })
   check('health', health?.ok === true, health?.version ?? 'missing version')
@@ -19,6 +19,8 @@ export function evaluateGate(health, scan, verification, strict = false, expecte
   check('receipt-integrity', verification?.digestMatches === true, 'Exported capsule must match receipt')
   check('snapshot-provenance', scan?.capsule?.version === '1.2' && Boolean(scan?.capsule?.modelVersion) && exactSources(scan?.capsule?.sourceSummary, supplyIds), 'Capsule 1.2 with model and eight source statuses')
   if (strict) {
+    const runtime = readiness?.body
+    check('operational-readiness', readiness?.status === 200 && runtime?.ready === true && runtime?.scope === 'operational-dependencies-only' && runtime?.redis === 'healthy' && runtime?.receipts?.ready === true && runtime?.receipts?.signer === 'valid' && runtime?.receipts?.issuerMatched === true && Number.isSafeInteger(runtime?.receipts?.pinnedKeys) && runtime.receipts.pinnedKeys > 0, 'Fresh /api/ready HTTP 200 with healthy Redis and a valid matching pinned signer; configuration-only liveness is insufficient')
     const age = Date.now() - Date.parse(scan?.capsule?.searchedAt)
     check('fresh-snapshot', scan?.cached !== true && Number.isFinite(age) && age >= -30_000 && age <= 120_000 && scan?.searchedAt === scan?.capsule?.searchedAt, 'Fresh, noncached receipt-covered snapshot; max age 120s, max clock skew 30s')
     check('snapshot-binding', scan?.capsule?.modelVersion === 'crowding-1.4' && ['query', 'score', 'coverage', 'confidence', 'verdict'].every(k => scan?.[k] === scan?.capsule?.[k]), 'Displayed query, score, confidence, coverage and verdict must match the approved model capsule')
@@ -44,16 +46,21 @@ export async function runGate(base, strict = false, expectedBuild) {
   const url = new URL(base)
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))) throw new Error('Use HTTPS (or local HTTP)')
   const origin = url.origin
-  async function req(path, body) {
+  async function req(path, body, readinessProbe = false) {
     const response = await fetch(origin + path, { method: body === undefined ? 'GET' : 'POST', headers: body === undefined ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000), redirect: 'error' })
-    if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`)
-    return response.json()
+    // Preserve the documented unavailable response as a failed readiness check,
+    // so the report still includes scan/provenance/tamper diagnostics. Other
+    // transport/status/JSON failures remain hard failures, never green defaults.
+    if (!response.ok && !(readinessProbe && response.status === 503)) throw new Error(`${path}: HTTP ${response.status}`)
+    const payload = await response.json()
+    return readinessProbe ? { status: response.status, body: payload } : payload
   }
   const health = await req('/api/health')
+  const readiness = strict ? await req('/api/ready', undefined, true) : undefined
   const scan = await req('/api/search', { query: 'AI code review agent', fresh: true })
   const verification = await req('/api/verify', { capsule: scan.capsule, receipt: scan.receipt })
   const tampered = await req('/api/verify', { capsule: { ...scan.capsule, score: 999 }, receipt: scan.receipt })
-  const result = evaluateGate(health, scan, verification, strict, expectedBuild)
+  const result = evaluateGate(health, scan, verification, strict, expectedBuild, readiness)
   result.checks.push({ name: 'tamper-rejected', passed: tampered.digestMatches === false && tampered.issuerTrusted !== true, detail: 'Modified score must not verify' })
   result.passed = result.checks.every((c) => c.passed)
   return { schemaVersion: 1, base: origin, checkedAt: new Date().toISOString(), mode: strict ? 'strict-technical' : 'beta', version: health.version, build: health.build ?? null, ...result, limitation: 'A canary is not a load test, external calibration, secret revocation, customer validation or commercial launch approval.' }

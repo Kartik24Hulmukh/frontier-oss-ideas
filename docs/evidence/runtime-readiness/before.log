@@ -1,0 +1,71 @@
+✖ strict gate fails closed when runtime readiness is absent despite healthy configuration (3.586225ms)
+✖ strict gate rejects unavailable, malformed and contradictory runtime readiness (1.501307ms)
+✖ strict live canary probes readiness and preserves a 503 as an explicit failed check (27.009393ms)
+✔ strict canary accepts valid readiness; beta does not imply or probe operational readiness (2.81583ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 158.00269
+
+✖ failing tests:
+
+test at tests/release-readiness.test.mjs:15:1
+✖ strict gate fails closed when runtime readiness is absent despite healthy configuration (3.586225ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///vercel/sandbox/data/work/readiness-repair/tests/release-readiness.test.mjs:16:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.start (node:internal/test_runner/test:1015:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/release-readiness.test.mjs:18:1
+✖ strict gate rejects unavailable, malformed and contradictory runtime readiness (1.501307ms)
+  AssertionError [ERR_ASSERTION]: {"status":503,"body":{"ready":true,"scope":"operational-dependencies-only","redis":"healthy","receipts":{"ready":true,"signer":"valid","issuerMatched":true,"pinnedKeys":1}}}
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///vercel/sandbox/data/work/readiness-repair/tests/release-readiness.test.mjs:28:33)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/release-readiness.test.mjs:52:1
+✖ strict live canary probes readiness and preserves a 503 as an explicit failed check (27.009393ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///vercel/sandbox/data/work/readiness-repair/tests/release-readiness.test.mjs:54:10)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
