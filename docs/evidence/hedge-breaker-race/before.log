@@ -1,0 +1,100 @@
+✖ already-settled losing hedge HTTP 429 still updates breaker and mandatory wait (46.246041ms)
+✖ already-settled losing hedge HTTP 503 still updates breaker and mandatory wait (11.087101ms)
+✖ already-settled losing hedge HTTP 504 still updates breaker and mandatory wait (7.150049ms)
+✖ already-settled losing hedge HTTP 404 still updates breaker and mandatory wait (6.16679ms)
+✖ already-settled reasoning-starved loser updates availability once (5.425238ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 294.002729
+
+✖ failing tests:
+
+test at tests/llm-hedge-breakers.test.ts:9:3
+✖ already-settled losing hedge HTTP 429 still updates breaker and mandatory wait (46.246041ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/repo/tests/llm-hedge-breakers.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:9:3
+✖ already-settled losing hedge HTTP 503 still updates breaker and mandatory wait (11.087101ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/repo/tests/llm-hedge-breakers.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:9:3
+✖ already-settled losing hedge HTTP 504 still updates breaker and mandatory wait (7.150049ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/repo/tests/llm-hedge-breakers.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:9:3
+✖ already-settled losing hedge HTTP 404 still updates breaker and mandatory wait (6.16679ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/repo/tests/llm-hedge-breakers.test.ts:31:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:42:1
+✖ already-settled reasoning-starved loser updates availability once (5.425238ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/repo/tests/llm-hedge-breakers.test.ts:56:10)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
