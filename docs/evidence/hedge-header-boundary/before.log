@@ -1,0 +1,87 @@
+✔ already-settled losing hedge HTTP 429 still updates breaker and mandatory wait (26.965491ms)
+✔ already-settled losing hedge HTTP 503 still updates breaker and mandatory wait (5.41596ms)
+✔ already-settled losing hedge HTTP 504 still updates breaker and mandatory wait (3.350082ms)
+✔ already-settled losing hedge HTTP 404 still updates breaker and mandatory wait (4.855091ms)
+✔ already-settled reasoning-starved loser updates availability once (3.003733ms)
+✖ losing hedge with observed HTTP 429 headers and stalled body cannot lose safety state (2.664581ms)
+✖ losing hedge with observed HTTP 503 headers and stalled body cannot lose safety state (3.161364ms)
+✖ losing hedge with observed HTTP 504 headers and stalled body cannot lose safety state (1.874722ms)
+✖ losing hedge with observed HTTP 404 headers and stalled body cannot lose safety state (2.051613ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 5
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 237.546962
+
+✖ failing tests:
+
+test at tests/llm-hedge-breakers.test.ts:61:3
+✖ losing hedge with observed HTTP 429 headers and stalled body cannot lose safety state (2.664581ms)
+  AssertionError [ERR_ASSERTION]: winning before body parse finishes must not erase observed error/backoff
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/integrated-verification/tests/llm-hedge-breakers.test.ts:81:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:61:3
+✖ losing hedge with observed HTTP 503 headers and stalled body cannot lose safety state (3.161364ms)
+  AssertionError [ERR_ASSERTION]: winning before body parse finishes must not erase observed error/backoff
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/integrated-verification/tests/llm-hedge-breakers.test.ts:81:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:61:3
+✖ losing hedge with observed HTTP 504 headers and stalled body cannot lose safety state (1.874722ms)
+  AssertionError [ERR_ASSERTION]: winning before body parse finishes must not erase observed error/backoff
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/integrated-verification/tests/llm-hedge-breakers.test.ts:81:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/llm-hedge-breakers.test.ts:61:3
+✖ losing hedge with observed HTTP 404 headers and stalled body cannot lose safety state (2.051613ms)
+  AssertionError [ERR_ASSERTION]: winning before body parse finishes must not erase observed error/backoff
+  
+  'closed' !== 'open'
+  
+      at TestContext.<anonymous> (/vercel/sandbox/data/work/integrated-verification/tests/llm-hedge-breakers.test.ts:81:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'closed',
+    expected: 'open',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

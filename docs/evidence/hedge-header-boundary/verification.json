@@ -1,0 +1,30 @@
+{
+  "scope": "local combined final cancellation-boundary repair; not production evidence",
+  "baseCommit": "f7e36fee3ffe986c9a2e18d85864b501340bc62b",
+  "sha256": {
+    "package.json": "539f463f6b5b521694cdfb01ff4ded8080697af2c3e8fd981e616d4a697f1636",
+    "package-lock.json": "797f65e4ac3e5c84d29d5667c9bbf6c68ce79ca931500c30bc7dfe3c92b6a066",
+    "pnpm-lock.yaml": "2976e954903403a35c67d9309694ca06e3252dc610b009b5faa7ee2e0dcbd160",
+    "lib/llm/router.ts": "962b4ac6925c0afc35d94cad197c40e0de1b1ea97f47273c0daa2b5cfb261fa6",
+    "scripts/release-gate.mjs": "84bbedc113ede81dd6a15d67330890586805d2f0c08ce569c3de376b0ddb97bc",
+    "tests/llm-hedge-breakers.test.ts": "1f7c6577a84ba77842ccd8694acbc935597a9d22bd0a4ae90d33686382a889a0",
+    "tests/release-gate.test.mjs": "bbd9448bef4597da01855e381e359adc2ddc27f61525f21409fb27b1233e59b5",
+    "tests/release-readiness.test.mjs": "b75d8f29ce1476ba207d9c974d1a3fc3fcbede9ebbf1e1c23ad5c75f84119edc"
+  },
+  "typecheck": "passed",
+  "build": "passed",
+  "typescriptTests": {
+    "total": 1701,
+    "passed": 1701,
+    "failed": 0,
+    "skipped": 0
+  },
+  "javascriptTests": {
+    "total": 22,
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0
+  },
+  "redis": "actual loopback-only Redis 7.4.6, not managed cloud",
+  "billing": "unparsed responses remain unknown; reservations not refunded"
+}
