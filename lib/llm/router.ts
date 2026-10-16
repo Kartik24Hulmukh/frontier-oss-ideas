@@ -463,13 +463,24 @@ export class ModelRouter {
       usage.knownTotalTokens = usage.knownPromptTokens! + usage.knownCompletionTokens!
       if (!billed.complete) { usage.unknownAttempts!++; usage.complete = false; usage.estimated = true }
       this.hedgeController.observe(settled.id, attempt.latencyMs, settled.outcome)
+      // Every recorded settlement updates model safety state exactly once,
+      // including a failed hedge that settled in the winner's race turn.
+      // Winning another model must never erase a provider-mandated wait.
+      const breaker = this.breakers.get(settled.id)!
+      const outcome = settled.outcome
+      if (outcome === 'ok') breaker.success()
+      else if (outcome === 'rate_limited') breaker.failure(settled.retryAfter, true)
+      else if (outcome === 'model_unavailable') { breaker.failure(300_000, true); this.noteRefusal(settled.id) }
+      else if (outcome === 'reasoning_exhausted') { breaker.failure(); this.noteStarvation(settled.id) }
+      else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure(settled.retryAfter)
+      else breaker.releaseProbe()
       attempts.push(attempt)
       return attempt
     }
     const cancelLosers = () => {
       for (const [id, f] of inflight) {
         // Another promise may already have settled in this race turn. Preserve its known charge.
-        if (f.settled) { record(f.settled); if (f.settled.outcome === 'ok') this.breakers.get(id)!.success() }
+        if (f.settled) record(f.settled)
         else {
           f.controller.abort(Object.assign(new Error('hedge lost'), { name: 'AbortError' }))
           record({ id, outcome: 'hedge_cancelled', dispatch: f.dispatch, end: this.now(),
@@ -491,22 +502,15 @@ export class ModelRouter {
       if (hedgeTimer) clearTimeout(hedgeTimer)
       if (settled === 'hedge') { if (!launch(true)) hedgeBlocked = true; continue }
       inflight.delete(settled.id)
-      const breaker = this.breakers.get(settled.id)!
       const attempt = record(settled)
       if (settled.outcome === 'ok' && settled.text) {
-        breaker.success()
         usage.winnerUsage = attempt.usage
         cancelLosers()
         return { ok: true, text: settled.text, model: settled.id, attempts, usage, maxFailoverMs: Math.max(0, ...attempts.map((a) => a.failoverMs ?? 0)) }
       }
       lastEnd = settled.end
       const outcome = settled.outcome
-      if (outcome === 'auth_error') { breaker.releaseProbe(); cancelLosers(); return fail('auth_error') }
-      if (outcome === 'bad_request') breaker.releaseProbe()
-      if (outcome === 'rate_limited') breaker.failure(settled.retryAfter, true)
-      else if (outcome === 'model_unavailable') { breaker.failure(300_000, true); this.noteRefusal(settled.id) }
-      else if (outcome === 'reasoning_exhausted') { breaker.failure(); this.noteStarvation(settled.id) }
-      else if (outcome === 'server_error' || outcome === 'timeout' || outcome === 'network_error' || outcome === 'empty') breaker.failure(settled.retryAfter)
+      if (outcome === 'auth_error') { cancelLosers(); return fail('auth_error') }
       // Failover never sleeps: a settled failure dispatches the next model at once.
       if (inflight.size === 0) launch(false)
       else if (inflight.size < 2 && !hedgeBlocked) launch(true)
